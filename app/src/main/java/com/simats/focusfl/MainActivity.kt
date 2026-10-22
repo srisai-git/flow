@@ -21,7 +21,7 @@ class MainActivity : ComponentActivity() {
             FocusFlTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Greeting(
-                        name = "Android",
+                        name = "srisai",
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
