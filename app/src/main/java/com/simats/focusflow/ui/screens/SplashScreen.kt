@@ -10,17 +10,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.simats.focusflow.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
 fun SplashScreen(onTimeout: () -> Unit) {
-    val scaleAnim = remember { Animatable(0.6f) }
-    val alphaAnim = remember { Animatable(0f) }
+    val isPreview = LocalInspectionMode.current
+    val scaleAnim = remember { Animatable(if (isPreview) 1f else 0.6f) }
+    val alphaAnim = remember { Animatable(if (isPreview) 1f else 0f) }
 
     LaunchedEffect(Unit) {
         launch {
@@ -56,16 +58,14 @@ fun SplashScreen(onTimeout: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF070510)), // Dark aesthetic matching logo
+            .background(Color(0xFF070510)),
         contentAlignment = Alignment.Center
     ) {
         Image(
-            painter = painterResource(id = R.drawable.splash_logo),
-            contentDescription = "Splash Screen Logo",
-            contentScale = ContentScale.Fit,
+            painter = painterResource(id = R.drawable.app_logo),
+            contentDescription = "FocusFlow Logo",
             modifier = Modifier
-                .fillMaxWidth(0.85f)
-                .aspectRatio(1f)
+                .size(180.dp)
                 .scale(scaleAnim.value * pulseScale)
                 .alpha(alphaAnim.value)
         )

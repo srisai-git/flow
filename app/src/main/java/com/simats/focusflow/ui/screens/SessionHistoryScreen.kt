@@ -9,7 +9,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -48,50 +47,33 @@ fun SessionHistoryScreen(onBack: () -> Unit = {}, onSearch: () -> Unit = {}, onS
         Box(modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(16.dp)).border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(16.dp)).padding(24.dp)) {
             Column {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("05–11 Oct 2026", fontSize = 14.sp, color = Color(0xFF6B7280))
-                    Text("20 sample sessions", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
+                    Text(if (selectedTab == "Week") "05–11 Oct 2026" else "October 2026", fontSize = 14.sp, color = Color(0xFF6B7280))
+                    Text(if (selectedTab == "Week") "20 sessions" else "84 sessions", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
                 }
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("12h 30m", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
+                Text(if (selectedTab == "Week") "12h 30m" else "54h 15m", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Archived sample week · 750 focused minutes", fontSize = 14.sp, color = Color(0xFF6B7280))
+                Text(if (selectedTab == "Week") "Archived week · 750 focused minutes" else "Archived month · 3,255 focused minutes", fontSize = 14.sp, color = Color(0xFF6B7280))
             }
         }
         
         Spacer(modifier = Modifier.height(24.dp))
-        Text("Latest preview · outside this week", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
+        Text("Recent history", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
         Spacer(modifier = Modifier.height(16.dp))
         
-        Box(modifier = Modifier.fillMaxWidth().background(Color(0xFFF3E8FF), RoundedCornerShape(16.dp)).clickable { onSessionClick() }.padding(24.dp)) {
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.background(Color(0xFFE1FAF9), RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 4.dp)) {
-                        Text("Unsaved preview", color = Color(0xFF7158E2), fontSize = 12.sp, fontWeight = FontWeight.Medium)
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text("12 Oct · 25 min", fontSize = 14.sp, color = Color(0xFF6B7280))
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Text("Study machine learning", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
-                Spacer(modifier = Modifier.height(12.dp))
-                Text("1 interruption · Focus 4/5 · View details →", fontSize = 14.sp, color = Color(0xFF6B7280))
-                Spacer(modifier = Modifier.height(12.dp))
-                Text("Not included in the 20 sessions or weekly totals.", fontSize = 12.sp, color = Color(0xFF0D9488))
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        Text("Recent archived samples", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        val archived = listOf(
+        val archived = if (selectedTab == "Week") listOf(
             Triple("Sun 11 Oct · 09:00", "Study machine learning", "30 min"),
             Triple("Sat 10 Oct · 10:00", "Practice Python", "45 min"),
             Triple("Fri 09 Oct · 14:00", "Finish project UI", "35 min")
+        ) else listOf(
+            Triple("Week 4 (19–25 Oct)", "Monthly Project Focus", "14h 30m"),
+            Triple("Week 3 (12–18 Oct)", "Coding & Practice", "15h 15m"),
+            Triple("Week 2 (05–11 Oct)", "Study & Prep", "12h 30m"),
+            Triple("Week 1 (01–04 Oct)", "Planning & Review", "12h 00m")
         )
         
         archived.forEach { item ->
-            Box(modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(16.dp)).border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(16.dp)).padding(24.dp).padding(bottom = 8.dp)) {
+            Box(modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(16.dp)).border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(16.dp)).padding(24.dp).clickable { onSessionClick() }) {
                 Column {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(item.first, fontSize = 14.sp, color = Color(0xFF6B7280))
@@ -100,7 +82,7 @@ fun SessionHistoryScreen(onBack: () -> Unit = {}, onSearch: () -> Unit = {}, onS
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(item.second, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("0 interruptions · Focus 4/5", fontSize = 14.sp, color = Color(0xFF6B7280))
+                    Text("Focus 4/5 · View details →", fontSize = 14.sp, color = Color(0xFF7158E2))
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))

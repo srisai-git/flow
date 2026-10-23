@@ -58,25 +58,14 @@ fun InsightsScreen(
         ) {
             Spacer(modifier = Modifier.height(48.dp))
             
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
-                Text("Your productivity\npatterns", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24), lineHeight = 40.sp)
-                Canvas(modifier = Modifier.size(24.dp).padding(top = 8.dp)) {
-                    val radius = 2.dp.toPx()
-                    val c = Color(0xFF1E1E24)
-                    drawCircle(c, radius, Offset(size.width*0.2f, size.height/2))
-                    drawCircle(c, radius, Offset(size.width/2, size.height/2))
-                    drawCircle(c, radius, Offset(size.width*0.8f, size.height/2))
-                }
-            }
+            Text("Insights", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
             
             Spacer(modifier = Modifier.height(16.dp))
             
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(modifier = Modifier.background(Color(0xFFE1FAF9), RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 4.dp)) {
-                    Text("Sample data", color = Color(0xFF0D9488), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                    Text(if (selectedTab == "Week") "05–11 Oct 2026" else "October 2026", color = Color(0xFF0D9488), fontSize = 12.sp, fontWeight = FontWeight.Medium)
                 }
-                Spacer(modifier = Modifier.width(12.dp))
-                Text("05–11 Oct 2026", fontSize = 14.sp, color = Color(0xFF6B7280))
             }
             
             Spacer(modifier = Modifier.height(24.dp))
@@ -90,26 +79,26 @@ fun InsightsScreen(
                 Column {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                         Column {
-                            Text("12h 30m", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
-                            Text("recorded focus time", fontSize = 14.sp, color = Color(0xFF6B7280))
+                            Text(if (selectedTab == "Week") "12h 30m" else "54h 15m", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
+                            Text(if (selectedTab == "Week") "recorded focus time this week" else "recorded focus time this month", fontSize = 14.sp, color = Color(0xFF6B7280))
                         }
-                        Text("Minutes / day", fontSize = 14.sp, color = Color(0xFF0D9488), fontWeight = FontWeight.Medium, modifier = Modifier.padding(top = 8.dp))
+                        Text(if (selectedTab == "Week") "Minutes / day" else "Minutes / week", fontSize = 14.sp, color = Color(0xFF0D9488), fontWeight = FontWeight.Medium, modifier = Modifier.padding(top = 8.dp))
                     }
                     
                     Spacer(modifier = Modifier.height(24.dp))
                     
                     // Simple Bar Chart
-                    val data = listOf(90, 120, 135, 150, 105, 90, 60)
-                    val days = listOf("M", "T", "W", "T", "F", "S", "S")
-                    val maxVal = 150f
+                    val data = if (selectedTab == "Week") listOf(90, 120, 135, 150, 105, 90, 60) else listOf(720, 915, 840, 780)
+                    val days = if (selectedTab == "Week") listOf("M", "T", "W", "T", "F", "S", "S") else listOf("W1", "W2", "W3", "W4")
+                    val maxVal = if (selectedTab == "Week") 150f else 915f
                     
                     Row(modifier = Modifier.fillMaxWidth().height(150.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
                         data.forEachIndexed { index, value ->
                             val heightRatio = value / maxVal
                             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Bottom, modifier = Modifier.fillMaxHeight()) {
-                                Text("$value", fontSize = 10.sp, color = Color(0xFF9CA3AF))
+                                Text(if (selectedTab == "Week") "$value m" else "${value/60}h", fontSize = 10.sp, color = Color(0xFF9CA3AF))
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Box(modifier = Modifier.width(24.dp).fillMaxHeight(heightRatio).background(Color(0xFF4FD1C5), RoundedCornerShape(4.dp)))
+                                Box(modifier = Modifier.width(if (selectedTab == "Week") 24.dp else 40.dp).fillMaxHeight(heightRatio).background(Color(0xFF4FD1C5), RoundedCornerShape(4.dp)))
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(days[index], fontSize = 12.sp, color = Color(0xFF6B7280))
                             }
@@ -124,18 +113,18 @@ fun InsightsScreen(
             Box(modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(16.dp)).border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(16.dp)).padding(24.dp)) {
                 Row(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("20", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
-                        Text("sessions this week", fontSize = 12.sp, color = Color(0xFF6B7280))
+                        Text(if (selectedTab == "Week") "20" else "84", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
+                        Text(if (selectedTab == "Week") "sessions this week" else "sessions this month", fontSize = 12.sp, color = Color(0xFF6B7280))
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("75%", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
-                        Text("tasks · 18 of 24", fontSize = 12.sp, color = Color(0xFF6B7280))
+                        Text(if (selectedTab == "Week") "75%" else "82%", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
+                        Text(if (selectedTab == "Week") "tasks · 18 of 24" else "tasks · 78 of 95", fontSize = 12.sp, color = Color(0xFF6B7280))
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("37.5m", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
+                        Text(if (selectedTab == "Week") "37.5m" else "38.7m", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
                         Text("average duration", fontSize = 12.sp, color = Color(0xFF6B7280))
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("Thu", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
-                        Text("best day · 2h 30m", fontSize = 12.sp, color = Color(0xFF6B7280))
+                        Text(if (selectedTab == "Week") "Thu" else "W2", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
+                        Text(if (selectedTab == "Week") "best day · 2h 30m" else "best week · 15h 15m", fontSize = 12.sp, color = Color(0xFF6B7280))
                     }
                 }
             }

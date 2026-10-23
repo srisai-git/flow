@@ -26,7 +26,7 @@ fun PlanNextDayScreen(onBack: () -> Unit = {}, onReviewTasks: () -> Unit = {}) {
         Spacer(modifier = Modifier.height(24.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(modifier = Modifier.background(Color(0xFFE1FAF9), RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 4.dp)) {
-                Text("Sample data · demo estimate", color = Color(0xFF0D9488), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                Text("Estimated routine", color = Color(0xFF0D9488), fontSize = 12.sp, fontWeight = FontWeight.Medium)
             }
             Spacer(modifier = Modifier.width(12.dp))
             Text("05–11 Oct 2026", fontSize = 14.sp, color = Color(0xFF6B7280))

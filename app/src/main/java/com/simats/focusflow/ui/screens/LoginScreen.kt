@@ -1,10 +1,11 @@
 package com.simats.focusflow.ui.screens
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -14,12 +15,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.simats.focusflow.ui.components.AppLogo
+import com.simats.focusflow.R
 import com.simats.focusflow.ui.components.CustomTopBar
 
 @Composable
@@ -29,7 +31,7 @@ fun LoginScreen(
     onForgotPassword: () -> Unit = {},
     onCreateAccount: () -> Unit = {}
 ) {
-    var email by remember { mutableStateOf("alex.morgan@example.com") }
+    var email by remember { mutableStateOf("sri.sai@example.com") }
     var password by remember { mutableStateOf("password123") }
 
     Column(
@@ -40,17 +42,27 @@ fun LoginScreen(
     ) {
         CustomTopBar(
             title = "Welcome back",
-            subtitle = "YOUR ATTENTION, INTENTIONALLY",
             onBack = onBack
         )
         
         Spacer(modifier = Modifier.height(32.dp))
         
         Row(verticalAlignment = Alignment.CenterVertically) {
-            AppLogo(size = 32.dp)
-            Spacer(modifier = Modifier.width(12.dp))
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(Color(0xFF070510), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.app_logo),
+                    contentDescription = "Logo",
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(10.dp))
             Text(
-                text = "FocusFlow AI",
+                text = "Flow",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF1E1E24)
@@ -81,8 +93,6 @@ fun LoginScreen(
             ),
             singleLine = true
         )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(text = "Use an email address or +91 mobile number.", fontSize = 12.sp, color = Color(0xFF9CA3AF))
         
         Spacer(modifier = Modifier.height(24.dp))
         
@@ -164,24 +174,9 @@ fun LoginScreen(
         
         Spacer(modifier = Modifier.weight(1f))
         
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(16.dp))
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "Demo only. Use fictional details; no account is authenticated.",
-                fontSize = 14.sp,
-                color = Color(0xFF6B7280)
-            )
-        }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             Text(
-                text = "New to FocusFlow? Create an account",
+                text = "New to Flow? Create an account",
                 color = Color(0xFF7158E2),
                 fontSize = 14.sp,
                 modifier = Modifier.clickable { onCreateAccount() }

@@ -99,11 +99,6 @@ fun DailyFocusGoalScreen(onBack: () -> Unit = {}, onSave: () -> Unit = {}) {
         Spacer(modifier = Modifier.height(8.dp))
         Text("Monday–Friday selected", fontSize = 12.sp, color = Color(0xFF6B7280))
         
-        Spacer(modifier = Modifier.height(24.dp))
-        Box(modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(16.dp)).border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(16.dp)).padding(16.dp)) {
-            Text("Goal progress uses focused minutes ÷ daily target. Home shows a rounded percentage.", fontSize = 14.sp, color = Color(0xFF6B7280))
-        }
-        
         Spacer(modifier = Modifier.height(32.dp))
         Button(onClick = onSave, modifier = Modifier.fillMaxWidth().height(56.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7158E2)), shape = RoundedCornerShape(16.dp)) {
             Text("Save changes", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)

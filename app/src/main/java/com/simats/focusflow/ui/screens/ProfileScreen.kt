@@ -1,5 +1,6 @@
 package com.simats.focusflow.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.simats.focusflow.ui.components.BottomNavBar
@@ -26,10 +28,13 @@ fun ProfileScreen(
     onNavigateToNotifications: () -> Unit = {},
     onNavigateToDataAi: () -> Unit = {},
     onNavigateToDailyGoal: () -> Unit = {},
-    onNavigateToExport: () -> Unit = {}
+    onNavigateToExport: () -> Unit = {},
+    onNavigateToAboutFlow: () -> Unit = {},
+    onLogout: () -> Unit = {}
 ) {
-    var userName by remember { mutableStateOf("Alex Morgan") }
-    var userRole by remember { mutableStateOf("B.Sc. AI & Data Science · demo profile") }
+    var userName by remember { mutableStateOf("Sri Sai") }
+    var userRole by remember { mutableStateOf("B.Sc. AI & Data Science") }
+    var userDp by remember { mutableStateOf("👤") }
     var selectedTheme by remember { mutableStateOf("Light · default") }
     var selectedDuration by remember { mutableStateOf("45 minutes") }
 
@@ -38,7 +43,8 @@ fun ProfileScreen(
     var showDurationDialog by remember { mutableStateOf(false) }
     var showPrivacyDialog by remember { mutableStateOf(false) }
     var showResetDialog by remember { mutableStateOf(false) }
-    var showAboutDialog by remember { mutableStateOf(false) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
+    
     val snackbarHostState = remember { SnackbarHostState() }
     var snackbarMessage by remember { mutableStateOf<String?>(null) }
 
@@ -81,9 +87,6 @@ fun ProfileScreen(
                     Spacer(modifier = Modifier.height(4.dp))
                     Text("PROFILE & SETTINGS", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFF9CA3AF))
                 }
-                IconButton(onClick = { showEditProfileDialog = true }) {
-                    Text("•••", fontSize = 24.sp, color = Color(0xFF1E1E24))
-                }
             }
             
             Spacer(modifier = Modifier.height(32.dp))
@@ -101,7 +104,7 @@ fun ProfileScreen(
                         .background(Color(0xFFF3E8FF), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("👤", fontSize = 32.sp, color = Color(0xFF7158E2))
+                    Text(userDp, fontSize = 32.sp)
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
@@ -127,7 +130,7 @@ fun ProfileScreen(
             SettingsBlock(
                 items = listOf(
                     SettingItemData("🔔", "Notifications & Reminders", "Manage alerts & prompts", onNavigateToNotifications),
-                    SettingItemData("⚏", "Data & AI Preferences", "Privacy & analytics settings", onNavigateToDataAi),
+                    SettingItemData("⚏", "Data & Groot AI Preferences", "Privacy & analytics settings", onNavigateToDataAi),
                     SettingItemData("🛡", "Privacy", "Your records, your control.") { showPrivacyDialog = true }
                 )
             )
@@ -137,10 +140,27 @@ fun ProfileScreen(
             SettingsBlock(
                 items = listOf(
                     SettingItemData("↓", "Export productivity data", "CSV · choose records to include", onNavigateToExport),
-                    SettingItemData("↺", "Reset sample data", "Restore fictional demo records") { showResetDialog = true },
-                    SettingItemData("ⓘ", "About FocusFlow AI", "Academic design concept · v1.0") { showAboutDialog = true }
+                    SettingItemData("↺", "Reset sample data", "Restore initial sample records") { showResetDialog = true },
+                    SettingItemData("ⓘ", "About Flow", "Productivity assistant · v1.0.0", onNavigateToAboutFlow)
                 )
             )
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            Button(
+                onClick = { showLogoutDialog = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFFEF2F2),
+                    contentColor = Color(0xFFDC2626)
+                ),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, Color(0xFFFCA5A5))
+            ) {
+                Text("Log Out", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFDC2626))
+            }
             
             Spacer(modifier = Modifier.height(64.dp))
         }
@@ -149,26 +169,74 @@ fun ProfileScreen(
     if (showEditProfileDialog) {
         var tempName by remember { mutableStateOf(userName) }
         var tempRole by remember { mutableStateOf(userRole) }
+        var tempDp by remember { mutableStateOf(userDp) }
+        val avatarOptions = listOf("👤", "🎓", "💻", "🎨", "🚀", "⚡", "🧠", "🔥")
 
         AlertDialog(
+            containerColor = Color.White,
+            titleContentColor = Color(0xFF1E1E24),
+            textContentColor = Color(0xFF1E1E24),
             onDismissRequest = { showEditProfileDialog = false },
-            title = { Text("Edit Profile", fontWeight = FontWeight.Bold) },
+            title = { Text("Edit Profile", fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Update your profile information.", fontSize = 14.sp, color = Color(0xFF6B7280))
+                    Text("Choose Profile Picture (DP):", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1E1E24))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        avatarOptions.take(4).forEach { avatar ->
+                            Box(
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .background(if (tempDp == avatar) Color(0xFFF0EDFF) else Color(0xFFF3F4F6), CircleShape)
+                                    .border(1.dp, if (tempDp == avatar) Color(0xFF7158E2) else Color.Transparent, CircleShape)
+                                    .clickable { tempDp = avatar },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(avatar, fontSize = 22.sp)
+                            }
+                        }
+                    }
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        avatarOptions.drop(4).forEach { avatar ->
+                            Box(
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .background(if (tempDp == avatar) Color(0xFFF0EDFF) else Color(0xFFF3F4F6), CircleShape)
+                                    .border(1.dp, if (tempDp == avatar) Color(0xFF7158E2) else Color.Transparent, CircleShape)
+                                    .clickable { tempDp = avatar },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(avatar, fontSize = 22.sp)
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = tempName,
                         onValueChange = { tempName = it },
-                        label = { Text("Name") },
+                        label = { Text("Name", color = Color(0xFF6B7280)) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color(0xFF1E1E24),
+                            unfocusedTextColor = Color(0xFF1E1E24)
+                        )
                     )
                     OutlinedTextField(
                         value = tempRole,
                         onValueChange = { tempRole = it },
-                        label = { Text("Role / Major") },
+                        label = { Text("Role / Major", color = Color(0xFF6B7280)) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color(0xFF1E1E24),
+                            unfocusedTextColor = Color(0xFF1E1E24)
+                        )
                     )
                 }
             },
@@ -177,12 +245,13 @@ fun ProfileScreen(
                     onClick = {
                         if (tempName.isNotBlank()) userName = tempName
                         if (tempRole.isNotBlank()) userRole = tempRole
+                        userDp = tempDp
                         showEditProfileDialog = false
                         snackbarMessage = "Profile updated successfully!"
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7158E2))
                 ) {
-                    Text("Save")
+                    Text("Save", color = Color.White)
                 }
             },
             dismissButton = {
@@ -196,8 +265,11 @@ fun ProfileScreen(
     if (showThemeDialog) {
         val themes = listOf("Light · default", "Dark mode", "System default")
         AlertDialog(
+            containerColor = Color.White,
+            titleContentColor = Color(0xFF1E1E24),
+            textContentColor = Color(0xFF1E1E24),
             onDismissRequest = { showThemeDialog = false },
-            title = { Text("Select Theme", fontWeight = FontWeight.Bold) },
+            title = { Text("Select Theme", fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24)) },
             text = {
                 Column {
                     themes.forEach { theme ->
@@ -238,8 +310,11 @@ fun ProfileScreen(
     if (showDurationDialog) {
         val durations = listOf("25 minutes (Pomodoro)", "45 minutes (Standard)", "60 minutes (Deep Focus)", "90 minutes (Extended)")
         AlertDialog(
+            containerColor = Color.White,
+            titleContentColor = Color(0xFF1E1E24),
+            textContentColor = Color(0xFF1E1E24),
             onDismissRequest = { showDurationDialog = false },
-            title = { Text("Default Focus Duration", fontWeight = FontWeight.Bold) },
+            title = { Text("Default Focus Duration", fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24)) },
             text = {
                 Column {
                     durations.forEach { duration ->
@@ -279,14 +354,17 @@ fun ProfileScreen(
 
     if (showPrivacyDialog) {
         AlertDialog(
+            containerColor = Color.White,
+            titleContentColor = Color(0xFF1E1E24),
+            textContentColor = Color(0xFF1E1E24),
             onDismissRequest = { showPrivacyDialog = false },
-            title = { Text("Privacy & Security", fontWeight = FontWeight.Bold) },
+            title = { Text("Privacy & Security", fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Your privacy is guaranteed:", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    Text("Your privacy is guaranteed:", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color(0xFF1E1E24))
                     Text("• All session logs, tasks, and notes are stored locally on your device.", fontSize = 14.sp, color = Color(0xFF4B5563))
                     Text("• No personal data is transmitted to external servers without explicit consent.", fontSize = 14.sp, color = Color(0xFF4B5563))
-                    Text("• AI recommendations run locally using private parameters.", fontSize = 14.sp, color = Color(0xFF4B5563))
+                    Text("• Groot AI Assistant runs private parameters locally.", fontSize = 14.sp, color = Color(0xFF4B5563))
                     Text("• You can export or delete your history at any time.", fontSize = 14.sp, color = Color(0xFF4B5563))
                 }
             },
@@ -295,7 +373,7 @@ fun ProfileScreen(
                     onClick = { showPrivacyDialog = false },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7158E2))
                 ) {
-                    Text("Understood")
+                    Text("Understood", color = Color.White)
                 }
             }
         )
@@ -303,11 +381,14 @@ fun ProfileScreen(
 
     if (showResetDialog) {
         AlertDialog(
+            containerColor = Color.White,
+            titleContentColor = Color(0xFF1E1E24),
+            textContentColor = Color(0xFF1E1E24),
             onDismissRequest = { showResetDialog = false },
-            title = { Text("Reset Sample Data?", fontWeight = FontWeight.Bold) },
+            title = { Text("Reset Sample Data?", fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24)) },
             text = {
                 Text(
-                    "This action will restore all fictional sample focus records, demo tasks, and weekly stats to their initial state.",
+                    "This action will restore all sample focus records, tasks, and weekly stats to their initial state.",
                     fontSize = 14.sp,
                     color = Color(0xFF4B5563)
                 )
@@ -320,7 +401,7 @@ fun ProfileScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
                 ) {
-                    Text("Reset Data")
+                    Text("Reset Data", color = Color.White)
                 }
             },
             dismissButton = {
@@ -331,26 +412,34 @@ fun ProfileScreen(
         )
     }
 
-    if (showAboutDialog) {
+    if (showLogoutDialog) {
         AlertDialog(
-            onDismissRequest = { showAboutDialog = false },
-            title = { Text("About FocusFlow AI", fontWeight = FontWeight.Bold) },
+            containerColor = Color.White,
+            titleContentColor = Color(0xFF1E1E24),
+            textContentColor = Color(0xFF1E1E24),
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("Log Out?", fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24)) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("FocusFlow AI v1.0.0", fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Color(0xFF7158E2))
-                    Text("Smart Productivity & Focus Assistant", fontSize = 14.sp, color = Color(0xFF1E1E24))
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("Designed as an academic project for focus session tracking, intelligent distraction management, and pattern analysis.", fontSize = 14.sp, color = Color(0xFF4B5563))
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("Built with Kotlin & Jetpack Compose.", fontSize = 12.sp, color = Color(0xFF9CA3AF))
-                }
+                Text(
+                    "Are you sure you want to log out of your account?",
+                    fontSize = 14.sp,
+                    color = Color(0xFF4B5563)
+                )
             },
             confirmButton = {
                 Button(
-                    onClick = { showAboutDialog = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7158E2))
+                    onClick = {
+                        showLogoutDialog = false
+                        onLogout()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
                 ) {
-                    Text("Close")
+                    Text("Log Out", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) {
+                    Text("Cancel", color = Color(0xFF6B7280))
                 }
             }
         )
@@ -401,4 +490,10 @@ fun SettingsBlock(items: List<SettingItemData>) {
             }
         }
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ProfileScreenPreview() {
+    ProfileScreen()
 }

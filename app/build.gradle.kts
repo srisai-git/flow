@@ -10,7 +10,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.simats.focusflow"
+        applicationId = "com.simats.focusflow.v2"
         minSdk = 24
         targetSdk = 37
         versionCode = 1

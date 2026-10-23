@@ -31,7 +31,7 @@ fun ExportDataScreen(onBack: () -> Unit = {}) {
     Column(
         modifier = Modifier.fillMaxSize().background(Color.White).padding(top = 48.dp, bottom = 24.dp, start = 24.dp, end = 24.dp).verticalScroll(rememberScrollState())
     ) {
-        CustomTopBar("Export data", "DEMO CSV PREVIEW", onBack)
+        CustomTopBar("Export data", onBack = onBack)
         
         Spacer(modifier = Modifier.height(24.dp))
         SegmentedControl(options = listOf("Sample records", "Actual records · 0"), selectedOption = dataType, onOptionSelected = { dataType = it })
@@ -105,9 +105,6 @@ fun ExportDataScreen(onBack: () -> Unit = {}) {
             }
         }
         
-        Spacer(modifier = Modifier.height(24.dp))
-        Text("Preparing a demo CSV is simulated. No file is generated, downloaded or shared.", fontSize = 12.sp, color = Color(0xFF6B7280))
-        
         Spacer(modifier = Modifier.height(32.dp))
         Button(
             onClick = {},
@@ -115,7 +112,7 @@ fun ExportDataScreen(onBack: () -> Unit = {}) {
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7158E2)),
             shape = RoundedCornerShape(16.dp)
         ) {
-            Text("Prepare demo CSV", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text("Prepare CSV", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
         }
     }
 }

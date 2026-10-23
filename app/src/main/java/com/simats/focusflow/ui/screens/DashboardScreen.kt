@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -30,7 +31,11 @@ fun DashboardScreen(
     onNavigateToTasks: () -> Unit = {},
     onNavigateToInsights: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
-    onNavigateToSetIntention: () -> Unit = {}
+    onNavigateToSetIntention: () -> Unit = {},
+    onNavigateToNotifications: () -> Unit = {},
+    onNavigateToSessionHistory: () -> Unit = {},
+    onNavigateToSearchFilters: () -> Unit = {},
+    onNavigateToDataAi: () -> Unit = {}
 ) {
     Scaffold(
         bottomBar = { 
@@ -62,14 +67,14 @@ fun DashboardScreen(
             ) {
                 Column {
                     Text(
-                        text = "Good morning",
+                        text = "Good morning, Sai",
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF1E1E24)
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "MONDAY, 12 OCT · ALEX",
+                        text = "MONDAY, 12 OCT",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color(0xFF6B7280)
@@ -77,30 +82,38 @@ fun DashboardScreen(
                 }
                 
                 // Bell Icon
-                Canvas(modifier = Modifier.size(24.dp)) {
-                    val stroke = 2.dp.toPx()
-                    val color = Color(0xFF1E1E24)
-                    drawArc(
-                        color = color,
-                        startAngle = 180f,
-                        sweepAngle = 180f,
-                        useCenter = false,
-                        topLeft = Offset(size.width * 0.2f, size.height * 0.2f),
-                        size = Size(size.width * 0.6f, size.height * 0.6f),
-                        style = Stroke(stroke)
-                    )
-                    drawLine(color, Offset(size.width * 0.2f, size.height * 0.5f), Offset(size.width * 0.2f, size.height * 0.7f), strokeWidth = stroke)
-                    drawLine(color, Offset(size.width * 0.8f, size.height * 0.5f), Offset(size.width * 0.8f, size.height * 0.7f), strokeWidth = stroke)
-                    drawLine(color, Offset(size.width * 0.1f, size.height * 0.7f), Offset(size.width * 0.9f, size.height * 0.7f), strokeWidth = stroke)
-                    drawArc(
-                        color = color,
-                        startAngle = 0f,
-                        sweepAngle = 180f,
-                        useCenter = false,
-                        topLeft = Offset(size.width * 0.4f, size.height * 0.7f),
-                        size = Size(size.width * 0.2f, size.height * 0.2f),
-                        style = Stroke(stroke)
-                    )
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(Color(0xFFF0EDFF), CircleShape)
+                        .clickable { onNavigateToNotifications() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Canvas(modifier = Modifier.size(20.dp)) {
+                        val stroke = 2.dp.toPx()
+                        val color = Color(0xFF7158E2)
+                        drawArc(
+                            color = color,
+                            startAngle = 180f,
+                            sweepAngle = 180f,
+                            useCenter = false,
+                            topLeft = Offset(size.width * 0.2f, size.height * 0.2f),
+                            size = Size(size.width * 0.6f, size.height * 0.6f),
+                            style = Stroke(stroke)
+                        )
+                        drawLine(color, Offset(size.width * 0.2f, size.height * 0.5f), Offset(size.width * 0.2f, size.height * 0.7f), strokeWidth = stroke)
+                        drawLine(color, Offset(size.width * 0.8f, size.height * 0.5f), Offset(size.width * 0.8f, size.height * 0.7f), strokeWidth = stroke)
+                        drawLine(color, Offset(size.width * 0.1f, size.height * 0.7f), Offset(size.width * 0.9f, size.height * 0.7f), strokeWidth = stroke)
+                        drawArc(
+                            color = color,
+                            startAngle = 0f,
+                            sweepAngle = 180f,
+                            useCenter = false,
+                            topLeft = Offset(size.width * 0.4f, size.height * 0.7f),
+                            size = Size(size.width * 0.2f, size.height * 0.2f),
+                            style = Stroke(stroke)
+                        )
+                    }
                 }
             }
             
@@ -112,7 +125,7 @@ fun DashboardScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 OutlinedButton(
-                    onClick = { },
+                    onClick = onNavigateToSessionHistory,
                     modifier = Modifier
                         .weight(1f)
                         .height(48.dp),
@@ -130,7 +143,7 @@ fun DashboardScreen(
                 }
                 
                 OutlinedButton(
-                    onClick = { },
+                    onClick = onNavigateToSearchFilters,
                     modifier = Modifier
                         .weight(1f)
                         .height(48.dp),
@@ -277,6 +290,7 @@ fun DashboardScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color(0xFFF3F4F6), RoundedCornerShape(16.dp))
+                    .clickable { onNavigateToDataAi() }
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -292,11 +306,20 @@ fun DashboardScreen(
                     drawLine(color, Offset(size.width*0.8f, size.height*0.2f), Offset(size.width*0.7f, size.height*0.3f), strokeWidth = stroke)
                 }
                 Spacer(modifier = Modifier.width(16.dp))
-                Text(
-                    text = "Your recent morning sessions have been more consistent.",
-                    fontSize = 14.sp,
-                    color = Color(0xFF1E1E24)
-                )
+                Column {
+                    Text(
+                        text = "Personalized Analysis by Groot AI",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1E1E24)
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Your recent morning sessions have been more consistent.",
+                        fontSize = 13.sp,
+                        color = Color(0xFF6B7280)
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.height(32.dp))

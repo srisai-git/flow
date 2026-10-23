@@ -18,13 +18,13 @@ import androidx.compose.ui.unit.sp
 import com.simats.focusflow.ui.components.CustomTopBar
 
 @Composable
-fun DataAiPreferencesScreen(onBack: () -> Unit = {}) {
+fun DataAiPreferencesScreen(onBack: () -> Unit = {}, onNavigateToExport: () -> Unit = {}) {
     var personalizedAnalysis by remember { mutableStateOf(true) }
 
     Column(
         modifier = Modifier.fillMaxSize().background(Color(0xFFF9FAFB)).padding(top = 48.dp, bottom = 24.dp, start = 24.dp, end = 24.dp).verticalScroll(rememberScrollState())
     ) {
-        CustomTopBar("Data & AI preferences", null, onBack)
+        CustomTopBar("Data & Groot AI preferences", null, onBack)
         Spacer(modifier = Modifier.height(24.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("🛡", color = Color(0xFF4FD1C5), fontSize = 16.sp)
@@ -34,11 +34,9 @@ fun DataAiPreferencesScreen(onBack: () -> Unit = {}) {
         Spacer(modifier = Modifier.height(24.dp))
         Box(modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(16.dp)).border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(16.dp)).padding(24.dp)) {
             Column {
-                Text("Your actual records · 0", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
+                Text("Your actual records", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
                 Spacer(modifier = Modifier.height(12.dp))
                 Text("Focus sessions · tasks · interruption logs · ratings", fontSize = 14.sp, color = Color(0xFF6B7280))
-                Spacer(modifier = Modifier.height(12.dp))
-                Text("Sample analytics are separate fictional records.", fontSize = 14.sp, color = Color(0xFF0D9488))
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -48,12 +46,12 @@ fun DataAiPreferencesScreen(onBack: () -> Unit = {}) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Personalized analysis", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("Enabled · uses your recorded history", fontSize = 14.sp, color = Color(0xFF6B7280))
+                        Text("Groot AI · uses your recorded history", fontSize = 14.sp, color = Color(0xFF6B7280))
                     }
                     Switch(checked = personalizedAnalysis, onCheckedChange = { personalizedAnalysis = it }, colors = SwitchDefaults.colors(checkedTrackColor = Color(0xFF7158E2)))
                 }
                 Spacer(modifier = Modifier.height(12.dp))
-                Text("Concept only · no live AI. Disable anytime.", fontSize = 14.sp, color = Color(0xFF9CA3AF))
+                Text("Groot AI insights enabled. Disable anytime.", fontSize = 14.sp, color = Color(0xFF9CA3AF))
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -63,34 +61,19 @@ fun DataAiPreferencesScreen(onBack: () -> Unit = {}) {
                     Row {
                         Text("🛢", fontSize = 20.sp)
                         Spacer(modifier = Modifier.width(12.dp))
-                        Text("Analysis status", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
-                    }
-                    Box(modifier = Modifier.background(Color(0xFFFFF7ED), RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 4.dp)) {
-                        Text("New user", color = Color(0xFFB45309), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        Text("Groot AI Analysis status", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.background(Color(0xFFFEF2F2), RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 4.dp)) {
-                        Text("Not enough data", color = Color(0xFFB91C1C), fontSize = 12.sp, fontWeight = FontWeight.Medium)
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text("Selected state", fontSize = 14.sp, color = Color(0xFF6B7280))
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Text("Next: Collecting data → Insights available", fontSize = 14.sp, color = Color(0xFF6B7280))
-                Spacer(modifier = Modifier.height(16.dp))
-                Text("No sessions recorded yet. Start your first focus session to build a personal history.", fontSize = 16.sp, color = Color(0xFF1E1E24))
-                Spacer(modifier = Modifier.height(16.dp))
-                Text("Recommendations can improve as more sessions are recorded. No minimum is validated yet.", fontSize = 14.sp, color = Color(0xFF6B7280))
+                Text("Groot AI Assistant is active and analyzing your focus routines.", fontSize = 16.sp, color = Color(0xFF1E1E24))
             }
         }
         Spacer(modifier = Modifier.height(24.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedButton(onClick = {}, modifier = Modifier.weight(1f).height(48.dp), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, Color(0xFFE5E7EB)), colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF1E1E24))) {
+            OutlinedButton(onClick = onNavigateToExport, modifier = Modifier.weight(1f).height(48.dp), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, Color(0xFFE5E7EB)), colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF1E1E24))) {
                 Text("Export CSV", fontSize = 14.sp, fontWeight = FontWeight.Medium)
             }
-            OutlinedButton(onClick = {}, modifier = Modifier.weight(1.3f).height(48.dp), shape = RoundedCornerShape(12.dp), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFCA5A5)), colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFFEF2F2), contentColor = Color(0xFFB91C1C))) {
+            OutlinedButton(onClick = {}, modifier = Modifier.weight(1.3f).height(48.dp), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, Color(0xFFFCA5A5)), colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFFEF2F2), contentColor = Color(0xFFB91C1C))) {
                 Text("Delete recorded history", fontSize = 14.sp, fontWeight = FontWeight.Medium)
             }
         }

@@ -18,12 +18,12 @@ import com.simats.focusflow.ui.components.CustomTopBar
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ForgotPasswordScreen(onBack: () -> Unit = {}, onSend: () -> Unit = {}, onBackToLogin: () -> Unit = {}) {
-    var email by remember { mutableStateOf("alex.morgan@example.com") }
+    var email by remember { mutableStateOf("sri.sai@example.com") }
 
     Column(
         modifier = Modifier.fillMaxSize().background(Color.White).padding(top = 48.dp, bottom = 24.dp, start = 24.dp, end = 24.dp)
     ) {
-        CustomTopBar("Forgot password?", "ACCOUNT HELP", onBack)
+        CustomTopBar("Forgot password?", onBack = onBack)
         Spacer(modifier = Modifier.height(48.dp))
         Text("✉", color = Color(0xFF7158E2), fontSize = 48.sp)
         Spacer(modifier = Modifier.height(24.dp))
@@ -62,9 +62,6 @@ fun ForgotPasswordScreen(onBack: () -> Unit = {}, onSend: () -> Unit = {}, onBac
                 Text("If an account exists, reset instructions would be available. We never disclose whether an email is registered.", fontSize = 14.sp, color = Color(0xFF6B7280))
             }
         }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        Text("Demo only · no reset email or SMS is sent.", fontSize = 12.sp, color = Color(0xFF9CA3AF))
         
         Spacer(modifier = Modifier.weight(1f))
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {

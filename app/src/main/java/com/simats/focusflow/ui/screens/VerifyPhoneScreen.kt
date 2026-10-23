@@ -20,18 +20,18 @@ fun VerifyPhoneScreen(onBack: () -> Unit = {}, onVerify: () -> Unit = {}, onChan
     Column(
         modifier = Modifier.fillMaxSize().background(Color.White).padding(top = 48.dp, bottom = 24.dp, start = 24.dp, end = 24.dp)
     ) {
-        CustomTopBar("Verify your phone", "DEMO VERIFICATION · NO SMS SENT", onBack)
+        CustomTopBar("Verify your phone", onBack = onBack)
         Spacer(modifier = Modifier.height(48.dp))
         Text("✉✓", color = Color(0xFF7158E2), fontSize = 32.sp)
         Spacer(modifier = Modifier.height(24.dp))
         Text("One small check.", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
         Spacer(modifier = Modifier.height(16.dp))
-        Text("Use the sample code to preview verification for:", fontSize = 16.sp, color = Color(0xFF6B7280))
+        Text("Enter the verification code sent to:", fontSize = 16.sp, color = Color(0xFF6B7280))
         Spacer(modifier = Modifier.height(16.dp))
         Text("+91 ••••• 43210", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
         
         Spacer(modifier = Modifier.height(32.dp))
-        Text("6-digit demo code", fontSize = 14.sp, color = Color(0xFF6B7280))
+        Text("6-digit verification code", fontSize = 14.sp, color = Color(0xFF6B7280))
         Spacer(modifier = Modifier.height(16.dp))
         
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -67,10 +67,6 @@ fun VerifyPhoneScreen(onBack: () -> Unit = {}, onVerify: () -> Unit = {}, onChan
         Spacer(modifier = Modifier.weight(1f))
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             Text("Change phone number", color = Color(0xFF7158E2), fontSize = 16.sp, modifier = Modifier.clickable { onChangePhone() })
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Text("Demo only · no SMS delivery", color = Color(0xFF9CA3AF), fontSize = 12.sp)
         }
     }
 }

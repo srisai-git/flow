@@ -23,7 +23,7 @@ import com.simats.focusflow.ui.components.CustomTopBar
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SetupScreen(onNavigateNext: () -> Unit = {}, onBack: () -> Unit = {}) {
-    var name by remember { mutableStateOf("Alex Morgan") }
+    var name by remember { mutableStateOf("Sri Sai") }
     var dailyGoal by remember { mutableStateOf("3h 30m") }
     var reminderTime by remember { mutableStateOf("09:00 AM") }
     var remindersEnabled by remember { mutableStateOf(true) }
@@ -37,7 +37,6 @@ fun SetupScreen(onNavigateNext: () -> Unit = {}, onBack: () -> Unit = {}) {
         // Top Bar
         CustomTopBar(
             title = "Make it yours",
-            subtitle = "SETUP · 1 OF 1",
             onBack = onBack
         )
         
@@ -200,12 +199,6 @@ fun SetupScreen(onNavigateNext: () -> Unit = {}, onBack: () -> Unit = {}) {
             shape = RoundedCornerShape(16.dp)
         ) {
             Text("Continue", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Text(text = "Demo preferences · nothing is saved.", color = Color(0xFF9CA3AF), fontSize = 12.sp)
         }
     }
 }

@@ -78,55 +78,8 @@ fun TasksScreen(
                             color = Color(0xFF9CA3AF)
                         )
                     }
-                    
-                    // Options / Progress Shortcut Icon
-                    IconButton(onClick = onNavigateToProgressConsistency) {
-                        Canvas(modifier = Modifier.size(24.dp)) {
-                            val color = Color(0xFF1E1E24)
-                            val radius = 2.dp.toPx()
-                            drawCircle(color, radius = radius, center = Offset(size.width * 0.2f, size.height / 2))
-                            drawCircle(color, radius = radius, center = Offset(size.width / 2, size.height / 2))
-                            drawCircle(color, radius = radius, center = Offset(size.width * 0.8f, size.height / 2))
-                        }
-                    }
                 }
                 
-                Spacer(modifier = Modifier.height(20.dp))
-                
-                // Progress & Consistency Card inside Tasks
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFFF0EDFF), RoundedCornerShape(16.dp))
-                        .border(1.dp, Color(0xFFD6CBFF), RoundedCornerShape(16.dp))
-                        .clickable { onNavigateToProgressConsistency() }
-                        .padding(16.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .background(Color(0xFF7158E2), RoundedCornerShape(12.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("📈", fontSize = 20.sp)
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text("Progress & Consistency", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text("7 days streak · 60 tasks completed", fontSize = 12.sp, color = Color(0xFF6B7280))
-                            }
-                        }
-                        Text("View details >", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF7158E2))
-                    }
-                }
-
                 Spacer(modifier = Modifier.height(20.dp))
                 
                 SegmentedControl(

@@ -8,9 +8,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.simats.focusflow.ui.screens.AboutFlowScreen
 import com.simats.focusflow.ui.screens.AccountRecoveryScreen
 import com.simats.focusflow.ui.screens.ActiveSessionScreen
 import com.simats.focusflow.ui.screens.AiReportScreen
@@ -54,7 +56,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             FOCUSFLOWTheme {
                 val navController = rememberNavController()
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    containerColor = Color(0xFF070510)
+                ) { innerPadding ->
                     NavHost(
                         navController = navController,
                         startDestination = "splash",
@@ -112,7 +117,11 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToTasks = { navController.navigate("tasks") },
                                 onNavigateToInsights = { navController.navigate("insights") },
                                 onNavigateToProfile = { navController.navigate("profile") },
-                                onNavigateToSetIntention = { navController.navigate("set_intention") }
+                                onNavigateToSetIntention = { navController.navigate("set_intention") },
+                                onNavigateToNotifications = { navController.navigate("notifications") },
+                                onNavigateToSessionHistory = { navController.navigate("session_history") },
+                                onNavigateToSearchFilters = { navController.navigate("search_filters") },
+                                onNavigateToDataAi = { navController.navigate("data_ai_preferences") }
                             )
                         }
                         composable("tasks") {
@@ -259,8 +268,17 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToNotifications = { navController.navigate("notifications") },
                                 onNavigateToDataAi = { navController.navigate("data_ai_preferences") },
                                 onNavigateToDailyGoal = { navController.navigate("daily_focus_goal") },
-                                onNavigateToExport = { navController.navigate("export_data") }
+                                onNavigateToExport = { navController.navigate("export_data") },
+                                onNavigateToAboutFlow = { navController.navigate("about_flow") },
+                                onLogout = {
+                                    navController.navigate("login") {
+                                        popUpTo(0) { inclusive = true }
+                                    }
+                                }
                             )
+                        }
+                        composable("about_flow") {
+                            AboutFlowScreen(onBack = { navController.popBackStack() })
                         }
                         composable("daily_focus_goal") {
                             DailyFocusGoalScreen(

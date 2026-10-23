@@ -2,7 +2,6 @@ package com.simats.focusflow.ui.screens
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -24,7 +23,7 @@ fun AccountRecoveryScreen(onBack: () -> Unit = {}, onBackToLogin: () -> Unit = {
     Column(
         modifier = Modifier.fillMaxSize().background(Color.White).padding(top = 48.dp, bottom = 24.dp, start = 24.dp, end = 24.dp)
     ) {
-        CustomTopBar("Account recovery", "DEMO CONFIRMATION", onBack)
+        CustomTopBar("Account recovery", onBack = onBack)
         
         Spacer(modifier = Modifier.weight(1f))
         
@@ -42,21 +41,16 @@ fun AccountRecoveryScreen(onBack: () -> Unit = {}, onBackToLogin: () -> Unit = {
         
         Spacer(modifier = Modifier.height(32.dp))
         Text(
-            "Account recovery demo complete", 
+            "Account recovery complete", 
             fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24),
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            "You've reached the end of the simulated recovery journey.", 
+            "Check your email for instructions to reset your password.", 
             fontSize = 16.sp, color = Color(0xFF6B7280),
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        Box(modifier = Modifier.fillMaxWidth().background(Color(0xFFF9FAFB), RoundedCornerShape(16.dp)).border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(16.dp)).padding(24.dp)) {
-            Text("No email was sent and no server password was changed. Return to Login to continue exploring the demo.", fontSize = 14.sp, color = Color(0xFF6B7280), lineHeight = 20.sp)
-        }
         
         Spacer(modifier = Modifier.weight(2f))
         
@@ -67,10 +61,6 @@ fun AccountRecoveryScreen(onBack: () -> Unit = {}, onBackToLogin: () -> Unit = {
             shape = RoundedCornerShape(16.dp)
         ) {
             Text("Back to Login", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Text("Static preview · no authentication service", color = Color(0xFF9CA3AF), fontSize = 12.sp)
         }
     }
 }

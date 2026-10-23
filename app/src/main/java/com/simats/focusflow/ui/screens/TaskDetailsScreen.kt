@@ -101,7 +101,7 @@ fun TaskDetailsScreen(onBack: () -> Unit = {}, onStartFocus: () -> Unit = {}, on
                 Text("Edit task", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             }
             OutlinedButton(
-                onClick = onBack, // Just dismiss for demo
+                onClick = onBack,
                 modifier = Modifier.weight(1f).height(56.dp),
                 border = BorderStroke(1.dp, Color(0xFFFCA5A5)),
                 shape = RoundedCornerShape(16.dp),
