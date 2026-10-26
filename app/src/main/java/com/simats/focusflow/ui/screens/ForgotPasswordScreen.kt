@@ -1,71 +1,213 @@
 package com.simats.focusflow.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.simats.focusflow.ui.components.CustomTopBar
+import com.simats.focusflow.ui.components.SmartTextField
+import com.simats.focusflow.ui.components.bounceClick
+import com.simats.focusflow.ui.viewmodel.AuthUiState
+import com.simats.focusflow.ui.viewmodel.AuthViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ForgotPasswordScreen(onBack: () -> Unit = {}, onSend: () -> Unit = {}, onBackToLogin: () -> Unit = {}) {
+fun ForgotPasswordScreen(
+    onBack: () -> Unit = {},
+    onResetSuccess: (String) -> Unit = {},
+    authViewModel: AuthViewModel = remember { AuthViewModel() }
+) {
     var email by remember { mutableStateOf("sri.sai@example.com") }
+    var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
 
-    Column(
-        modifier = Modifier.fillMaxSize().background(Color.White).padding(top = 48.dp, bottom = 24.dp, start = 24.dp, end = 24.dp)
-    ) {
-        CustomTopBar("Forgot password?", onBack = onBack)
-        Spacer(modifier = Modifier.height(48.dp))
-        Text("✉", color = Color(0xFF7158E2), fontSize = 48.sp)
-        Spacer(modifier = Modifier.height(24.dp))
-        Text("A fresh start.", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
-        Spacer(modifier = Modifier.height(16.dp))
-        Text("Enter an email address or phone number to preview recovery instructions.", fontSize = 16.sp, color = Color(0xFF6B7280), lineHeight = 24.sp)
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        Text("Email or phone", fontSize = 14.sp, color = Color(0xFF6B7280))
-        Spacer(modifier = Modifier.height(8.dp))
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Color(0xFFE5E7EB), focusedBorderColor = Color(0xFF7158E2))
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text("✓ Email format looks good", fontSize = 12.sp, color = Color(0xFF10B981))
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        Button(
-            onClick = onSend,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7158E2)),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Text("Send reset instructions", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-        }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        Box(modifier = Modifier.fillMaxWidth().background(Color(0xFFF9FAFB), RoundedCornerShape(16.dp)).border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(16.dp)).padding(24.dp)) {
-            Column {
-                Text("The same response for everyone", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
-                Spacer(modifier = Modifier.height(12.dp))
-                Text("If an account exists, reset instructions would be available. We never disclose whether an email is registered.", fontSize = 14.sp, color = Color(0xFF6B7280))
+    var newPasswordVisible by remember { mutableStateOf(false) }
+    var confirmPasswordVisible by remember { mutableStateOf(false) }
+
+    val uiState by authViewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    val isEmailValid = email.isBlank() || (email.contains("@") && email.contains("."))
+    val isPasswordValid = newPassword.isBlank() || newPassword.length >= 6
+    val passwordsMatch = confirmPassword.isBlank() || (newPassword == confirmPassword)
+
+    LaunchedEffect(uiState) {
+        when (val state = uiState) {
+            is AuthUiState.Error -> {
+                snackbarHostState.showSnackbar(state.message)
+                authViewModel.resetUiState()
             }
-        }
-        
-        Spacer(modifier = Modifier.weight(1f))
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Text("Back to Login", color = Color(0xFF7158E2), fontSize = 16.sp, modifier = Modifier.clickable { onBackToLogin() })
+            is AuthUiState.Success -> {
+                snackbarHostState.showSnackbar(state.message)
+                authViewModel.resetUiState()
+            }
+            else -> {}
         }
     }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = Color.White
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .background(Color.White)
+                .padding(top = 48.dp, bottom = 24.dp, start = 24.dp, end = 24.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+            CustomTopBar("Reset Password", null, onBack)
+
+            Spacer(modifier = Modifier.height(24.dp))
+            Text("🔒", fontSize = 40.sp)
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Create a new password", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                "Enter your registered email address and choose a strong new password to regain access.",
+                fontSize = 15.sp,
+                color = Color(0xFF6B7280),
+                lineHeight = 22.sp
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Email Input
+            SmartTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = "Registered Email Address",
+                isValid = isEmailValid,
+                errorMessage = if (!isEmailValid) "Please enter a valid email address" else null
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // New Password Input
+            Text("New Password", fontSize = 14.sp, color = Color(0xFF6B7280), fontWeight = FontWeight.Medium)
+            Spacer(modifier = Modifier.height(6.dp))
+            OutlinedTextField(
+                value = newPassword,
+                onValueChange = { newPassword = it },
+                modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 48.dp),
+                shape = RoundedCornerShape(12.dp),
+                isError = !isPasswordValid,
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = if (newPassword.length >= 6) Color(0xFF10B981) else Color(0xFFE5E7EB),
+                    focusedBorderColor = Color(0xFF7158E2),
+                    errorBorderColor = Color(0xFFDC2626)
+                ),
+                visualTransformation = if (newPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                singleLine = true,
+                trailingIcon = {
+                    Text(
+                        text = if (newPasswordVisible) "Hide" else "Show",
+                        color = Color(0xFF7158E2),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable { newPasswordVisible = !newPasswordVisible }.padding(end = 12.dp)
+                    )
+                }
+            )
+            if (!isPasswordValid) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("Password must be at least 6 characters", fontSize = 12.sp, color = Color(0xFFDC2626))
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Confirm Password Input
+            Text("Confirm New Password", fontSize = 14.sp, color = Color(0xFF6B7280), fontWeight = FontWeight.Medium)
+            Spacer(modifier = Modifier.height(6.dp))
+            OutlinedTextField(
+                value = confirmPassword,
+                onValueChange = { confirmPassword = it },
+                modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 48.dp),
+                shape = RoundedCornerShape(12.dp),
+                isError = !passwordsMatch,
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = if (confirmPassword.isNotBlank() && passwordsMatch) Color(0xFF10B981) else Color(0xFFE5E7EB),
+                    focusedBorderColor = Color(0xFF7158E2),
+                    errorBorderColor = Color(0xFFDC2626)
+                ),
+                visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                singleLine = true,
+                trailingIcon = {
+                    Text(
+                        text = if (confirmPasswordVisible) "Hide" else "Show",
+                        color = Color(0xFF7158E2),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable { confirmPasswordVisible = !confirmPasswordVisible }.padding(end = 12.dp)
+                    )
+                }
+            )
+            if (!passwordsMatch) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("Passwords do not match", fontSize = 12.sp, color = Color(0xFFDC2626))
+            } else if (confirmPassword.isNotBlank() && confirmPassword == newPassword) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("✓ Passwords match", fontSize = 12.sp, color = Color(0xFF10B981))
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Button(
+                onClick = {
+                    authViewModel.resetPassword(
+                        email = email,
+                        newPassword = newPassword,
+                        confirmPassword = confirmPassword,
+                        onSuccess = { msg ->
+                            onResetSuccess(msg)
+                        }
+                    )
+                },
+                enabled = uiState !is AuthUiState.Loading,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .bounceClick(),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7158E2)),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                if (uiState is AuthUiState.Loading) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                } else {
+                    Text("Reset Password", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                }
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = "Back to Login",
+                    color = Color(0xFF7158E2),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clickable { onBack() }
+                )
+            }
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ForgotPasswordScreenPreview() {
+    ForgotPasswordScreen()
 }

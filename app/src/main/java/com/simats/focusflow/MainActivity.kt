@@ -45,7 +45,6 @@ import com.simats.focusflow.ui.screens.SplashScreen
 import com.simats.focusflow.ui.screens.TakeBreatherScreen
 import com.simats.focusflow.ui.screens.TaskDetailsScreen
 import com.simats.focusflow.ui.screens.TasksScreen
-import com.simats.focusflow.ui.screens.VerifyPhoneScreen
 import com.simats.focusflow.ui.screens.WelcomeStartScreen
 import com.simats.focusflow.ui.screens.WhyThisSuggestionScreen
 import com.simats.focusflow.ui.theme.FOCUSFLOWTheme
@@ -308,15 +307,8 @@ class MainActivity : ComponentActivity() {
                         composable("create_account") {
                             CreateAccountScreen(
                                 onBack = { navController.popBackStack() },
-                                onContinue = { navController.navigate("verify_phone") },
+                                onContinue = { navController.navigate("setup") },
                                 onLogin = { navController.navigate("login") }
-                            )
-                        }
-                        composable("verify_phone") {
-                            VerifyPhoneScreen(
-                                onBack = { navController.popBackStack() },
-                                onVerify = { navController.navigate("ready_setup_complete") },
-                                onChangePhone = { navController.popBackStack() }
                             )
                         }
                         composable("ready_setup_complete") {
@@ -333,8 +325,9 @@ class MainActivity : ComponentActivity() {
                         composable("forgot_password") {
                             ForgotPasswordScreen(
                                 onBack = { navController.popBackStack() },
-                                onSend = { navController.navigate("account_recovery") },
-                                onBackToLogin = { navController.popBackStack("login", inclusive = false) }
+                                onResetSuccess = {
+                                    navController.popBackStack("login", inclusive = false)
+                                }
                             )
                         }
                         composable("account_recovery") {

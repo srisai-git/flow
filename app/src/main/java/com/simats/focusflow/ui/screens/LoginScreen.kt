@@ -88,9 +88,9 @@ fun LoginScreen(
         SmartTextField(
             value = email,
             onValueChange = { email = it },
-            label = "Phone or email",
+            label = "Email Address",
             isValid = isEmailValid,
-            errorMessage = if (!isEmailValid) "Please enter a valid email or phone number" else null
+            errorMessage = if (!isEmailValid) "Please enter a valid email address" else null
         )
         
         Spacer(modifier = Modifier.height(24.dp))
@@ -125,18 +125,13 @@ fun LoginScreen(
         
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.End
         ) {
             Text(
                 text = "Forgot password?",
                 color = Color(0xFF7158E2),
                 fontSize = 14.sp,
-                modifier = Modifier.clickable { onForgotPassword() }
-            )
-            Text(
-                text = "Use OTP instead",
-                color = Color(0xFF7158E2),
-                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.clickable { onForgotPassword() }
             )
         }
