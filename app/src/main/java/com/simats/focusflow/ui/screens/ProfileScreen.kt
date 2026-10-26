@@ -30,6 +30,7 @@ fun ProfileScreen(
     onNavigateToDailyGoal: () -> Unit = {},
     onNavigateToExport: () -> Unit = {},
     onNavigateToAboutFlow: () -> Unit = {},
+    onNavigateToEditProfile: () -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
     var userName by remember { mutableStateOf("Sri Sai") }
@@ -94,7 +95,7 @@ fun ProfileScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { showEditProfileDialog = true }
+                    .clickable { onNavigateToEditProfile() }
                     .padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -112,7 +113,7 @@ fun ProfileScreen(
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(userRole, fontSize = 14.sp, color = Color(0xFF6B7280))
                 }
-                Text("Edit", fontSize = 14.sp, color = Color(0xFF7158E2), fontWeight = FontWeight.SemiBold)
+                Text("✏️", fontSize = 20.sp)
             }
             
             Spacer(modifier = Modifier.height(32.dp))

@@ -21,6 +21,7 @@ import com.simats.focusflow.ui.screens.DailyFocusGoalScreen
 import com.simats.focusflow.ui.screens.DashboardScreen
 import com.simats.focusflow.ui.screens.DataAiPreferencesScreen
 import com.simats.focusflow.ui.screens.DistractionAnalysisScreen
+import com.simats.focusflow.ui.screens.EditProfileScreen
 import com.simats.focusflow.ui.screens.EditTaskScreen
 import com.simats.focusflow.ui.screens.FocusTimeAnalysisScreen
 import com.simats.focusflow.ui.screens.ForgotPasswordScreen
@@ -270,11 +271,18 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToDailyGoal = { navController.navigate("daily_focus_goal") },
                                 onNavigateToExport = { navController.navigate("export_data") },
                                 onNavigateToAboutFlow = { navController.navigate("about_flow") },
+                                onNavigateToEditProfile = { navController.navigate("edit_profile") },
                                 onLogout = {
                                     navController.navigate("login") {
                                         popUpTo(0) { inclusive = true }
                                     }
                                 }
+                            )
+                        }
+                        composable("edit_profile") {
+                            EditProfileScreen(
+                                onBack = { navController.popBackStack() },
+                                onSaveSuccess = { navController.popBackStack() }
                             )
                         }
                         composable("about_flow") {
