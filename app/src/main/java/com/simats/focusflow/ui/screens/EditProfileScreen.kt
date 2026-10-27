@@ -14,37 +14,45 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.simats.focusflow.R
+import com.simats.focusflow.data.api.UserProfile
 import com.simats.focusflow.ui.components.CustomTopBar
 import com.simats.focusflow.ui.components.bounceClick
+import com.simats.focusflow.ui.viewmodel.ProfileUiState
+import com.simats.focusflow.ui.viewmodel.ProfileViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditProfileScreen(
     onBack: () -> Unit = {},
-    onSaveSuccess: () -> Unit = {}
+    onSaveSuccess: () -> Unit = {},
+    profileViewModel: ProfileViewModel? = null
 ) {
     var name by remember { mutableStateOf("Sri Sai") }
     var role by remember { mutableStateOf("Student") }
     var bio by remember { mutableStateOf("B.Sc. AI & Data Science student passionate about focus routines.") }
     var location by remember { mutableStateOf("Chennai, India") }
+    var email by remember { mutableStateOf("sri.sai@example.com") }
     var selectedDp by remember { mutableStateOf("👤") }
 
-    // Basic Info (Visible only to you)
-    var gender by remember { mutableStateOf("Male") }
-    var age by remember { mutableStateOf("21") }
-    var email by remember { mutableStateOf("sri.sai@example.com") }
-    var phone by remember { mutableStateOf("+91 98765 43210") }
-    var height by remember { mutableStateOf("175 cm") }
-    var weight by remember { mutableStateOf("68 kg") }
+    if (profileViewModel != null) {
+        val uiState by profileViewModel.uiState.collectAsState()
+        LaunchedEffect(uiState) {
+            if (uiState is ProfileUiState.Success) {
+                val p = (uiState as ProfileUiState.Success).profile
+                name = p.name
+                role = p.role
+                bio = p.bio ?: ""
+                location = p.location ?: ""
+                email = p.email
+                selectedDp = p.avatar ?: "👤"
+            }
+        }
+    }
 
     val roleOptions = listOf("Student", "Scholar", "Employee", "Researcher")
-    val avatarOptions = listOf("👤", "🎓", "💻", "🎨", "🚀", "⚡", "🧠", "🔥")
 
     Column(
         modifier = Modifier
@@ -99,30 +107,6 @@ fun EditProfileScreen(
                         Text("🖼️ Choose Gallery", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
-
-                Spacer(modifier = Modifier.height(12.dp))
-                Text("Or choose an avatar:", fontSize = 12.sp, color = Color(0xFF6B7280))
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    avatarOptions.take(4).forEach { avatar ->
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .aspectRatio(1f)
-                                .background(if (selectedDp == avatar) Color(0xFFF0EDFF) else Color(0xFFF3F4F6), CircleShape)
-                                .border(1.dp, if (selectedDp == avatar) Color(0xFF7158E2) else Color.Transparent, CircleShape)
-                                .clickable { selectedDp = avatar },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(avatar, fontSize = 20.sp)
-                        }
-                    }
-                }
             }
         }
 
@@ -130,7 +114,7 @@ fun EditProfileScreen(
         Text("PUBLIC PROFILE", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9CA3AF))
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Public Profile Fields
+        // Public Profile Fields Card
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -240,22 +224,10 @@ fun EditProfileScreen(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-
-        // Basic Info Header
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("BASIC INFO", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9CA3AF))
-            Spacer(modifier = Modifier.width(8.dp))
-            Box(
-                modifier = Modifier
-                    .background(Color(0xFFE1FAF9), RoundedCornerShape(6.dp))
-                    .padding(horizontal = 6.dp, vertical = 2.dp)
-            ) {
-                Text("🔒 Visible only to you", fontSize = 11.sp, color = Color(0xFF0D9488), fontWeight = FontWeight.Medium)
-            }
-        }
+        Text("ACCOUNT SECTION", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF9CA3AF))
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Private Basic Info Fields
+        // Account Section Card
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -263,110 +235,20 @@ fun EditProfileScreen(
                 .border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(16.dp))
                 .padding(20.dp)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                // Gender & Age Row
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Gender", fontSize = 14.sp, color = Color(0xFF6B7280), fontWeight = FontWeight.Medium)
-                        Spacer(modifier = Modifier.height(6.dp))
-                        OutlinedTextField(
-                            value = gender,
-                            onValueChange = { gender = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedBorderColor = Color(0xFFE5E7EB),
-                                focusedBorderColor = Color(0xFF7158E2)
-                            ),
-                            singleLine = true
-                        )
-                    }
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Age", fontSize = 14.sp, color = Color(0xFF6B7280), fontWeight = FontWeight.Medium)
-                        Spacer(modifier = Modifier.height(6.dp))
-                        OutlinedTextField(
-                            value = age,
-                            onValueChange = { age = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedBorderColor = Color(0xFFE5E7EB),
-                                focusedBorderColor = Color(0xFF7158E2)
-                            ),
-                            singleLine = true
-                        )
-                    }
-                }
-
-                // Email
-                Column {
-                    Text("Email address", fontSize = 14.sp, color = Color(0xFF6B7280), fontWeight = FontWeight.Medium)
-                    Spacer(modifier = Modifier.height(6.dp))
-                    OutlinedTextField(
-                        value = email,
-                        onValueChange = { email = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = Color(0xFFE5E7EB),
-                            focusedBorderColor = Color(0xFF7158E2)
-                        ),
-                        singleLine = true
-                    )
-                }
-
-                // Phone Number
-                Column {
-                    Text("Phone number", fontSize = 14.sp, color = Color(0xFF6B7280), fontWeight = FontWeight.Medium)
-                    Spacer(modifier = Modifier.height(6.dp))
-                    OutlinedTextField(
-                        value = phone,
-                        onValueChange = { phone = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = Color(0xFFE5E7EB),
-                            focusedBorderColor = Color(0xFF7158E2)
-                        ),
-                        singleLine = true
-                    )
-                }
-
-                // Height & Weight Row
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Height", fontSize = 14.sp, color = Color(0xFF6B7280), fontWeight = FontWeight.Medium)
-                        Spacer(modifier = Modifier.height(6.dp))
-                        OutlinedTextField(
-                            value = height,
-                            onValueChange = { height = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedBorderColor = Color(0xFFE5E7EB),
-                                focusedBorderColor = Color(0xFF7158E2)
-                            ),
-                            singleLine = true
-                        )
-                    }
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Weight", fontSize = 14.sp, color = Color(0xFF6B7280), fontWeight = FontWeight.Medium)
-                        Spacer(modifier = Modifier.height(6.dp))
-                        OutlinedTextField(
-                            value = weight,
-                            onValueChange = { weight = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedBorderColor = Color(0xFFE5E7EB),
-                                focusedBorderColor = Color(0xFF7158E2)
-                            ),
-                            singleLine = true
-                        )
-                    }
-                }
+            Column {
+                Text("Email Address", fontSize = 14.sp, color = Color(0xFF6B7280), fontWeight = FontWeight.Medium)
+                Spacer(modifier = Modifier.height(6.dp))
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = Color(0xFFE5E7EB),
+                        focusedBorderColor = Color(0xFF7158E2)
+                    ),
+                    singleLine = true
+                )
             }
         }
 
@@ -374,8 +256,22 @@ fun EditProfileScreen(
 
         Button(
             onClick = {
-                onSaveSuccess()
-                onBack()
+                val updated = UserProfile(
+                    id = 1,
+                    name = name,
+                    avatar = selectedDp,
+                    role = role,
+                    bio = bio,
+                    location = location,
+                    email = email
+                )
+                if (profileViewModel != null) {
+                    profileViewModel.updateProfile(updated) {
+                        onSaveSuccess()
+                    }
+                } else {
+                    onSaveSuccess()
+                }
             },
             modifier = Modifier
                 .fillMaxWidth()

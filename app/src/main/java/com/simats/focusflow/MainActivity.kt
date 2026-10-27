@@ -16,12 +16,14 @@ import com.simats.focusflow.ui.screens.AboutFlowScreen
 import com.simats.focusflow.ui.screens.AccountRecoveryScreen
 import com.simats.focusflow.ui.screens.ActiveSessionScreen
 import com.simats.focusflow.ui.screens.AiReportScreen
+import com.simats.focusflow.ui.screens.AvatarSelectionScreen
 import com.simats.focusflow.ui.screens.CreateAccountScreen
 import com.simats.focusflow.ui.screens.DailyFocusGoalScreen
 import com.simats.focusflow.ui.screens.DashboardScreen
 import com.simats.focusflow.ui.screens.DataAiPreferencesScreen
 import com.simats.focusflow.ui.screens.DistractionAnalysisScreen
 import com.simats.focusflow.ui.screens.EditProfileScreen
+import com.simats.focusflow.ui.screens.SetupProfileScreen
 import com.simats.focusflow.ui.screens.EditTaskScreen
 import com.simats.focusflow.ui.screens.FocusTimeAnalysisScreen
 import com.simats.focusflow.ui.screens.ForgotPasswordScreen
@@ -307,8 +309,22 @@ class MainActivity : ComponentActivity() {
                         composable("create_account") {
                             CreateAccountScreen(
                                 onBack = { navController.popBackStack() },
-                                onContinue = { navController.navigate("setup") },
+                                onContinue = { navController.navigate("setup_profile") },
                                 onLogin = { navController.navigate("login") }
+                            )
+                        }
+                        composable("setup_profile") {
+                            SetupProfileScreen(
+                                onBack = { navController.popBackStack() },
+                                onContinue = { navController.navigate("setup") },
+                                onSkip = { navController.navigate("setup") }
+                            )
+                        }
+                        composable("avatar_selection") {
+                            AvatarSelectionScreen(
+                                onBack = { navController.popBackStack() },
+                                onContinue = { navController.navigate("setup") },
+                                onSkip = { navController.navigate("setup") }
                             )
                         }
                         composable("ready_setup_complete") {
