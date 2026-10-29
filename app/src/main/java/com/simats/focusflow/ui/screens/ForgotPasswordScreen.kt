@@ -20,7 +20,6 @@ import androidx.compose.ui.unit.sp
 import com.simats.focusflow.ui.components.CustomTopBar
 import com.simats.focusflow.ui.components.SmartTextField
 import com.simats.focusflow.ui.components.bounceClick
-import com.simats.focusflow.ui.viewmodel.AuthUiState
 import com.simats.focusflow.ui.viewmodel.AuthViewModel
 
 @Composable
@@ -43,17 +42,13 @@ fun ForgotPasswordScreen(
     val isPasswordValid = newPassword.isBlank() || newPassword.length >= 6
     val passwordsMatch = confirmPassword.isBlank() || (newPassword == confirmPassword)
 
-    LaunchedEffect(uiState) {
-        when (val state = uiState) {
-            is AuthUiState.Error -> {
-                snackbarHostState.showSnackbar(state.message)
-                authViewModel.resetUiState()
-            }
-            is AuthUiState.Success -> {
-                snackbarHostState.showSnackbar(state.message)
-                authViewModel.resetUiState()
-            }
-            else -> {}
+    LaunchedEffect(uiState.errorMessage, uiState.successMessage) {
+        uiState.errorMessage?.let { error ->
+            snackbarHostState.showSnackbar(error)
+            authViewModel.clearError()
+        }
+        uiState.successMessage?.let { success ->
+            snackbarHostState.showSnackbar(success)
         }
     }
 
@@ -176,7 +171,7 @@ fun ForgotPasswordScreen(
                         }
                     )
                 },
-                enabled = uiState !is AuthUiState.Loading,
+                enabled = !uiState.isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
@@ -184,7 +179,7 @@ fun ForgotPasswordScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7158E2)),
                 shape = RoundedCornerShape(16.dp)
             ) {
-                if (uiState is AuthUiState.Loading) {
+                if (uiState.isLoading) {
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                 } else {
                     Text("Reset Password", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color.White)

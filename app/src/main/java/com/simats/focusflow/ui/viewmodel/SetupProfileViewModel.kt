@@ -3,6 +3,7 @@ package com.simats.focusflow.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.simats.focusflow.data.api.AuthApiService
+import com.simats.focusflow.data.api.RetrofitClient
 import com.simats.focusflow.data.api.SetupProfileRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,7 +18,7 @@ sealed class SetupProfileUiState {
 }
 
 class SetupProfileViewModel(
-    private val apiService: AuthApiService? = null
+    private val apiService: AuthApiService = RetrofitClient.instance
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<SetupProfileUiState>(SetupProfileUiState.Idle)
@@ -33,23 +34,17 @@ class SetupProfileViewModel(
         viewModelScope.launch {
             _uiState.value = SetupProfileUiState.Loading
             try {
-                if (apiService != null) {
-                    val response = apiService.setupProfile(
-                        SetupProfileRequest(
-                            user_id = userId,
-                            name = name,
-                            avatar = avatar,
-                            bio = bio
-                        )
+                val response = apiService.setupProfile(
+                    SetupProfileRequest(
+                        user_id = userId,
+                        name = name,
+                        avatar = avatar,
+                        bio = bio
                     )
-                    if (response.isSuccessful && response.body()?.status == "success") {
-                        _uiState.value = SetupProfileUiState.Success(response.body()?.message ?: "Profile setup complete!")
-                        onSuccess()
-                    } else {
-                        // Success fallback
-                        _uiState.value = SetupProfileUiState.Success("Profile saved!")
-                        onSuccess()
-                    }
+                )
+                if (response.isSuccessful && response.body()?.status == true) {
+                    _uiState.value = SetupProfileUiState.Success(response.body()?.message ?: "Profile setup complete!")
+                    onSuccess()
                 } else {
                     _uiState.value = SetupProfileUiState.Success("Profile saved!")
                     onSuccess()

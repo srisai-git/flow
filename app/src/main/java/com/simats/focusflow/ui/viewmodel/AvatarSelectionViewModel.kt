@@ -3,6 +3,7 @@ package com.simats.focusflow.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.simats.focusflow.data.api.AuthApiService
+import com.simats.focusflow.data.api.RetrofitClient
 import com.simats.focusflow.data.api.UpdateAvatarRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,7 +18,7 @@ sealed class AvatarSelectionUiState {
 }
 
 class AvatarSelectionViewModel(
-    private val apiService: AuthApiService? = null
+    private val apiService: AuthApiService = RetrofitClient.instance
 ) : ViewModel() {
 
     private val _selectedAvatar = MutableStateFlow("👤")
@@ -34,18 +35,12 @@ class AvatarSelectionViewModel(
         viewModelScope.launch {
             _uiState.value = AvatarSelectionUiState.Loading
             try {
-                if (apiService != null) {
-                    val response = apiService.updateAvatar(
-                        UpdateAvatarRequest(user_id = userId, avatar = _selectedAvatar.value)
-                    )
-                    if (response.isSuccessful && response.body()?.status == "success") {
-                        _uiState.value = AvatarSelectionUiState.Success(response.body()?.message ?: "Avatar updated!")
-                        onSuccess()
-                    } else {
-                        // Fallback
-                        _uiState.value = AvatarSelectionUiState.Success("Avatar saved!")
-                        onSuccess()
-                    }
+                val response = apiService.updateAvatar(
+                    UpdateAvatarRequest(user_id = userId, avatar = _selectedAvatar.value)
+                )
+                if (response.isSuccessful && response.body()?.status == true) {
+                    _uiState.value = AvatarSelectionUiState.Success(response.body()?.message ?: "Avatar updated!")
+                    onSuccess()
                 } else {
                     _uiState.value = AvatarSelectionUiState.Success("Avatar saved!")
                     onSuccess()

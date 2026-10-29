@@ -3,6 +3,7 @@ package com.simats.focusflow.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.simats.focusflow.data.api.AuthApiService
+import com.simats.focusflow.data.api.RetrofitClient
 import com.simats.focusflow.data.api.UserProfile
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,7 +17,7 @@ sealed class ProfileUiState {
 }
 
 class ProfileViewModel(
-    private val apiService: AuthApiService? = null
+    private val apiService: AuthApiService = RetrofitClient.instance
 ) : ViewModel() {
 
     private val defaultProfile = UserProfile(
@@ -36,13 +37,9 @@ class ProfileViewModel(
         viewModelScope.launch {
             _uiState.value = ProfileUiState.Loading
             try {
-                if (apiService != null) {
-                    val response = apiService.getProfile(userId)
-                    if (response.isSuccessful && response.body() != null) {
-                        _uiState.value = ProfileUiState.Success(response.body()!!)
-                    } else {
-                        _uiState.value = ProfileUiState.Success(defaultProfile)
-                    }
+                val response = apiService.getProfile(userId)
+                if (response.isSuccessful && response.body() != null) {
+                    _uiState.value = ProfileUiState.Success(response.body()!!)
                 } else {
                     _uiState.value = ProfileUiState.Success(defaultProfile)
                 }
@@ -56,17 +53,12 @@ class ProfileViewModel(
         viewModelScope.launch {
             _uiState.value = ProfileUiState.Loading
             try {
-                if (apiService != null) {
-                    val response = apiService.updateProfile(updatedProfile)
-                    if (response.isSuccessful) {
-                        _uiState.value = ProfileUiState.Success(updatedProfile)
-                        onSuccess()
-                    } else {
-                        _uiState.value = ProfileUiState.Error(response.body()?.message ?: "Failed to update profile")
-                    }
-                } else {
+                val response = apiService.updateProfile(updatedProfile)
+                if (response.isSuccessful) {
                     _uiState.value = ProfileUiState.Success(updatedProfile)
                     onSuccess()
+                } else {
+                    _uiState.value = ProfileUiState.Error(response.body()?.message ?: "Failed to update profile")
                 }
             } catch (e: Exception) {
                 _uiState.value = ProfileUiState.Success(updatedProfile)

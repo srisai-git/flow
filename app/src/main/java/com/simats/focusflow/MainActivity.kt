@@ -43,6 +43,7 @@ import com.simats.focusflow.ui.screens.SessionHistoryScreen
 import com.simats.focusflow.ui.screens.SessionSummaryScreen
 import com.simats.focusflow.ui.screens.SetIntentionScreen
 import com.simats.focusflow.ui.screens.SetupScreen
+import com.simats.focusflow.ui.screens.SignupScreen
 import com.simats.focusflow.ui.screens.SplashScreen
 import com.simats.focusflow.ui.screens.TakeBreatherScreen
 import com.simats.focusflow.ui.screens.TaskDetailsScreen
@@ -79,7 +80,7 @@ class MainActivity : ComponentActivity() {
                         composable("welcome_start") {
                             WelcomeStartScreen(
                                 onBack = { navController.popBackStack() },
-                                onCreateAccount = { navController.navigate("create_account") },
+                                onCreateAccount = { navController.navigate("signup") },
                                 onLogin = { navController.navigate("login") }
                             )
                         }
@@ -99,8 +100,33 @@ class MainActivity : ComponentActivity() {
                                 onForgotPassword = {
                                     navController.navigate("forgot_password")
                                 },
+                                onNavigateToSignup = {
+                                    navController.navigate("signup")
+                                },
                                 onCreateAccount = {
-                                    navController.navigate("create_account")
+                                    navController.navigate("signup")
+                                }
+                            )
+                        }
+                        composable("signup") {
+                            SignupScreen(
+                                onBack = { navController.popBackStack() },
+                                onSignupSuccess = {
+                                    navController.navigate("setup_profile")
+                                },
+                                onNavigateToLogin = {
+                                    navController.navigate("login")
+                                }
+                            )
+                        }
+                        composable("create_account") {
+                            SignupScreen(
+                                onBack = { navController.popBackStack() },
+                                onSignupSuccess = {
+                                    navController.navigate("setup_profile")
+                                },
+                                onNavigateToLogin = {
+                                    navController.navigate("login")
                                 }
                             )
                         }
@@ -305,13 +331,6 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("data_ai_preferences") {
                             DataAiPreferencesScreen(onBack = { navController.popBackStack() })
-                        }
-                        composable("create_account") {
-                            CreateAccountScreen(
-                                onBack = { navController.popBackStack() },
-                                onContinue = { navController.navigate("setup_profile") },
-                                onLogin = { navController.navigate("login") }
-                            )
                         }
                         composable("setup_profile") {
                             SetupProfileScreen(

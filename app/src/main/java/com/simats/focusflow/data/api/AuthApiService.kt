@@ -1,15 +1,20 @@
 package com.simats.focusflow.data.api
 
+import com.simats.focusflow.data.models.AuthResponse
+import com.simats.focusflow.data.models.LoginRequest
+import com.simats.focusflow.data.models.RegisterRequest
+import com.simats.focusflow.data.models.User
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Query
 
-data class LoginRequest(
-    val email: String,
-    val password: String
-)
+// Typealiases for backwards compatibility
+typealias AuthResponse = AuthResponse
+typealias LoginRequest = LoginRequest
+typealias RegisterRequest = RegisterRequest
+typealias User = User
 
 data class ResetPasswordRequest(
     val email: String,
@@ -38,14 +43,33 @@ data class UserProfile(
     val email: String
 )
 
-data class AuthResponse(
-    val status: String,
-    val message: String
-)
-
 interface AuthApiService {
-    @POST("auth/login.php")
+
+    /**
+     * Authenticate user with flow_backend
+     * Endpoint: flow_backend/login.php (or flow_backend/auth/login.php)
+     */
+    @POST("login.php")
     suspend fun login(@Body request: LoginRequest): Response<AuthResponse>
+
+    /**
+     * Register new user with flow_backend
+     * Endpoint: flow_backend/register.php (or flow_backend/auth/signup.php)
+     */
+    @POST("register.php")
+    suspend fun register(@Body request: RegisterRequest): Response<AuthResponse>
+
+    /**
+     * Direct alias pointing to auth/login.php
+     */
+    @POST("auth/login.php")
+    suspend fun loginAuth(@Body request: LoginRequest): Response<AuthResponse>
+
+    /**
+     * Direct alias pointing to auth/signup.php
+     */
+    @POST("auth/signup.php")
+    suspend fun registerAuth(@Body request: RegisterRequest): Response<AuthResponse>
 
     @POST("auth/reset_password.php")
     suspend fun resetPassword(@Body request: ResetPasswordRequest): Response<AuthResponse>
