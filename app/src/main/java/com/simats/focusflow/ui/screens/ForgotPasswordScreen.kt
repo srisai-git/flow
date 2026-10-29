@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LockReset
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -67,7 +69,7 @@ fun ForgotPasswordScreen(
             CustomTopBar("Reset Password", null, onBack)
 
             Spacer(modifier = Modifier.height(24.dp))
-            Text("🔒", fontSize = 40.sp)
+            Icon(Icons.Default.LockReset, contentDescription = null, tint = Color(0xFF7158E2), modifier = Modifier.size(40.dp))
             Spacer(modifier = Modifier.height(16.dp))
             Text("Create a new password", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
             Spacer(modifier = Modifier.height(8.dp))
@@ -155,7 +157,7 @@ fun ForgotPasswordScreen(
                 Text("Passwords do not match", fontSize = 12.sp, color = Color(0xFFDC2626))
             } else if (confirmPassword.isNotBlank() && confirmPassword == newPassword) {
                 Spacer(modifier = Modifier.height(4.dp))
-                Text("✓ Passwords match", fontSize = 12.sp, color = Color(0xFF10B981))
+                Text("Passwords match", fontSize = 12.sp, color = Color(0xFF10B981))
             }
 
             Spacer(modifier = Modifier.height(32.dp))

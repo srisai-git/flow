@@ -9,6 +9,18 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Coffee
+import androidx.compose.material.icons.filled.Computer
+import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.RocketLaunch
+import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,7 +44,7 @@ fun AvatarSelectionScreen(
     onSkip: () -> Unit = {},
     avatarViewModel: AvatarSelectionViewModel? = null
 ) {
-    var localSelectedAvatar by remember { mutableStateOf("👤") }
+    var localSelectedAvatar by remember { mutableStateOf("avatar:person") }
     var isLoading by remember { mutableStateOf(false) }
 
     if (avatarViewModel != null) {
@@ -42,7 +54,7 @@ fun AvatarSelectionScreen(
         isLoading = uiState is AvatarSelectionUiState.Loading
     }
 
-    val presetAvatars = listOf("👤", "🎓", "💻", "🎨", "🚀", "⚡", "🧠", "🔥")
+    val presetAvatars = listOf("avatar:person", "avatar:school", "avatar:code", "avatar:palette", "avatar:rocket", "avatar:bolt", "avatar:brain", "avatar:coffee")
 
     Column(
         modifier = Modifier
@@ -76,7 +88,7 @@ fun AvatarSelectionScreen(
                     .border(3.dp, Color(0xFF7158E2), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Text(localSelectedAvatar, fontSize = 60.sp)
+                Icon(resolveAvatarIcon(localSelectedAvatar), contentDescription = null, tint = Color(0xFF7158E2), modifier = Modifier.size(60.dp))
             }
         }
 
@@ -89,8 +101,8 @@ fun AvatarSelectionScreen(
         ) {
             OutlinedButton(
                 onClick = {
-                    localSelectedAvatar = "📷"
-                    avatarViewModel?.selectAvatar("📷")
+                    localSelectedAvatar = "avatar:camera"
+                    avatarViewModel?.selectAvatar("avatar:camera")
                 },
                 modifier = Modifier
                     .weight(1f)
@@ -100,13 +112,13 @@ fun AvatarSelectionScreen(
                 border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF7158E2))
             ) {
-                Text("📷 Take Photo", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.PhotoCamera, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Take Photo", fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
             }
 
             OutlinedButton(
                 onClick = {
-                    localSelectedAvatar = "🖼️"
-                    avatarViewModel?.selectAvatar("🖼️")
+                    localSelectedAvatar = "avatar:gallery"
+                    avatarViewModel?.selectAvatar("avatar:gallery")
                 },
                 modifier = Modifier
                     .weight(1f)
@@ -116,7 +128,7 @@ fun AvatarSelectionScreen(
                 border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF7158E2))
             ) {
-                Text("🖼️ Choose Gallery", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Image, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Choose Gallery", fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
             }
         }
 
@@ -159,7 +171,7 @@ fun AvatarSelectionScreen(
                                 .bounceClick(),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(avatar, fontSize = 28.sp)
+                            Icon(resolveAvatarIcon(avatar), null, tint = if (isSelected) Color(0xFF7158E2) else Color(0xFF6B7280), modifier = Modifier.size(28.dp))
                         }
                     }
                 }
@@ -183,7 +195,7 @@ fun AvatarSelectionScreen(
                                 .bounceClick(),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(avatar, fontSize = 28.sp)
+                            Icon(resolveAvatarIcon(avatar), null, tint = if (isSelected) Color(0xFF7158E2) else Color(0xFF6B7280), modifier = Modifier.size(28.dp))
                         }
                     }
                 }

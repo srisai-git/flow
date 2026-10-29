@@ -11,7 +11,7 @@ import com.simats.focusflow.ui.viewmodel.AuthViewModel
 @Composable
 fun CreateAccountScreen(
     onBack: () -> Unit = {},
-    onContinue: () -> Unit = {},
+    onContinue: (Int) -> Unit = {},
     onLogin: () -> Unit = {},
     viewModel: AuthViewModel = viewModel()
 ) {

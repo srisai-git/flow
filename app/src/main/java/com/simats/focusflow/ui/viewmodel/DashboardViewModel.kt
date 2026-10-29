@@ -1,0 +1,95 @@
+package com.simats.focusflow.ui.viewmodel
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.simats.focusflow.data.models.DashboardData
+import com.simats.focusflow.data.models.HabitItem
+import com.simats.focusflow.data.models.TaskItem
+import com.simats.focusflow.data.repository.ProductivityRepository
+import com.simats.focusflow.data.session.SessionManager
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+data class DashboardUiState(
+    val isLoading: Boolean = false,
+    val data: DashboardData = DashboardData(),
+    val errorMessage: String? = null
+)
+
+class DashboardViewModel(
+    private val repository: ProductivityRepository = ProductivityRepository(),
+    private var sessionManager: SessionManager? = null
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow(DashboardUiState(isLoading = true))
+    val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
+
+    private var currentUserId: Int = 1
+
+    fun initSessionManager(manager: SessionManager) {
+        this.sessionManager = manager
+        loadDashboard()
+    }
+
+    fun loadDashboard() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+
+            sessionManager?.let { sm ->
+                val session = sm.userSessionFlow.first()
+                if (session.userId != null && session.userId > 0) {
+                    currentUserId = session.userId
+                }
+            }
+
+            val result = repository.getDashboard(currentUserId)
+            result.fold(
+                onSuccess = { data ->
+                    _uiState.update { it.copy(isLoading = false, data = data) }
+                },
+                onFailure = { err ->
+                    _uiState.update { it.copy(isLoading = false, errorMessage = err.localizedMessage) }
+                }
+            )
+        }
+    }
+
+    fun toggleTask(taskId: Int) {
+        viewModelScope.launch {
+            val currentTasks = _uiState.value.data.priorityTasks.toMutableList()
+            val index = currentTasks.indexOfFirst { it.id == taskId }
+            if (index != -1) {
+                val updatedStatus = !currentTasks[index].isCompleted
+                currentTasks[index] = currentTasks[index].copy(isCompleted = updatedStatus)
+                _uiState.update { it.copy(data = it.data.copy(priorityTasks = currentTasks)) }
+
+                repository.toggleTask(currentUserId, taskId, updatedStatus)
+            }
+        }
+    }
+
+    fun toggleHabit(habitId: Int) {
+        viewModelScope.launch {
+            val currentHabits = _uiState.value.data.habits.toMutableList()
+            val index = currentHabits.indexOfFirst { it.id == habitId }
+            if (index != -1) {
+                val targetHabit = currentHabits[index]
+                val updatedStatus = !targetHabit.isCompletedToday
+                val updatedStreak = if (updatedStatus) targetHabit.streakCount + 1 else maxOf(0, targetHabit.streakCount - 1)
+
+                currentHabits[index] = targetHabit.copy(
+                    isCompletedToday = updatedStatus,
+                    streakCount = updatedStreak
+                )
+                _uiState.update { it.copy(data = it.data.copy(habits = currentHabits)) }
+
+                repository.toggleHabit(currentUserId, habitId)
+            }
+        }
+    }
+}
+

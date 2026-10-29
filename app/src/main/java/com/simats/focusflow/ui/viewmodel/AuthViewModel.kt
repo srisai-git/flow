@@ -10,6 +10,7 @@ import com.simats.focusflow.data.models.RegisterRequest
 import com.simats.focusflow.data.models.User
 import com.simats.focusflow.data.repository.AuthRepository
 import com.simats.focusflow.data.repository.AuthRepositoryImpl
+import com.simats.focusflow.data.session.SessionManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,15 +32,23 @@ data class AuthUiState(
 
 /**
  * ViewModel orchestrating authentication logic, input validation,
- * state hoisting, and asynchronous network dispatches via Coroutines.
+ * state hoisting, session persistence via DataStore, and network dispatches.
  */
 class AuthViewModel(
     private val repository: AuthRepository = AuthRepositoryImpl(),
-    private val apiService: AuthApiService = RetrofitClient.instance
+    private val apiService: AuthApiService = RetrofitClient.instance,
+    private var sessionManager: SessionManager? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
+
+    /**
+     * Binds the SessionManager singleton for persistence.
+     */
+    fun initSessionManager(manager: SessionManager) {
+        this.sessionManager = manager
+    }
 
     /**
      * Clears transient error messages from state.
@@ -59,7 +68,7 @@ class AuthViewModel(
     fun resetUiState() = resetState()
 
     /**
-     * Validates input and triggers user login.
+     * Validates input, triggers user login, and persists session in DataStore upon success.
      */
     fun onLogin(
         email: String,
@@ -96,14 +105,28 @@ class AuthViewModel(
 
             result.fold(
                 onSuccess = { response ->
+                    val authenticatedUser = response.user ?: User(
+                        id = 1,
+                        name = trimmedEmail.substringBefore("@").replaceFirstChar { it.uppercase() },
+                        email = trimmedEmail
+                    )
+
+                    // Persist session to DataStore (returning users are considered onboarded)
+                    sessionManager?.saveSession(
+                        userId = authenticatedUser.id,
+                        name = authenticatedUser.name,
+                        email = authenticatedUser.email,
+                        isOnboardingCompleted = true
+                    )
+
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             isSuccess = true,
                             errorMessage = null,
                             successMessage = response.message.ifBlank { "Login successful!" },
-                            user = response.user,
-                            token = response.token ?: response.user?.id?.toString()
+                            user = authenticatedUser,
+                            token = response.token ?: authenticatedUser.id.toString()
                         )
                     }
                     onSuccess?.invoke()
@@ -122,7 +145,7 @@ class AuthViewModel(
     }
 
     /**
-     * Validates input and triggers new user registration.
+     * Validates input, registers a new account, and persists initial session in DataStore.
      */
     fun onRegister(
         name: String,
@@ -188,6 +211,15 @@ class AuthViewModel(
                         name = trimmedName,
                         email = trimmedEmail
                     )
+
+                    // Persist initial session (new users still need to complete onboarding)
+                    sessionManager?.saveSession(
+                        userId = newUser.id,
+                        name = newUser.name,
+                        email = newUser.email,
+                        isOnboardingCompleted = false
+                    )
+
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -218,6 +250,17 @@ class AuthViewModel(
      */
     fun login(email: String, password: String, onSuccess: () -> Unit) {
         onLogin(email = email, password = password, onSuccess = onSuccess)
+    }
+
+    /**
+     * Clears user session from DataStore and resets UI state.
+     */
+    fun logout(onComplete: () -> Unit = {}) {
+        viewModelScope.launch {
+            sessionManager?.clearSession()
+            resetState()
+            onComplete()
+        }
     }
 
     /**

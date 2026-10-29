@@ -64,7 +64,7 @@ fun EditTaskScreen(onBack: () -> Unit = {}) {
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "✓ Title looks good · ${title.length} / 80 characters",
+            text = "Title looks good · ${title.length} / 80 characters",
             fontSize = 12.sp,
             color = Color(0xFF10B981) // Emerald green
         )

@@ -6,6 +6,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -110,7 +113,7 @@ fun ProgressConsistencyScreen(onBack: () -> Unit = {}) {
                 Text("Tasks / week: 12 → 14 → 16 → 18", fontSize = 14.sp, color = Color(0xFF6B7280))
                 Spacer(modifier = Modifier.height(16.dp))
                 Row {
-                    Text("🏅", fontSize = 20.sp, modifier = Modifier.padding(end = 12.dp))
+                    Icon(Icons.Default.EmojiEvents, contentDescription = null, tint = Color(0xFFF59E0B), modifier = Modifier.padding(end = 12.dp).size(20.dp))
                     Column {
                         Text("Milestone · A week of showing up", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
                         Text("7 active days. Your rhythm is growing.", fontSize = 14.sp, color = Color(0xFF6B7280))

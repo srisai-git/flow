@@ -1,5 +1,10 @@
 package com.simats.focusflow.ui.screens
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material3.Icon
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -84,7 +89,12 @@ fun SessionDetailsScreen(onBack: () -> Unit = {}, onViewHistory: () -> Unit = {}
                     Text("4 / 5", fontSize = 14.sp, color = Color(0xFF1E1E24))
                 }
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("★ ★ ★ ★ ☆", color = Color(0xFFB45309), fontSize = 16.sp)
+                Row {
+                    repeat(4) {
+                        Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFB45309), modifier = Modifier.size(18.dp))
+                    }
+                    Icon(Icons.Default.StarBorder, contentDescription = null, tint = Color(0xFFB45309), modifier = Modifier.size(18.dp))
+                }
                 Spacer(modifier = Modifier.height(16.dp))
                 Text("Session note", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
                 Spacer(modifier = Modifier.height(8.dp))

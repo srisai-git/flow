@@ -21,7 +21,7 @@ class AvatarSelectionViewModel(
     private val apiService: AuthApiService = RetrofitClient.instance
 ) : ViewModel() {
 
-    private val _selectedAvatar = MutableStateFlow("👤")
+    private val _selectedAvatar = MutableStateFlow("avatar:person")
     val selectedAvatar: StateFlow<String> = _selectedAvatar.asStateFlow()
 
     private val _uiState = MutableStateFlow<AvatarSelectionUiState>(AvatarSelectionUiState.Idle)

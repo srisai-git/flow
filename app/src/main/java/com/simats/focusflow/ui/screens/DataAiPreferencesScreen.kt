@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,7 +30,7 @@ fun DataAiPreferencesScreen(onBack: () -> Unit = {}, onNavigateToExport: () -> U
         CustomTopBar("Data & Groot AI preferences", null, onBack)
         Spacer(modifier = Modifier.height(24.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("🛡", color = Color(0xFF4FD1C5), fontSize = 16.sp)
+            Icon(Icons.Default.Security, contentDescription = null, tint = Color(0xFF4FD1C5), modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(12.dp))
             Text("Privacy first. You choose what to keep.", fontSize = 14.sp, color = Color(0xFF6B7280))
         }
@@ -59,7 +62,7 @@ fun DataAiPreferencesScreen(onBack: () -> Unit = {}, onNavigateToExport: () -> U
             Column {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Row {
-                        Text("🛢", fontSize = 20.sp)
+                        Icon(Icons.Default.Psychology, contentDescription = null, tint = Color(0xFF7158E2), modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(12.dp))
                         Text("Groot AI Analysis status", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
                     }

@@ -1,5 +1,9 @@
 package com.simats.focusflow.ui.screens
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Coffee
+import androidx.compose.material3.Icon
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -61,7 +65,7 @@ fun TakeBreatherScreen(onResumeFocus: () -> Unit = {}, onSkipBreak: () -> Unit =
         Box(modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(16.dp)).border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(16.dp)).padding(24.dp)) {
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("☕", fontSize = 20.sp, color = Color(0xFF4FD1C5))
+                    Icon(Icons.Default.Coffee, contentDescription = null, tint = Color(0xFF4FD1C5), modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(12.dp))
                     Text("A quiet moment away", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
                 }

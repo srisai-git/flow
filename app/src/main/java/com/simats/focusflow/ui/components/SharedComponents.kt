@@ -9,7 +9,12 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -84,7 +89,7 @@ fun ShimmerSkeletonItem(
 // Empty State Layout Component
 @Composable
 fun EmptyStateCard(
-    icon: String = "🔍",
+    icon: androidx.compose.ui.graphics.vector.ImageVector = androidx.compose.material.icons.Icons.Default.Search,
     title: String = "No items found",
     subtitle: String = "Try adjusting your search or filters.",
     actionText: String? = null,
@@ -99,7 +104,7 @@ fun EmptyStateCard(
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(icon, fontSize = 48.sp)
+            Icon(imageVector = icon, contentDescription = null, tint = Color(0xFF9CA3AF), modifier = Modifier.size(48.dp))
             Spacer(modifier = Modifier.height(16.dp))
             Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
             Spacer(modifier = Modifier.height(8.dp))
@@ -133,7 +138,7 @@ fun OfflineBanner(
             contentAlignment = Alignment.Center
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("⚡", fontSize = 14.sp)
+                Icon(imageVector = androidx.compose.material.icons.Icons.Default.CloudOff, contentDescription = null, tint = Color(0xFFB91C1C), modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Offline Mode — Working with local storage",
@@ -173,7 +178,7 @@ fun SmartTextField(
             ),
             trailingIcon = trailingIcon ?: {
                 if (value.isNotBlank() && isValid) {
-                    Text("✓", color = Color(0xFF10B981), fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 12.dp))
+                    Icon(imageVector = androidx.compose.material.icons.Icons.Default.Check, contentDescription = "Valid", tint = Color(0xFF10B981), modifier = Modifier.padding(end = 12.dp).size(18.dp))
                 }
             },
             singleLine = true

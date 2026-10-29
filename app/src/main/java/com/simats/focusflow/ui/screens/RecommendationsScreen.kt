@@ -1,5 +1,14 @@
 package com.simats.focusflow.ui.screens
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Coffee
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material3.Icon
+import androidx.compose.ui.graphics.vector.ImageVector
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -47,21 +56,21 @@ fun RecommendationsScreen(onBack: () -> Unit = {}, onPlanPrediction: () -> Unit 
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        RecommendationCard(icon = "⏱", title = "Try 45-minute blocks", desc = "Your recorded sessions averaged 37.5 minutes. Test 45; shorten it if needed.")
+        RecommendationCard(icon = Icons.Default.Timer, title = "Try 45-minute blocks", desc = "Your recorded sessions averaged 37.5 minutes. Test 45; shorten it if needed.")
         Spacer(modifier = Modifier.height(16.dp))
         
-        RecommendationCard(icon = "☼", title = "Protect 09:00–11:00", desc = "Morning planned-minute completion was 85%, versus 60% in the evening.")
+        RecommendationCard(icon = Icons.Default.WbSunny, title = "Protect 09:00–11:00", desc = "Morning planned-minute completion was 85%, versus 60% in the evening.")
         Spacer(modifier = Modifier.height(16.dp))
         
-        RecommendationCard(icon = "☕", title = "Take a 5-minute break", desc = "Try a break after each block. Break length is a starting suggestion, not measured.")
+        RecommendationCard(icon = Icons.Default.Coffee, title = "Take a 5-minute break", desc = "Try a break after each block. Break length is a starting suggestion, not measured.")
         Spacer(modifier = Modifier.height(16.dp))
         
-        RecommendationCard(icon = "≡", title = "Start with machine learning", desc = "Your Study task is high priority. Put it before the two lower-priority tasks.")
+        RecommendationCard(icon = Icons.Default.List, title = "Start with machine learning", desc = "Your Study task is high priority. Put it before the two lower-priority tasks.")
         
         Spacer(modifier = Modifier.height(32.dp))
         
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { onWhySuggestion() }) {
-            Text("ⓘ", color = Color(0xFF6B7280), fontSize = 20.sp)
+            Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFF6B7280), modifier = Modifier.size(20.dp))
             Spacer(modifier = Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text("Why this suggestion?", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
@@ -106,10 +115,10 @@ fun RecommendationsScreen(onBack: () -> Unit = {}, onPlanPrediction: () -> Unit 
 }
 
 @Composable
-fun RecommendationCard(icon: String, title: String, desc: String) {
+fun RecommendationCard(icon: ImageVector, title: String, desc: String) {
     Box(modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(16.dp)).border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(16.dp)).padding(16.dp)) {
         Row(verticalAlignment = Alignment.Top) {
-            Text(icon, color = Color(0xFF7158E2), fontSize = 20.sp)
+            Icon(icon, contentDescription = null, tint = Color(0xFF7158E2), modifier = Modifier.size(20.dp))
             Spacer(modifier = Modifier.width(16.dp))
             Column {
                 Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))

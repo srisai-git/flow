@@ -7,11 +7,24 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.simats.focusflow.data.session.SessionManager
+import com.simats.focusflow.ui.components.FocusFlowBottomBar
+import com.simats.focusflow.ui.navigation.Screen
+import com.simats.focusflow.ui.theme.FOCUSFLOWTheme
+import com.simats.focusflow.ui.theme.FocusFlowTheme
 import com.simats.focusflow.ui.screens.AboutFlowScreen
 import com.simats.focusflow.ui.screens.AccountRecoveryScreen
 import com.simats.focusflow.ui.screens.ActiveSessionScreen
@@ -23,13 +36,15 @@ import com.simats.focusflow.ui.screens.DashboardScreen
 import com.simats.focusflow.ui.screens.DataAiPreferencesScreen
 import com.simats.focusflow.ui.screens.DistractionAnalysisScreen
 import com.simats.focusflow.ui.screens.EditProfileScreen
-import com.simats.focusflow.ui.screens.SetupProfileScreen
 import com.simats.focusflow.ui.screens.EditTaskScreen
+import com.simats.focusflow.ui.screens.ExportDataScreen
 import com.simats.focusflow.ui.screens.FocusTimeAnalysisScreen
 import com.simats.focusflow.ui.screens.ForgotPasswordScreen
+import com.simats.focusflow.ui.screens.HabitsScreen
 import com.simats.focusflow.ui.screens.InsightsScreen
 import com.simats.focusflow.ui.screens.LogDistractionScreen
 import com.simats.focusflow.ui.screens.LoginScreen
+import com.simats.focusflow.ui.screens.MakeItYoursScreen
 import com.simats.focusflow.ui.screens.NotificationsScreen
 import com.simats.focusflow.ui.screens.OnboardingScreen
 import com.simats.focusflow.ui.screens.PlanNextDayScreen
@@ -42,26 +57,55 @@ import com.simats.focusflow.ui.screens.SessionDetailsScreen
 import com.simats.focusflow.ui.screens.SessionHistoryScreen
 import com.simats.focusflow.ui.screens.SessionSummaryScreen
 import com.simats.focusflow.ui.screens.SetIntentionScreen
+import com.simats.focusflow.ui.screens.SetupProfileScreen
 import com.simats.focusflow.ui.screens.SetupScreen
 import com.simats.focusflow.ui.screens.SignupScreen
 import com.simats.focusflow.ui.screens.SplashScreen
 import com.simats.focusflow.ui.screens.TakeBreatherScreen
 import com.simats.focusflow.ui.screens.TaskDetailsScreen
 import com.simats.focusflow.ui.screens.TasksScreen
+import com.simats.focusflow.ui.screens.TimerScreen
+import com.simats.focusflow.ui.screens.WeeklyReportDetailsScreen
 import com.simats.focusflow.ui.screens.WelcomeStartScreen
 import com.simats.focusflow.ui.screens.WhyThisSuggestionScreen
 import com.simats.focusflow.ui.theme.FOCUSFLOWTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            FOCUSFLOWTheme {
+            val context = LocalContext.current
+            val sessionManager = remember { SessionManager.getInstance(context) }
+            val themeMode by sessionManager.themeModeFlow.collectAsState(initial = "dark")
+
+            FOCUSFLOWTheme(themeMode = themeMode) {
                 val navController = rememberNavController()
+                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                val currentRoute = navBackStackEntry?.destination?.route
+                val isMainScreen = Screen.isMainScreen(currentRoute)
+
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
-                    containerColor = Color(0xFF070510)
+                    containerColor = FocusFlowTheme.colors.background,
+                    bottomBar = {
+                        if (isMainScreen) {
+                            FocusFlowBottomBar(
+                                currentRoute = currentRoute,
+                                onNavigate = { route ->
+                                    navController.navigate(route) {
+                                        popUpTo(Screen.Dashboard.route) {
+                                            inclusive = false
+                                            saveState = false
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = false
+                                    }
+                                }
+                            )
+                        }
+                    }
                 ) { innerPadding ->
                     NavHost(
                         navController = navController,
@@ -70,8 +114,8 @@ class MainActivity : ComponentActivity() {
                     ) {
                         composable("splash") {
                             SplashScreen(
-                                onTimeout = {
-                                    navController.navigate("welcome_start") {
+                                onNavigate = { destination ->
+                                    navController.navigate(destination) {
                                         popUpTo("splash") { inclusive = true }
                                     }
                                 }
@@ -94,8 +138,11 @@ class MainActivity : ComponentActivity() {
                         composable("login") {
                             LoginScreen(
                                 onBack = { navController.popBackStack() },
-                                onNavigateToSetup = {
-                                    navController.navigate("setup")
+                                onLoginSuccess = {
+                                    navController.navigate("dashboard") {
+                                        popUpTo("welcome_start") { inclusive = true }
+                                        popUpTo("login") { inclusive = true }
+                                    }
                                 },
                                 onForgotPassword = {
                                     navController.navigate("forgot_password")
@@ -111,8 +158,10 @@ class MainActivity : ComponentActivity() {
                         composable("signup") {
                             SignupScreen(
                                 onBack = { navController.popBackStack() },
-                                onSignupSuccess = {
-                                    navController.navigate("setup_profile")
+                                onSignupSuccess = { userId ->
+                                    navController.navigate("make_it_yours/$userId") {
+                                        popUpTo("signup") { inclusive = true }
+                                    }
                                 },
                                 onNavigateToLogin = {
                                     navController.navigate("login")
@@ -122,11 +171,44 @@ class MainActivity : ComponentActivity() {
                         composable("create_account") {
                             SignupScreen(
                                 onBack = { navController.popBackStack() },
-                                onSignupSuccess = {
-                                    navController.navigate("setup_profile")
+                                onSignupSuccess = { userId ->
+                                    navController.navigate("make_it_yours/$userId") {
+                                        popUpTo("create_account") { inclusive = true }
+                                    }
                                 },
                                 onNavigateToLogin = {
                                     navController.navigate("login")
+                                }
+                            )
+                        }
+                        composable("make_it_yours") {
+                            MakeItYoursScreen(
+                                userId = 1,
+                                onEnterDashboard = {
+                                    navController.navigate("dashboard") {
+                                        popUpTo("welcome_start") { inclusive = true }
+                                        popUpTo("make_it_yours") { inclusive = true }
+                                    }
+                                }
+                            )
+                        }
+                        composable(
+                            route = "make_it_yours/{userId}",
+                            arguments = listOf(
+                                navArgument("userId") {
+                                    type = NavType.IntType
+                                    defaultValue = 1
+                                }
+                            )
+                        ) { backStackEntry ->
+                            val userId = backStackEntry.arguments?.getInt("userId") ?: 1
+                            MakeItYoursScreen(
+                                userId = userId,
+                                onEnterDashboard = {
+                                    navController.navigate("dashboard") {
+                                        popUpTo("welcome_start") { inclusive = true }
+                                        popUpTo("make_it_yours") { inclusive = true }
+                                    }
                                 }
                             )
                         }
@@ -140,29 +222,71 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
-                        composable("dashboard") {
+                        composable(Screen.Dashboard.route) {
                             DashboardScreen(
-                                onNavigateToTasks = { navController.navigate("tasks") },
-                                onNavigateToInsights = { navController.navigate("insights") },
-                                onNavigateToProfile = { navController.navigate("profile") },
-                                onNavigateToSetIntention = { navController.navigate("set_intention") },
+                                onNavigateToTimer = { navController.navigate(Screen.Timer.route) },
+                                onNavigateToTasks = { navController.navigate(Screen.Tasks.route) },
+                                onNavigateToHabits = { navController.navigate(Screen.Habits.route) },
+                                onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                                 onNavigateToNotifications = { navController.navigate("notifications") },
+                                onNavigateToInsights = { navController.navigate("insights") },
+                                onNavigateToSetIntention = { navController.navigate(Screen.Timer.route) },
                                 onNavigateToSessionHistory = { navController.navigate("session_history") },
                                 onNavigateToSearchFilters = { navController.navigate("search_filters") },
                                 onNavigateToDataAi = { navController.navigate("data_ai_preferences") }
                             )
                         }
-                        composable("tasks") {
+                        composable(Screen.Tasks.route) {
                             TasksScreen(
                                 onNavigateToHome = {
-                                    navController.navigate("dashboard") {
-                                        popUpTo("dashboard") { inclusive = true }
+                                    navController.navigate(Screen.Dashboard.route) {
+                                        popUpTo(Screen.Dashboard.route) {
+                                            inclusive = false
+                                            saveState = false
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = false
                                     }
                                 },
                                 onNavigateToInsights = { navController.navigate("insights") },
-                                onNavigateToProfile = { navController.navigate("profile") },
+                                onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                                 onNavigateToProgressConsistency = { navController.navigate("progress_consistency") },
                                 onNavigateToEditTask = { navController.navigate("edit_task") }
+                            )
+                        }
+                        composable(Screen.Timer.route) {
+                            TimerScreen(
+                                onNavigateBack = { navController.popBackStack() }
+                            )
+                        }
+                        composable(Screen.Habits.route) {
+                            HabitsScreen(
+                                onNavigateBack = { navController.popBackStack() }
+                            )
+                        }
+                        composable(Screen.Profile.route) {
+                            val context = LocalContext.current
+                            val coroutineScope = rememberCoroutineScope()
+                            val sessionManager = remember { SessionManager.getInstance(context) }
+
+                            ProfileScreen(
+                                onNavigateToHome = { navController.navigate(Screen.Dashboard.route) { popUpTo(Screen.Dashboard.route) { inclusive = true } } },
+                                onNavigateToTasks = { navController.navigate(Screen.Tasks.route) },
+                                onNavigateToInsights = { navController.navigate("insights") },
+                                onNavigateToNotifications = { navController.navigate("notifications") },
+                                onNavigateToDataAi = { navController.navigate("data_ai_preferences") },
+                                onNavigateToDailyGoal = { navController.navigate("daily_focus_goal") },
+                                onNavigateToExport = { navController.navigate("export_data") },
+                                onNavigateToAboutFlow = { navController.navigate("about_flow") },
+                                onNavigateToEditProfile = { navController.navigate("edit_profile") },
+                                onLogout = {
+                                    coroutineScope.launch {
+                                        sessionManager.clearSession()
+                                        navController.navigate("login") {
+                                            popUpTo(0) { inclusive = true }
+                                        }
+                                    }
+                                }
                             )
                         }
                         composable("edit_task") {
@@ -200,8 +324,8 @@ class MainActivity : ComponentActivity() {
                             SessionSummaryScreen(
                                 onBack = { navController.popBackStack() },
                                 onSave = {
-                                    navController.navigate("dashboard") {
-                                        popUpTo("dashboard") { inclusive = true }
+                                    navController.navigate(Screen.Dashboard.route) {
+                                        popUpTo(Screen.Dashboard.route) { inclusive = true }
                                     }
                                 },
                                 onViewInsights = { navController.navigate("insights") },
@@ -231,12 +355,17 @@ class MainActivity : ComponentActivity() {
                         composable("insights") {
                             InsightsScreen(
                                 onNavigateToHome = {
-                                    navController.navigate("dashboard") {
-                                        popUpTo("dashboard") { inclusive = true }
+                                    navController.navigate(Screen.Dashboard.route) {
+                                        popUpTo(Screen.Dashboard.route) {
+                                            inclusive = false
+                                            saveState = false
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = false
                                     }
                                 },
-                                onNavigateToTasks = { navController.navigate("tasks") },
-                                onNavigateToProfile = { navController.navigate("profile") },
+                                onNavigateToTasks = { navController.navigate(Screen.Tasks.route) },
+                                onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                                 onNavigateToFocusAnalysis = { navController.navigate("focus_time_analysis") },
                                 onNavigateToDistraction = { navController.navigate("distraction_analysis") },
                                 onNavigateToAiReport = { navController.navigate("ai_report") },
@@ -261,7 +390,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable("weekly_report_details") {
-                            com.simats.focusflow.ui.screens.WeeklyReportDetailsScreen(
+                            WeeklyReportDetailsScreen(
                                 onBack = { navController.popBackStack() },
                                 onViewRecommendations = { navController.navigate("recommendations") }
                             )
@@ -282,29 +411,11 @@ class MainActivity : ComponentActivity() {
                         composable("plan_next_day") {
                             PlanNextDayScreen(
                                 onBack = { navController.popBackStack() },
-                                onReviewTasks = { navController.navigate("tasks") }
+                                onReviewTasks = { navController.navigate(Screen.Tasks.route) }
                             )
                         }
                         composable("progress_consistency") {
                             ProgressConsistencyScreen(onBack = { navController.popBackStack() })
-                        }
-                        composable("profile") {
-                            ProfileScreen(
-                                onNavigateToHome = { navController.navigate("dashboard") { popUpTo("dashboard") { inclusive = true } } },
-                                onNavigateToTasks = { navController.navigate("tasks") },
-                                onNavigateToInsights = { navController.navigate("insights") },
-                                onNavigateToNotifications = { navController.navigate("notifications") },
-                                onNavigateToDataAi = { navController.navigate("data_ai_preferences") },
-                                onNavigateToDailyGoal = { navController.navigate("daily_focus_goal") },
-                                onNavigateToExport = { navController.navigate("export_data") },
-                                onNavigateToAboutFlow = { navController.navigate("about_flow") },
-                                onNavigateToEditProfile = { navController.navigate("edit_profile") },
-                                onLogout = {
-                                    navController.navigate("login") {
-                                        popUpTo(0) { inclusive = true }
-                                    }
-                                }
-                            )
                         }
                         composable("edit_profile") {
                             EditProfileScreen(
@@ -322,7 +433,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable("export_data") {
-                            com.simats.focusflow.ui.screens.ExportDataScreen(
+                            ExportDataScreen(
                                 onBack = { navController.popBackStack() }
                             )
                         }
@@ -350,7 +461,7 @@ class MainActivity : ComponentActivity() {
                             ReadySetupCompleteScreen(
                                 onBack = { navController.popBackStack() },
                                 onGoToDashboard = {
-                                    navController.navigate("dashboard") {
+                                    navController.navigate(Screen.Dashboard.route) {
                                         popUpTo("splash") { inclusive = true }
                                     }
                                 },

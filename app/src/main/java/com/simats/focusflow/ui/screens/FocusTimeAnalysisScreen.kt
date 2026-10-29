@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -157,7 +159,7 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                 .padding(16.dp)
         ) {
             Row {
-                Text("☼", color = Color(0xFF7158E2), fontSize = 20.sp, modifier = Modifier.padding(end = 12.dp))
+                Icon(Icons.Default.WbSunny, contentDescription = null, tint = Color(0xFF7158E2), modifier = Modifier.padding(end = 12.dp).size(20.dp))
                 Text("Best observed window: 09:00–11:00. More recorded focus, not a measure of work quality.", fontSize = 14.sp, color = Color(0xFF1E1E24))
             }
         }

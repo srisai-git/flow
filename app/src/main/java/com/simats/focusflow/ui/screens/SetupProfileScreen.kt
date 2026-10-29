@@ -9,6 +9,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,7 +39,7 @@ fun SetupProfileScreen(
 ) {
     var name by remember { mutableStateOf(initialName) }
     var bio by remember { mutableStateOf("") }
-    var selectedAvatar by remember { mutableStateOf("👤") }
+    var selectedAvatar by remember { mutableStateOf("avatar:person") }
     var isLoading by remember { mutableStateOf(false) }
 
     if (viewModel != null) {
@@ -88,23 +91,23 @@ fun SetupProfileScreen(
 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedButton(
-                        onClick = { selectedAvatar = "📷" },
+                        onClick = { selectedAvatar = "avatar:camera" },
                         shape = RoundedCornerShape(12.dp),
                         border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF7158E2)),
                         modifier = Modifier.bounceClick()
                     ) {
-                        Text("📷 Take Photo", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.PhotoCamera, null, modifier = Modifier.size(16.dp)); Spacer(Modifier.width(4.dp)); Text("Take Photo", fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
                     }
 
                     OutlinedButton(
-                        onClick = { selectedAvatar = "🖼️" },
+                        onClick = { selectedAvatar = "avatar:gallery" },
                         shape = RoundedCornerShape(12.dp),
                         border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF7158E2)),
                         modifier = Modifier.bounceClick()
                     ) {
-                        Text("🖼️ Choose Gallery", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Image, null, modifier = Modifier.size(16.dp)); Spacer(Modifier.width(4.dp)); Text("Choose Gallery", fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
                     }
                 }
             }

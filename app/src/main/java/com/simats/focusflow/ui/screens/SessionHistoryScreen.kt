@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -36,8 +39,8 @@ fun SessionHistoryScreen(onBack: () -> Unit = {}, onSearch: () -> Unit = {}, onS
             value = searchQuery,
             onValueChange = { searchQuery = it },
             placeholder = { Text("Search sessions", color = Color(0xFF6B7280)) },
-            leadingIcon = { Text("🔍", color = Color(0xFF6B7280), fontSize = 16.sp) },
-            trailingIcon = { Text("≑", color = Color(0xFF7158E2), fontSize = 24.sp, modifier = Modifier.clickable { onSearch() }.padding(12.dp)) },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color(0xFF6B7280), modifier = Modifier.size(20.dp)) },
+            trailingIcon = { Icon(Icons.Default.FilterList, contentDescription = "Filter", tint = Color(0xFF7158E2), modifier = Modifier.clickable { onSearch() }.padding(12.dp).size(20.dp)) },
             modifier = Modifier.fillMaxWidth().height(56.dp),
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Color(0xFFE5E7EB), focusedBorderColor = Color(0xFFE5E7EB), unfocusedContainerColor = Color.White, focusedContainerColor = Color.White)

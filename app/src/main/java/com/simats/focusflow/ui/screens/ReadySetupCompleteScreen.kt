@@ -9,7 +9,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.TrackChanges
 import androidx.compose.material3.*
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,13 +71,13 @@ fun ReadySetupCompleteScreen(onBack: () -> Unit = {}, onGoToDashboard: () -> Uni
                 HorizontalDivider(color = Color(0xFFF3F4F6))
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                PreferenceRow("📖", "Primary goal", "Study")
+                PreferenceRow(Icons.Default.MenuBook, "Primary goal", "Study")
                 Spacer(modifier = Modifier.height(16.dp))
-                PreferenceRow("⏱", "Focus duration", "45 min")
+                PreferenceRow(Icons.Default.Timer, "Focus duration", "45 min")
                 Spacer(modifier = Modifier.height(16.dp))
-                PreferenceRow("🎯", "Daily focus goal", "3h 30m")
+                PreferenceRow(Icons.Default.TrackChanges, "Daily focus goal", "3h 30m")
                 Spacer(modifier = Modifier.height(16.dp))
-                PreferenceRow("🔔", "Reminders", "09:00")
+                PreferenceRow(Icons.Default.Notifications, "Reminders", "09:00")
             }
         }
         
@@ -99,11 +105,11 @@ fun ReadySetupCompleteScreen(onBack: () -> Unit = {}, onGoToDashboard: () -> Uni
 }
 
 @Composable
-fun PreferenceRow(icon: String, label: String, value: String) {
+fun PreferenceRow(icon: ImageVector, label: String, value: String) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(modifier = Modifier.size(32.dp).background(Color(0xFFF0EDFF), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
-                Text(icon, color = Color(0xFF7158E2), fontSize = 16.sp)
+                Icon(icon, contentDescription = null, tint = Color(0xFF7158E2), modifier = Modifier.size(18.dp))
             }
             Spacer(modifier = Modifier.width(16.dp))
             Text(label, fontSize = 16.sp, color = Color(0xFF6B7280))

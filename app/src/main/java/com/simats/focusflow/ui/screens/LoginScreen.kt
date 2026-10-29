@@ -11,12 +11,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -29,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.simats.focusflow.R
+import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.ui.components.CustomTopBar
 import com.simats.focusflow.ui.components.SmartTextField
 import com.simats.focusflow.ui.components.bounceClick
@@ -49,6 +55,11 @@ fun LoginScreen(
     onCreateAccount: () -> Unit = onNavigateToSignup,
     viewModel: AuthViewModel = viewModel()
 ) {
+    val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        viewModel.initSessionManager(SessionManager.getInstance(context))
+    }
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -148,11 +159,7 @@ fun LoginScreen(
                             .padding(horizontal = 14.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "⚠️",
-                            fontSize = 16.sp,
-                            modifier = Modifier.padding(end = 10.dp)
-                        )
+                        Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFDC2626), modifier = Modifier.padding(end = 10.dp).size(18.dp))
                         Text(
                             text = uiState.errorMessage ?: "",
                             fontSize = 13.sp,
@@ -160,15 +167,7 @@ fun LoginScreen(
                             fontWeight = FontWeight.Medium,
                             modifier = Modifier.weight(1f)
                         )
-                        Text(
-                            text = "✕",
-                            fontSize = 14.sp,
-                            color = Color(0xFF991B1B),
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier
-                                .clickable { viewModel.clearError() }
-                                .padding(start = 8.dp)
-                        )
+                        Icon(Icons.Default.Close, contentDescription = "Clear", tint = Color(0xFF991B1B), modifier = Modifier.clickable { viewModel.clearError() }.padding(start = 8.dp).size(16.dp))
                     }
                 }
             }
@@ -235,12 +234,7 @@ fun LoginScreen(
                         modifier = Modifier.padding(end = 12.dp)
                     ) {
                         if (password.length >= 6) {
-                            Text(
-                                text = "✓",
-                                color = Color(0xFF10B981),
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(end = 8.dp)
-                            )
+                            Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF10B981), modifier = Modifier.padding(end = 8.dp).size(16.dp))
                         }
                         Text(
                             text = if (passwordVisible) "Hide" else "Show",

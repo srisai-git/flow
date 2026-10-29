@@ -64,3 +64,36 @@ data class AuthResponse(
         get() = status
 }
 
+/**
+ * Request payload for saving user preferences from the onboarding customization screen.
+ */
+data class SavePreferencesRequest(
+    @SerializedName("user_id")
+    val userId: Int,
+
+    @SerializedName("primary_goal")
+    val primaryGoal: String,
+
+    @SerializedName("preferred_focus_duration")
+    val preferredFocusDuration: Int,
+
+    @SerializedName("daily_focus_goal_minutes")
+    val dailyFocusGoalMinutes: Int,
+
+    @SerializedName("reminders_enabled")
+    val remindersEnabled: Int = 1,
+
+    @SerializedName("reminder_time")
+    val reminderTime: String = "09:00 AM"
+)
+
+/**
+ * Response payload returned when saving preferences.
+ */
+data class PreferencesResponse(
+    @SerializedName("status")
+    val status: Boolean = false,
+
+    @SerializedName("message")
+    val message: String = ""
+)

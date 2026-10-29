@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit
  */
 object RetrofitClient {
 
-    private const val DEFAULT_BASE_URL = "http://172.23.176.89/flow_backend/"
+    private const val DEFAULT_BASE_URL = "https://reaction-union-sublevel.ngrok-free.dev/flow_backend/"
 
     @Volatile
     private var customBaseUrl: String? = null
@@ -33,6 +33,7 @@ object RetrofitClient {
             customBaseUrl = formattedUrl
             retrofitInstance = null
             apiServiceInstance = null
+            flowApiServiceInstance = null
         }
     }
 
@@ -74,5 +75,18 @@ object RetrofitClient {
 
     val authApiService: AuthApiService
         get() = instance
+
+    @Volatile
+    private var flowApiServiceInstance: FlowApiService? = null
+
+    /**
+     * Singleton instance of the FlowApiService (Productivity, Tasks, Timer, Habits, Profile).
+     */
+    val flowApiService: FlowApiService
+        get() = flowApiServiceInstance ?: synchronized(this) {
+            flowApiServiceInstance ?: getRetrofit().create(FlowApiService::class.java).also {
+                flowApiServiceInstance = it
+            }
+        }
 }
 

@@ -11,6 +11,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Insights
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,7 +57,7 @@ fun AiReportScreen(onBack: () -> Unit = {}, onViewRecommendations: () -> Unit = 
         ) {
             Column {
                 Row {
-                    Text("⛶", color = Color(0xFF7158E2), fontSize = 16.sp, modifier = Modifier.padding(end = 8.dp))
+                    Icon(Icons.Default.Insights, contentDescription = null, tint = Color(0xFF7158E2), modifier = Modifier.padding(end = 8.dp).size(18.dp))
                     Text("Key findings", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
                 }
                 Spacer(modifier = Modifier.height(12.dp))
@@ -80,7 +85,7 @@ fun AiReportScreen(onBack: () -> Unit = {}, onViewRecommendations: () -> Unit = 
         ) {
             Column {
                 Row {
-                    Text("📈", color = Color(0xFF10B981), fontSize = 16.sp, modifier = Modifier.padding(end = 8.dp))
+                    Icon(Icons.Default.TrendingUp, contentDescription = null, tint = Color(0xFF10B981), modifier = Modifier.padding(end = 8.dp).size(18.dp))
                     Text("Strengths", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
                 }
                 Spacer(modifier = Modifier.height(12.dp))
@@ -96,7 +101,7 @@ fun AiReportScreen(onBack: () -> Unit = {}, onViewRecommendations: () -> Unit = 
         ) {
             Column {
                 Row {
-                    Text("⚑", color = Color(0xFFB45309), fontSize = 16.sp, modifier = Modifier.padding(end = 8.dp))
+                    Icon(Icons.Default.Flag, contentDescription = null, tint = Color(0xFFB45309), modifier = Modifier.padding(end = 8.dp).size(18.dp))
                     Text("Challenges", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
                 }
                 Spacer(modifier = Modifier.height(12.dp))
