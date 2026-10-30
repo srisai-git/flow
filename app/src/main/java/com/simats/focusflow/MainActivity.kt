@@ -40,6 +40,7 @@ import com.simats.focusflow.ui.screens.EditTaskScreen
 import com.simats.focusflow.ui.screens.ExportDataScreen
 import com.simats.focusflow.ui.screens.FocusTimeAnalysisScreen
 import com.simats.focusflow.ui.screens.ForgotPasswordScreen
+import com.simats.focusflow.ui.screens.GrootAiScreen
 import com.simats.focusflow.ui.screens.HabitsScreen
 import com.simats.focusflow.ui.screens.InsightsScreen
 import com.simats.focusflow.ui.screens.LogDistractionScreen
@@ -233,7 +234,8 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToSetIntention = { navController.navigate(Screen.Timer.route) },
                                 onNavigateToSessionHistory = { navController.navigate("session_history") },
                                 onNavigateToSearchFilters = { navController.navigate("search_filters") },
-                                onNavigateToDataAi = { navController.navigate("data_ai_preferences") }
+                                onNavigateToDataAi = { navController.navigate("data_ai_preferences") },
+                                onNavigateToGrootAi = { navController.navigate("groot_ai") }
                             )
                         }
                         composable(Screen.Tasks.route) {
@@ -261,7 +263,8 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(Screen.Habits.route) {
                             HabitsScreen(
-                                onNavigateBack = { navController.popBackStack() }
+                                onNavigateBack = { navController.popBackStack() },
+                                onNavigateToGrootAi = { navController.navigate("groot_ai") }
                             )
                         }
                         composable(Screen.Profile.route) {
@@ -487,6 +490,11 @@ class MainActivity : ComponentActivity() {
                                 onBack = { navController.popBackStack() },
                                 onStartFocus = { navController.navigate("set_intention") },
                                 onEditTask = { navController.navigate("edit_task") }
+                            )
+                        }
+                        composable("groot_ai") {
+                            GrootAiScreen(
+                                onBack = { navController.popBackStack() }
                             )
                         }
                     }

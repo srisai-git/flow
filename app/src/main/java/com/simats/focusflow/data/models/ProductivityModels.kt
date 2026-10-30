@@ -440,6 +440,21 @@ data class GrootResponse(
     @SerializedName("response") val response: String? = null
 )
 
+@Immutable
+data class AiRequest(
+    @SerializedName("user_id") val userId: Int,
+    @SerializedName("query_type") val queryType: String = "general",
+    @SerializedName("prompt") val prompt: String? = null
+)
+
+@Immutable
+data class AiResponse(
+    @SerializedName("status") val status: String = "success",
+    @SerializedName("insight") val insight: String? = null,
+    @SerializedName("message") val message: String? = null,
+    @SerializedName("timestamp") val timestamp: String? = null
+)
+
 data class ResetStatsRequest(
     @SerializedName("user_id")
     val userId: Int

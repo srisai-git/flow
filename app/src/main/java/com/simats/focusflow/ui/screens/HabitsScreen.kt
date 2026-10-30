@@ -2,7 +2,12 @@ package com.simats.focusflow.ui.screens
 
 import android.content.Intent
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -16,7 +21,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -27,6 +34,7 @@ import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
@@ -82,6 +90,7 @@ fun resolveHabitIcon(iconKey: String): ImageVector = when (iconKey.lowercase()) 
 @Composable
 fun HabitsScreen(
     onNavigateBack: () -> Unit = {},
+    onNavigateToGrootAi: () -> Unit = {},
     viewModel: HabitViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -384,8 +393,12 @@ fun HabitsScreen(
                 HabitsInsightsView(
                     habits = state.habits,
                     userStats = state.userStats,
+                    aiInsight = state.aiInsight,
+                    isAiLoading = state.isAiLoading,
                     selectedTimeframe = state.selectedTimeframe,
                     onSelectTimeframe = { viewModel.selectTimeframe(it) },
+                    onRefreshAi = { viewModel.loadAiInsight(forceRefresh = true) },
+                    onNavigateToGrootAi = onNavigateToGrootAi,
                     onHabitClick = {
                         viewModel.selectHabitForStreak(it)
                         isStreakModalOpen = true
@@ -570,8 +583,12 @@ private fun HabitCard(
 private fun HabitsInsightsView(
     habits: List<HabitItem>,
     userStats: HabitUserStats,
+    aiInsight: String?,
+    isAiLoading: Boolean,
     selectedTimeframe: HabitInsightTimeframe,
     onSelectTimeframe: (HabitInsightTimeframe) -> Unit,
+    onRefreshAi: () -> Unit,
+    onNavigateToGrootAi: () -> Unit,
     onHabitClick: (HabitItem) -> Unit
 ) {
     val colors = FocusFlowTheme.colors
@@ -581,6 +598,16 @@ private fun HabitsInsightsView(
             .fillMaxWidth()
             .padding(bottom = 100.dp)
     ) {
+        // AI Productivity Insights Card
+        AiProductivityInsightsCard(
+            insight = aiInsight,
+            isLoading = isAiLoading,
+            onRefresh = onRefreshAi,
+            onOpenGrootAssistant = onNavigateToGrootAi
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         // Timeframe Selector: Day, Week, Month
         Row(
             modifier = Modifier
@@ -751,6 +778,163 @@ private fun HabitsInsightsView(
                                 color = Color(0xFFF59E0B)
                             )
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AiProductivityInsightsCard(
+    insight: String?,
+    isLoading: Boolean,
+    onRefresh: () -> Unit,
+    onOpenGrootAssistant: () -> Unit
+) {
+    val colors = FocusFlowTheme.colors
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        color = colors.surface,
+        border = BorderStroke(1.dp, colors.primary.copy(alpha = 0.35f))
+    ) {
+        Column(modifier = Modifier.padding(18.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(colors.primary.copy(alpha = 0.16f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = colors.primaryLight,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = "AI PRODUCTIVITY COACH",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.primaryLight,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text = "Groot Habit Analysis",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.textPrimary
+                        )
+                    }
+                }
+
+                IconButton(
+                    onClick = onRefresh,
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .background(colors.surfaceVariant)
+                        .bounceClick(),
+                    enabled = !isLoading
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = colors.primary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Regenerate Insight",
+                            tint = colors.primaryLight,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            if (isLoading) {
+                val infiniteTransition = rememberInfiniteTransition(label = "skeleton")
+                val alphaAnim by infiniteTransition.animateFloat(
+                    initialValue = 0.3f,
+                    targetValue = 0.8f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(durationMillis = 800, easing = LinearEasing),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "alpha"
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.95f)
+                            .height(14.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(colors.surfaceVariant.copy(alpha = alphaAnim))
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.80f)
+                            .height(14.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(colors.surfaceVariant.copy(alpha = alphaAnim))
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.60f)
+                            .height(14.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(colors.surfaceVariant.copy(alpha = alphaAnim))
+                    )
+                }
+            } else {
+                Text(
+                    text = insight?.ifBlank { "You have active habits ready to compound. Complete your primary routine to build lasting streak momentum." }
+                        ?: "Tap refresh to analyze your current habit streak and consistency with Groot AI.",
+                    fontSize = 13.sp,
+                    lineHeight = 19.sp,
+                    color = colors.textPrimary,
+                    fontWeight = FontWeight.Normal
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(
+                        onClick = onOpenGrootAssistant,
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "Ask Groot Assistant",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.primaryLight
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                            tint = colors.primaryLight,
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
                 }
             }

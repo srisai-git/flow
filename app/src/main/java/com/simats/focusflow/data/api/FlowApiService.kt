@@ -57,5 +57,8 @@ interface FlowApiService {
 
     @POST("ask_groot.php")
     suspend fun askGroot(@Body request: GrootRequest): Response<GrootResponse>
+
+    @POST("ask_groot.php")
+    suspend fun getAiInsights(@Body request: AiRequest): Response<AiResponse>
 }
 

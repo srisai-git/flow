@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.simats.focusflow.data.models.HabitItem
 import com.simats.focusflow.data.models.HabitUserStats
+import com.simats.focusflow.data.repository.AiRepository
 import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.session.SessionManager
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,6 +29,8 @@ data class HabitUiState(
     val isLoading: Boolean = false,
     val habits: List<HabitItem> = emptyList(),
     val userStats: HabitUserStats = HabitUserStats(),
+    val aiInsight: String? = null,
+    val isAiLoading: Boolean = false,
     val isAddHabitDialogOpen: Boolean = false,
     val selectedTab: HabitTab = HabitTab.ROUTINE,
     val selectedTimeframe: HabitInsightTimeframe = HabitInsightTimeframe.WEEK,
@@ -46,6 +49,7 @@ data class HabitUiState(
 
 class HabitViewModel(
     private val repository: ProductivityRepository = ProductivityRepository(),
+    private val aiRepository: AiRepository = AiRepository(),
     private var sessionManager: SessionManager? = null
 ) : ViewModel() {
 
@@ -88,8 +92,27 @@ class HabitViewModel(
         }
     }
 
+    fun loadAiInsight(forceRefresh: Boolean = false) {
+        if (!forceRefresh && _uiState.value.aiInsight != null) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isAiLoading = true) }
+            val result = aiRepository.getHabitInsights(currentUserId)
+            result.fold(
+                onSuccess = { insight ->
+                    _uiState.update { it.copy(isAiLoading = false, aiInsight = insight) }
+                },
+                onFailure = {
+                    _uiState.update { it.copy(isAiLoading = false) }
+                }
+            )
+        }
+    }
+
     fun selectTab(tab: HabitTab) {
         _uiState.update { it.copy(selectedTab = tab) }
+        if (tab == HabitTab.INSIGHTS) {
+            loadAiInsight()
+        }
     }
 
     fun selectTimeframe(timeframe: HabitInsightTimeframe) {

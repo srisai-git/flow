@@ -16,11 +16,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.rounded.LocalFireDepartment
 import androidx.compose.material3.*
@@ -62,6 +64,7 @@ fun DashboardScreen(
     onNavigateToSessionHistory: () -> Unit = {},
     onNavigateToSearchFilters: () -> Unit = {},
     onNavigateToDataAi: () -> Unit = {},
+    onNavigateToGrootAi: () -> Unit = {},
     viewModel: DashboardViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -123,6 +126,26 @@ fun DashboardScreen(
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
+                // Groot AI Quick Launcher
+                IconButton(
+                    onClick = onNavigateToGrootAi,
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .background(colors.primary.copy(alpha = 0.16f))
+                        .border(1.dp, colors.primary.copy(alpha = 0.4f), CircleShape)
+                        .bounceClick()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.SmartToy,
+                        contentDescription = "Ask Groot AI",
+                        tint = colors.primaryLight,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
                 // Refresh Button
                 IconButton(
                     onClick = { viewModel.loadDashboard() },
@@ -291,6 +314,67 @@ fun DashboardScreen(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                     contentDescription = null,
                     tint = Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // GROOT AI COACH LAUNCHER CARD
+        Surface(
+            onClick = onNavigateToGrootAi,
+            modifier = Modifier
+                .fillMaxWidth()
+                .bounceClick(),
+            shape = RoundedCornerShape(16.dp),
+            color = colors.surface,
+            border = BorderStroke(1.dp, colors.primary.copy(alpha = 0.35f))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(colors.primary.copy(alpha = 0.16f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.SmartToy,
+                            contentDescription = null,
+                            tint = colors.primaryLight,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "GROOT AI COACH",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.primaryLight,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text = "Real-time AI advice on your focus & habits",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.textPrimary
+                        )
+                    }
+                }
+
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = colors.primaryLight,
                     modifier = Modifier.size(18.dp)
                 )
             }
