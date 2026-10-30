@@ -3,6 +3,7 @@ package com.simats.focusflow.ui.viewmodel
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.simats.focusflow.data.models.ChatHistoryMessage
 import com.simats.focusflow.data.repository.AiRepository
 import com.simats.focusflow.data.session.SessionManager
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -58,11 +59,34 @@ class GrootAiViewModel(
         _uiState.update { it.copy(inputText = newText) }
     }
 
+    fun clearChat() {
+        aiRepository.clearHistory()
+        _uiState.update {
+            it.copy(
+                messages = listOf(
+                    ChatMessage(
+                        isFromUser = false,
+                        text = "I am Groot, your versatile FocusFlow AI assistant. While my specialty is productivity, time management, and habit optimization, I am ready to assist you with any technical, academic, coding, creative, or general questions you have. How can I help you today?"
+                    )
+                ),
+                inputText = "",
+                isAiThinking = false
+            )
+        }
+    }
+
     fun sendMessage(query: String? = null) {
         val textToSend = (query ?: _uiState.value.inputText).trim()
         if (textToSend.isBlank() || _uiState.value.isAiThinking) return
 
         val userMessage = ChatMessage(isFromUser = true, text = textToSend)
+        val currentHistory = _uiState.value.messages.map {
+            ChatHistoryMessage(
+                role = if (it.isFromUser) "user" else "assistant",
+                content = it.text
+            )
+        }
+
         _uiState.update {
             it.copy(
                 messages = it.messages + userMessage,
@@ -72,22 +96,23 @@ class GrootAiViewModel(
         }
 
         viewModelScope.launch {
-            val queryType = when {
-                textToSend.contains("consistency", ignoreCase = true) || textToSend.contains("habit", ignoreCase = true) -> "habit_insights"
-                textToSend.contains("rhythm", ignoreCase = true) || textToSend.contains("focus", ignoreCase = true) -> "focus_advice"
-                textToSend.contains("summary", ignoreCase = true) || textToSend.contains("progress", ignoreCase = true) -> "daily_summary"
-                else -> "chat"
-            }
-
+            // Pass the exact string as prompt without hardcoded enums restricting it
             val result = aiRepository.getAiInsights(
                 userId = currentUserId,
-                queryType = queryType,
-                prompt = textToSend
+                queryType = "chat",
+                prompt = textToSend,
+                history = currentHistory
             )
 
             result.fold(
                 onSuccess = { response ->
-                    val aiText = response.insight ?: response.message ?: "I am Groot. Focus on your top priority task."
+                    val rawAiText = response.insight ?: response.message ?: "I am Groot. Focus on your top priority task."
+                    // Ensure raw JSON is never rendered to the user
+                    val aiText = if (rawAiText.trimStart().startsWith("{") && rawAiText.contains("\"insight\"")) {
+                        response.message ?: "I am Groot, ready to assist."
+                    } else {
+                        rawAiText
+                    }
                     val aiMessage = ChatMessage(isFromUser = false, text = aiText)
                     _uiState.update {
                         it.copy(
@@ -99,11 +124,11 @@ class GrootAiViewModel(
                 onFailure = {
                     val fallbackText = when {
                         textToSend.matches(Regex("(?i)^(hi|hello|hey|greetings).*")) ->
-                            "Hello. I am Groot. How can I help you today?"
+                            "Hello! I am Groot, your FocusFlow assistant. How can I help you today?"
                         textToSend.contains("who are you", ignoreCase = true) ->
-                            "I am Groot, your AI assistant in FocusFlow."
+                            "I am Groot, your versatile AI assistant inside FocusFlow."
                         else ->
-                            "Break down this objective into clear steps and maintain focused execution."
+                            "I am Groot, your FocusFlow assistant. I am ready to help, but my local deep-reasoning engine (port 8000) is currently offline. Please ensure 'python server.py' is running in the groot_ai directory."
                     }
                     val fallbackMessage = ChatMessage(
                         isFromUser = false,

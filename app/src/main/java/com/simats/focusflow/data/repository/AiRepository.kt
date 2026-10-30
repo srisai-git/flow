@@ -4,6 +4,7 @@ import com.simats.focusflow.data.api.FlowApiService
 import com.simats.focusflow.data.api.RetrofitClient
 import com.simats.focusflow.data.models.AiRequest
 import com.simats.focusflow.data.models.AiResponse
+import com.simats.focusflow.data.models.ChatHistoryMessage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -13,21 +14,51 @@ import kotlinx.coroutines.withContext
 class AiRepository(
     private val apiService: FlowApiService = RetrofitClient.flowApiService
 ) {
+    private val _history = mutableListOf<ChatHistoryMessage>()
+    val conversationHistory: List<ChatHistoryMessage>
+        get() = synchronized(_history) { _history.toList() }
+
+    fun clearHistory() {
+        synchronized(_history) { _history.clear() }
+    }
+
     suspend fun getAiInsights(
         userId: Int,
-        queryType: String = "general",
-        prompt: String? = null
+        queryType: String = "chat",
+        prompt: String? = null,
+        history: List<ChatHistoryMessage>? = null
     ): Result<AiResponse> = withContext(Dispatchers.IO) {
         try {
-            val response = apiService.getAiInsights(AiRequest(userId = userId, queryType = queryType, prompt = prompt))
+            val userPrompt = prompt ?: ""
+            val activeHistory = history ?: synchronized(_history) { _history.toList() }
+
+            val response = apiService.getAiInsights(
+                AiRequest(
+                    userId = userId,
+                    prompt = userPrompt,
+                    history = activeHistory,
+                    queryType = queryType
+                )
+            )
+
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                val body = response.body()!!
+                val reply = body.insight ?: body.message ?: ""
+                if (userPrompt.isNotBlank()) {
+                    synchronized(_history) {
+                        _history.add(ChatHistoryMessage(role = "user", content = userPrompt))
+                        if (reply.isNotBlank()) {
+                            _history.add(ChatHistoryMessage(role = "assistant", content = reply))
+                        }
+                    }
+                }
+                Result.success(body)
             } else {
                 val errorMsg = response.errorBody()?.string() ?: "AI service temporarily unavailable"
                 Result.success(
                     AiResponse(
                         status = "fallback",
-                        insight = "Maintain your current routine by focusing on your primary high-priority task. Consistent small steps lead to compound productivity.",
+                        insight = "I am Groot. Focus on your highest priority task, maintain deep work intervals, and keep momentum going.",
                         message = errorMsg
                     )
                 )
@@ -36,7 +67,7 @@ class AiRepository(
             Result.success(
                 AiResponse(
                     status = "offline",
-                    insight = "Focus on one high-impact task at a time. A single 25-minute Pomodoro block will build progressive momentum.",
+                    insight = "I am Groot, your FocusFlow assistant. I am ready to help, but my local deep-reasoning engine (port 8000) is currently offline. Please ensure 'python server.py' is running in the groot_ai directory.",
                     message = e.localizedMessage
                 )
             )
@@ -44,12 +75,12 @@ class AiRepository(
     }
 
     suspend fun getHabitInsights(userId: Int): Result<String> = withContext(Dispatchers.IO) {
-        val res = getAiInsights(userId = userId, queryType = "habit_insights")
+        val res = getAiInsights(userId = userId, queryType = "habit_insights", prompt = "Analyze my habit consistency.")
         res.map { it.insight ?: it.message ?: "Consistency compounds over time. Keep your daily routines active to maintain peak streak momentum." }
     }
 
     suspend fun getFocusAdvice(userId: Int): Result<String> = withContext(Dispatchers.IO) {
-        val res = getAiInsights(userId = userId, queryType = "focus_advice")
+        val res = getAiInsights(userId = userId, queryType = "focus_advice", prompt = "Provide advice on my focus blocks.")
         res.map { it.insight ?: it.message ?: "Structure your workday into focused blocks with short breathers to maximize cognitive stamina." }
     }
 
@@ -58,4 +89,3 @@ class AiRepository(
         res.map { it.insight ?: it.message ?: "I am Groot. Focus on what matters most today." }
     }
 }
-

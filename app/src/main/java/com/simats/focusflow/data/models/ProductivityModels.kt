@@ -494,10 +494,17 @@ data class GrootResponse(
 )
 
 @Immutable
+data class ChatHistoryMessage(
+    @SerializedName("role") val role: String = "user",
+    @SerializedName("content") val content: String = ""
+)
+
+@Immutable
 data class AiRequest(
     @SerializedName("user_id") val userId: Int,
-    @SerializedName("query_type") val queryType: String = "general",
-    @SerializedName("prompt") val prompt: String? = null
+    @SerializedName("prompt") val prompt: String = "",
+    @SerializedName("history") val history: List<ChatHistoryMessage> = emptyList(),
+    @SerializedName("query_type") val queryType: String = "chat"
 )
 
 @Immutable
