@@ -508,10 +508,24 @@ data class AiRequest(
 )
 
 @Immutable
+data class AiAction(
+    @SerializedName("type") val type: String = "",
+    @SerializedName("duration") val duration: Int = 25,
+    @SerializedName("mode") val mode: String = "FOCUS",
+    @SerializedName("title") val title: String = "",
+    @SerializedName("priority") val priority: String = "medium",
+    @SerializedName("category") val category: String = "General",
+    @SerializedName("route") val route: String = "",
+    @SerializedName("screen_name") val screenName: String = "",
+    @SerializedName("daily_minutes") val dailyMinutes: Int = 240
+)
+
+@Immutable
 data class AiResponse(
     @SerializedName("status") val status: String = "success",
     @SerializedName("insight") val insight: String? = null,
     @SerializedName("message") val message: String? = null,
+    @SerializedName("action") val action: AiAction? = null,
     @SerializedName("timestamp") val timestamp: String? = null
 )
 

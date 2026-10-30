@@ -306,9 +306,9 @@ fun DashboardScreen(
         // 3. PRODUCTIVITY VIBE / COMPACT GROOT AI SNIPPET
         Surface(
             onClick = onNavigateToGrootAi,
-            shape = RoundedCornerShape(16.dp),
-            color = colors.surface,
-            border = BorderStroke(1.dp, colors.border),
+            shape = RoundedCornerShape(18.dp),
+            color = Color(0xFF161522),
+            border = BorderStroke(1.dp, Brush.horizontalGradient(listOf(colors.primary.copy(alpha = 0.55f), colors.border))),
             modifier = Modifier
                 .fillMaxWidth()
                 .bounceClick()
@@ -316,44 +316,80 @@ fun DashboardScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                GrootAvatar(
-                    size = 32.dp,
-                    containerColor = colors.primary.copy(alpha = 0.15f),
-                    borderColor = colors.primary.copy(alpha = 0.35f),
-                    tint = colors.primaryLight
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(colors.primary.copy(alpha = 0.18f))
+                    )
+                    GrootAvatar(
+                        size = 32.dp,
+                        containerColor = colors.primary.copy(alpha = 0.25f),
+                        borderColor = colors.primary.copy(alpha = 0.5f),
+                        tint = colors.primaryLight
+                    )
+                }
 
                 Spacer(modifier = Modifier.width(12.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "GROOT AI INSIGHT",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.primaryLight,
-                        letterSpacing = 1.sp
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "GROOT AI ASSISTANT",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.primaryLight,
+                            letterSpacing = 1.sp
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF10B981))
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(3.dp))
                     Text(
                         text = uiState.aiSnippet,
-                        fontSize = 12.sp,
+                        fontSize = 12.5.sp,
                         color = colors.textPrimary,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
-                        lineHeight = 16.sp
+                        lineHeight = 17.sp
                     )
                 }
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = null,
-                    tint = colors.textMuted,
-                    modifier = Modifier.size(16.dp)
-                )
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = colors.primary.copy(alpha = 0.18f),
+                    border = BorderStroke(1.dp, colors.primary.copy(alpha = 0.35f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Chat",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.primaryLight
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            tint = colors.primaryLight,
+                            modifier = Modifier.size(12.dp)
+                        )
+                    }
+                }
             }
         }
 

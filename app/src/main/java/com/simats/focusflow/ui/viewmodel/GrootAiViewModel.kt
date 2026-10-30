@@ -1,13 +1,21 @@
 package com.simats.focusflow.ui.viewmodel
 
+import android.content.Context
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.simats.focusflow.data.models.AiAction
 import com.simats.focusflow.data.models.ChatHistoryMessage
 import com.simats.focusflow.data.repository.AiRepository
+import com.simats.focusflow.data.repository.ProductivityRepository
+import com.simats.focusflow.data.repository.ProfileRepository
 import com.simats.focusflow.data.session.SessionManager
+import com.simats.focusflow.service.FocusTimerService
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
@@ -20,6 +28,8 @@ data class ChatMessage(
     val id: String = UUID.randomUUID().toString(),
     val isFromUser: Boolean,
     val text: String,
+    val action: AiAction? = null,
+    val actionExecuted: Boolean = false,
     val timestamp: String = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
 )
 
@@ -28,7 +38,7 @@ data class GrootAiUiState(
     val messages: List<ChatMessage> = listOf(
         ChatMessage(
             isFromUser = false,
-            text = "I am Groot, your versatile FocusFlow AI assistant. While my specialty is productivity, time management, and habit optimization, I am ready to assist you with any technical, academic, coding, creative, or general questions you have. How can I help you today?"
+            text = "I am Groot, your autonomous FocusFlow AI collaborator. You can ask me anything across coding, math, general topics, or command me to perform in-app actions like starting focus timers, scheduling tasks, building habits, and analyzing your consistency."
         )
     ),
     val isAiThinking: Boolean = false,
@@ -37,14 +47,32 @@ data class GrootAiUiState(
 
 class GrootAiViewModel(
     private val aiRepository: AiRepository = AiRepository(),
+    private val productivityRepository: ProductivityRepository = ProductivityRepository(),
+    private val profileRepository: ProfileRepository = ProfileRepository(),
     private var sessionManager: SessionManager? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GrootAiUiState())
     val uiState: StateFlow<GrootAiUiState> = _uiState.asStateFlow()
 
+    private val _navigationEvent = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val navigationEvent: SharedFlow<String> = _navigationEvent.asSharedFlow()
+
+    private var appContext: Context? = null
     private var currentUserId: Int = 1
 
+    fun initContext(context: Context, manager: SessionManager) {
+        this.appContext = context.applicationContext
+        this.sessionManager = manager
+        viewModelScope.launch {
+            val session = manager.userSessionFlow.first()
+            if (session.userId != null && session.userId > 0) {
+                currentUserId = session.userId
+            }
+        }
+    }
+
+    // Compatibility overload
     fun initSessionManager(manager: SessionManager) {
         this.sessionManager = manager
         viewModelScope.launch {
@@ -66,7 +94,7 @@ class GrootAiViewModel(
                 messages = listOf(
                     ChatMessage(
                         isFromUser = false,
-                        text = "I am Groot, your versatile FocusFlow AI assistant. While my specialty is productivity, time management, and habit optimization, I am ready to assist you with any technical, academic, coding, creative, or general questions you have. How can I help you today?"
+                        text = "I am Groot, your autonomous FocusFlow AI collaborator. You can ask me anything across coding, math, general topics, or command me to perform in-app actions like starting focus timers, scheduling tasks, building habits, and analyzing your consistency."
                     )
                 ),
                 inputText = "",
@@ -96,7 +124,6 @@ class GrootAiViewModel(
         }
 
         viewModelScope.launch {
-            // Pass the exact string as prompt without hardcoded enums restricting it
             val result = aiRepository.getAiInsights(
                 userId = currentUserId,
                 queryType = "chat",
@@ -107,13 +134,27 @@ class GrootAiViewModel(
             result.fold(
                 onSuccess = { response ->
                     val rawAiText = response.insight ?: response.message ?: "I am Groot. Focus on your top priority task."
-                    // Ensure raw JSON is never rendered to the user
                     val aiText = if (rawAiText.trimStart().startsWith("{") && rawAiText.contains("\"insight\"")) {
                         response.message ?: "I am Groot, ready to assist."
                     } else {
                         rawAiText
                     }
-                    val aiMessage = ChatMessage(isFromUser = false, text = aiText)
+
+                    val action = response.action
+                    var actionExecuted = false
+
+                    // Perform autonomous action if detected
+                    if (action != null) {
+                        actionExecuted = performAutonomousAction(action)
+                    }
+
+                    val aiMessage = ChatMessage(
+                        isFromUser = false,
+                        text = aiText,
+                        action = action,
+                        actionExecuted = actionExecuted
+                    )
+
                     _uiState.update {
                         it.copy(
                             messages = it.messages + aiMessage,
@@ -126,7 +167,7 @@ class GrootAiViewModel(
                         textToSend.matches(Regex("(?i)^(hi|hello|hey|greetings).*")) ->
                             "Hello! I am Groot, your FocusFlow assistant. How can I help you today?"
                         textToSend.contains("who are you", ignoreCase = true) ->
-                            "I am Groot, your versatile AI assistant inside FocusFlow."
+                            "I am Groot, your versatile AI collaborator inside FocusFlow."
                         else ->
                             "I am Groot, your FocusFlow assistant. I am ready to help, but my local deep-reasoning engine (port 8000) is currently offline. Please ensure 'python server.py' is running in the groot_ai directory."
                     }
@@ -142,6 +183,81 @@ class GrootAiViewModel(
                     }
                 }
             )
+        }
+    }
+
+    private fun performAutonomousAction(action: AiAction): Boolean {
+        return try {
+            when (action.type.uppercase()) {
+                "START_TIMER" -> {
+                    appContext?.let { ctx ->
+                        val duration = action.duration.coerceIn(5, 90)
+                        FocusTimerService.setDurations(ctx, duration, 5, 15)
+                        FocusTimerService.startTimer(ctx, currentUserId)
+                        true
+                    } ?: false
+                }
+                "CREATE_TASK" -> {
+                    if (action.title.isNotBlank()) {
+                        viewModelScope.launch {
+                            productivityRepository.createTask(
+                                userId = currentUserId,
+                                title = action.title,
+                                description = "Created automatically by Groot AI",
+                                priority = action.priority.ifBlank { "medium" },
+                                dueDate = "",
+                                category = action.category.ifBlank { "General" }
+                            )
+                        }
+                        true
+                    } else false
+                }
+                "CREATE_HABIT" -> {
+                    if (action.title.isNotBlank()) {
+                        viewModelScope.launch {
+                            productivityRepository.createHabit(
+                                userId = currentUserId,
+                                title = action.title,
+                                icon = "bolt",
+                                frequency = "daily"
+                            )
+                        }
+                        true
+                    } else false
+                }
+                "SET_GOAL" -> {
+                    if (action.dailyMinutes > 0) {
+                        viewModelScope.launch {
+                            profileRepository.updatePreferences(
+                                userId = currentUserId,
+                                dailyFocusGoalMinutes = action.dailyMinutes,
+                                preferredFocusDuration = 45
+                            )
+                        }
+                        true
+                    } else false
+                }
+                "NAVIGATE" -> {
+                    if (action.route.isNotBlank()) {
+                        _navigationEvent.tryEmit(action.route)
+                        true
+                    } else false
+                }
+                else -> false
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    fun handleActionClick(action: AiAction, onNavigate: (String) -> Unit) {
+        when (action.type.uppercase()) {
+            "START_TIMER" -> onNavigate("timer")
+            "CREATE_TASK" -> onNavigate("tasks")
+            "CREATE_HABIT" -> onNavigate("habits")
+            "SET_GOAL" -> onNavigate("profile")
+            "NAVIGATE" -> onNavigate(action.route.ifBlank { "dashboard" })
         }
     }
 }

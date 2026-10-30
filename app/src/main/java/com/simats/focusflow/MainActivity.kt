@@ -496,7 +496,8 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("groot_ai") {
                             GrootAiScreen(
-                                onBack = { navController.popBackStack() }
+                                onBack = { navController.popBackStack() },
+                                onNavigate = { route -> navController.navigate(route) }
                             )
                         }
                     }
