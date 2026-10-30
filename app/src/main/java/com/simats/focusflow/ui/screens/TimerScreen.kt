@@ -534,7 +534,7 @@ private fun SessionHistorySheet(
                     .heightIn(max = 420.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(sessions) { s ->
+                items(sessions, key = { it.id }) { s ->
                     FocusSessionItemCard(session = s)
                 }
             }

@@ -595,7 +595,7 @@ private fun AddTaskBottomSheetContent(
         Text("CATEGORY", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = colors.primaryLight, letterSpacing = 1.sp)
         Spacer(modifier = Modifier.height(8.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(categories) { cat ->
+            items(categories, key = { it }) { cat ->
                 val isSelected = selectedCategory == cat
                 Surface(
                     onClick = { selectedCategory = cat },

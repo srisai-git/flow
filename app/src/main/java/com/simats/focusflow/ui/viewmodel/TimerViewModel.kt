@@ -84,6 +84,11 @@ class TimerViewModel(
                 }
             }
         }
+        viewModelScope.launch {
+            ProductivityRepository.sessionLoggedEventFlow.collect {
+                loadSessionHistory()
+            }
+        }
     }
 
     fun initSessionManager(context: Context, manager: SessionManager) {

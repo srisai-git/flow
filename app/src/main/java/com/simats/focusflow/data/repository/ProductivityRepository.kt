@@ -4,6 +4,9 @@ import com.simats.focusflow.data.api.FlowApiService
 import com.simats.focusflow.data.api.RetrofitClient
 import com.simats.focusflow.data.models.*
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 
 /**
@@ -13,6 +16,15 @@ import kotlinx.coroutines.withContext
 class ProductivityRepository(
     private val apiService: FlowApiService = RetrofitClient.flowApiService
 ) {
+
+    companion object {
+        private val _sessionLoggedEventFlow = MutableSharedFlow<Unit>(replay = 0, extraBufferCapacity = 5)
+        val sessionLoggedEventFlow: SharedFlow<Unit> = _sessionLoggedEventFlow.asSharedFlow()
+
+        fun notifySessionLogged() {
+            _sessionLoggedEventFlow.tryEmit(Unit)
+        }
+    }
 
     suspend fun getDashboard(userId: Int): Result<DashboardData> = withContext(Dispatchers.IO) {
         try {
@@ -124,7 +136,7 @@ class ProductivityRepository(
         sessionType: String = "pomodoro",
         taskId: Int? = null
     ): Result<LogSessionResponse> = withContext(Dispatchers.IO) {
-        try {
+        val result = try {
             val request = LogSessionRequest(userId, durationMinutes, sessionType, taskId)
             val response = apiService.logSession(request)
             if (response.isSuccessful && response.body()?.status == true) {
@@ -135,6 +147,8 @@ class ProductivityRepository(
         } catch (e: Exception) {
             Result.success(LogSessionResponse(true, "Saved locally", null, durationMinutes))
         }
+        notifySessionLogged()
+        result
     }
 
     suspend fun getRecentSessions(

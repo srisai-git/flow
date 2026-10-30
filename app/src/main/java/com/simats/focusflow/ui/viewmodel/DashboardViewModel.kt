@@ -1,5 +1,6 @@
 package com.simats.focusflow.ui.viewmodel
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.simats.focusflow.data.models.DashboardData
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+@Immutable
 data class DashboardUiState(
     val isLoading: Boolean = false,
     val data: DashboardData = DashboardData(),
@@ -35,8 +37,35 @@ class DashboardViewModel(
 
     private var currentUserId: Int = 1
 
+    init {
+        // Automatically reload dashboard whenever a focus session completes or is logged
+        viewModelScope.launch {
+            ProductivityRepository.sessionLoggedEventFlow.collect {
+                loadDashboard()
+            }
+        }
+    }
+
     fun initSessionManager(manager: SessionManager) {
         this.sessionManager = manager
+        viewModelScope.launch {
+            manager.userAvatarFlow.collect { avatar ->
+                if (!avatar.isNullOrBlank()) {
+                    _uiState.update { it.copy(userAvatar = avatar) }
+                }
+            }
+        }
+        viewModelScope.launch {
+            manager.userSessionFlow.collect { session ->
+                if (session.userId != null && session.userId > 0) {
+                    currentUserId = session.userId
+                }
+                val av = session.userAvatarUri ?: session.userAvatar
+                if (!av.isNullOrBlank()) {
+                    _uiState.update { it.copy(userAvatar = av) }
+                }
+            }
+        }
         loadDashboard()
     }
 
@@ -54,13 +83,13 @@ class DashboardViewModel(
                 if (session.userId != null && session.userId > 0) {
                     currentUserId = session.userId
                 }
-                sessionAvatar = session.userAvatar ?: ""
+                sessionAvatar = session.userAvatarUri ?: session.userAvatar ?: ""
             }
 
             val result = repository.getDashboard(currentUserId)
             result.fold(
                 onSuccess = { data ->
-                    val finalAvatar = if (data.userAvatar.isNotBlank()) data.userAvatar else sessionAvatar
+                    val finalAvatar = if (sessionAvatar.isNotBlank()) sessionAvatar else data.userAvatar
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -98,35 +127,44 @@ class DashboardViewModel(
 
     fun toggleTask(taskId: Int) {
         viewModelScope.launch {
-            val currentTasks = _uiState.value.data.priorityTasks.toMutableList()
-            val index = currentTasks.indexOfFirst { it.id == taskId }
-            if (index != -1) {
-                val updatedStatus = !currentTasks[index].isCompleted
-                currentTasks[index] = currentTasks[index].copy(isCompleted = updatedStatus)
-                _uiState.update { it.copy(data = it.data.copy(priorityTasks = currentTasks)) }
+            val tasks = _uiState.value.data.priorityTasks
+            val task = tasks.find { it.id == taskId } ?: return@launch
+            val newCompleted = !task.isCompleted
 
-                repository.toggleTask(currentUserId, taskId, updatedStatus)
+            // Optimistic update
+            val updatedTasks = tasks.map {
+                if (it.id == taskId) it.copy(isCompleted = newCompleted) else it
             }
+            val currentData = _uiState.value.data
+            _uiState.update {
+                it.copy(
+                    data = currentData.copy(
+                        priorityTasks = updatedTasks,
+                        completedTaskCount = if (newCompleted) currentData.completedTaskCount + 1 else (currentData.completedTaskCount - 1).coerceAtLeast(0),
+                        pendingTaskCount = if (newCompleted) (currentData.pendingTaskCount - 1).coerceAtLeast(0) else currentData.pendingTaskCount + 1
+                    )
+                )
+            }
+
+            repository.toggleTask(currentUserId, taskId, newCompleted)
         }
     }
 
     fun toggleHabit(habitId: Int) {
         viewModelScope.launch {
-            val currentHabits = _uiState.value.data.habits.toMutableList()
-            val index = currentHabits.indexOfFirst { it.id == habitId }
-            if (index != -1) {
-                val targetHabit = currentHabits[index]
-                val updatedStatus = !targetHabit.isCompletedToday
-                val updatedStreak = if (updatedStatus) targetHabit.streakCount + 1 else maxOf(0, targetHabit.streakCount - 1)
+            val habits = _uiState.value.data.habits
+            val habit = habits.find { it.id == habitId } ?: return@launch
+            val newCompleted = !habit.isCompletedToday
 
-                currentHabits[index] = targetHabit.copy(
-                    isCompletedToday = updatedStatus,
-                    streakCount = updatedStreak
-                )
-                _uiState.update { it.copy(data = it.data.copy(habits = currentHabits)) }
-
-                repository.toggleHabit(currentUserId, habitId)
+            // Optimistic update
+            val updatedHabits = habits.map {
+                if (it.id == habitId) it.copy(isCompletedToday = newCompleted) else it
             }
+            _uiState.update {
+                it.copy(data = it.data.copy(habits = updatedHabits))
+            }
+
+            repository.toggleHabit(currentUserId, habitId)
         }
     }
 }

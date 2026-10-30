@@ -1,5 +1,6 @@
 package com.simats.focusflow
 
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -76,6 +77,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        enableHighRefreshRate()
         setContent {
             val context = LocalContext.current
             val sessionManager = remember { SessionManager.getInstance(context) }
@@ -499,6 +501,26 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    private fun enableHighRefreshRate() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try {
+                val display = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    display
+                } else {
+                    @Suppress("DEPRECATION")
+                    windowManager.defaultDisplay
+                }
+                display?.supportedModes?.maxByOrNull { it.refreshRate }?.let { bestMode ->
+                    val layoutParams = window.attributes
+                    layoutParams.preferredDisplayModeId = bestMode.modeId
+                    window.attributes = layoutParams
+                }
+            } catch (e: Exception) {
+                // Silently fallback if hardware doesn't expose display modes
             }
         }
     }

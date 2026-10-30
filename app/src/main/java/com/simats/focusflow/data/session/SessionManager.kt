@@ -26,6 +26,7 @@ data class UserSession(
     val userName: String? = null,
     val userEmail: String? = null,
     val userAvatar: String? = null,
+    val userAvatarUri: String? = null,
     val userBio: String? = null,
     val isOnboardingCompleted: Boolean = false
 )
@@ -43,6 +44,7 @@ class SessionManager private constructor(
         val KEY_USER_NAME = stringPreferencesKey("key_user_name")
         val KEY_USER_EMAIL = stringPreferencesKey("key_user_email")
         val KEY_USER_AVATAR = stringPreferencesKey("key_user_avatar")
+        val KEY_USER_AVATAR_URI = stringPreferencesKey("user_avatar_uri")
         val KEY_USER_BIO = stringPreferencesKey("key_user_bio")
         val KEY_ONBOARDING_COMPLETED = booleanPreferencesKey("key_onboarding_completed")
         val KEY_THEME_MODE = stringPreferencesKey("key_theme_mode")
@@ -90,6 +92,21 @@ class SessionManager private constructor(
         }
 
     /**
+     * Emits the cached user avatar uri/url directly.
+     */
+    val userAvatarFlow: Flow<String?> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[KEY_USER_AVATAR_URI] ?: preferences[KEY_USER_AVATAR]
+        }
+
+    /**
      * Emits the entire composite UserSession.
      */
     val userSessionFlow: Flow<UserSession> = dataStore.data
@@ -101,12 +118,14 @@ class SessionManager private constructor(
             }
         }
         .map { preferences ->
+            val avatar = preferences[KEY_USER_AVATAR_URI] ?: preferences[KEY_USER_AVATAR]
             UserSession(
                 isLoggedIn = preferences[KEY_IS_LOGGED_IN] ?: false,
                 userId = preferences[KEY_USER_ID],
                 userName = preferences[KEY_USER_NAME],
                 userEmail = preferences[KEY_USER_EMAIL],
-                userAvatar = preferences[KEY_USER_AVATAR],
+                userAvatar = avatar,
+                userAvatarUri = avatar,
                 userBio = preferences[KEY_USER_BIO],
                 isOnboardingCompleted = preferences[KEY_ONBOARDING_COMPLETED] ?: false
             )
@@ -130,6 +149,7 @@ class SessionManager private constructor(
             preferences[KEY_USER_EMAIL] = email
             if (avatar.isNotBlank()) {
                 preferences[KEY_USER_AVATAR] = avatar
+                preferences[KEY_USER_AVATAR_URI] = avatar
             }
             if (bio.isNotBlank()) {
                 preferences[KEY_USER_BIO] = bio
@@ -146,7 +166,20 @@ class SessionManager private constructor(
             preferences[KEY_USER_NAME] = name
             preferences[KEY_USER_EMAIL] = email
             if (bio.isNotBlank()) preferences[KEY_USER_BIO] = bio
-            if (avatar.isNotBlank()) preferences[KEY_USER_AVATAR] = avatar
+            if (avatar.isNotBlank()) {
+                preferences[KEY_USER_AVATAR] = avatar
+                preferences[KEY_USER_AVATAR_URI] = avatar
+            }
+        }
+    }
+
+    /**
+     * Saves the avatar URI/URL directly to local DataStore.
+     */
+    suspend fun saveAvatarUri(uri: String) {
+        dataStore.edit { preferences ->
+            preferences[KEY_USER_AVATAR] = uri
+            preferences[KEY_USER_AVATAR_URI] = uri
         }
     }
 
@@ -193,9 +226,9 @@ class SessionManager private constructor(
             preferences.remove(KEY_USER_NAME)
             preferences.remove(KEY_USER_EMAIL)
             preferences.remove(KEY_USER_AVATAR)
+            preferences.remove(KEY_USER_AVATAR_URI)
             preferences.remove(KEY_USER_BIO)
             preferences.remove(KEY_ONBOARDING_COMPLETED)
         }
     }
 }
-

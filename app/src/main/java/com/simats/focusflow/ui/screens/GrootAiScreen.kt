@@ -150,7 +150,7 @@ fun GrootAiScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(quickActionPrompts) { promptText ->
+                        items(quickActionPrompts, key = { it }) { promptText ->
                             Surface(
                                 onClick = { viewModel.sendMessage(promptText) },
                                 shape = RoundedCornerShape(12.dp),

@@ -570,7 +570,7 @@ fun EditProfileScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        items(defaultAvatarOptions) { avatarKey ->
+                        items(defaultAvatarOptions, key = { it }) { avatarKey ->
                             val isSelected = state.avatar == avatarKey
                             Surface(
                                 onClick = {

@@ -1,5 +1,6 @@
 package com.simats.focusflow.ui.viewmodel
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.simats.focusflow.data.repository.AiRepository
@@ -13,6 +14,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
+@Immutable
 data class ChatMessage(
     val id: String = UUID.randomUUID().toString(),
     val isFromUser: Boolean,
@@ -20,6 +22,7 @@ data class ChatMessage(
     val timestamp: String = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
 )
 
+@Immutable
 data class GrootAiUiState(
     val messages: List<ChatMessage> = listOf(
         ChatMessage(
@@ -69,13 +72,16 @@ class GrootAiViewModel(
         }
 
         viewModelScope.launch {
+            val queryType = when {
+                textToSend.contains("consistency", ignoreCase = true) || textToSend.contains("habit", ignoreCase = true) -> "habit_insights"
+                textToSend.contains("rhythm", ignoreCase = true) || textToSend.contains("focus", ignoreCase = true) -> "focus_advice"
+                textToSend.contains("summary", ignoreCase = true) || textToSend.contains("progress", ignoreCase = true) -> "daily_summary"
+                else -> "chat"
+            }
+
             val result = aiRepository.getAiInsights(
                 userId = currentUserId,
-                queryType = when {
-                    textToSend.contains("consistency", ignoreCase = true) || textToSend.contains("habit", ignoreCase = true) -> "habit_insights"
-                    textToSend.contains("rhythm", ignoreCase = true) || textToSend.contains("focus", ignoreCase = true) -> "focus_advice"
-                    else -> "chat"
-                },
+                queryType = queryType,
                 prompt = textToSend
             )
 
@@ -91,9 +97,17 @@ class GrootAiViewModel(
                     }
                 },
                 onFailure = {
+                    val fallbackText = when {
+                        textToSend.matches(Regex("(?i)^(hi|hello|hey|greetings).*")) ->
+                            "Hello. I am Groot. How can I help you today?"
+                        textToSend.contains("who are you", ignoreCase = true) ->
+                            "I am Groot, your AI assistant in FocusFlow."
+                        else ->
+                            "Break down this objective into clear steps and maintain focused execution."
+                    }
                     val fallbackMessage = ChatMessage(
                         isFromUser = false,
-                        text = "Continue your daily streak by executing your primary routine. Consistent focus sessions compound over time."
+                        text = fallbackText
                     )
                     _uiState.update {
                         it.copy(
@@ -106,4 +120,3 @@ class GrootAiViewModel(
         }
     }
 }
-

@@ -530,7 +530,7 @@ fun DashboardScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                items(data.habits) { habit ->
+                items(data.habits, key = { it.id }) { habit ->
                     HabitSnapshotChip(
                         habit = habit,
                         onToggle = { viewModel.toggleHabit(habit.id) }

@@ -1,5 +1,6 @@
 package com.simats.focusflow.ui.viewmodel
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.simats.focusflow.data.models.ProfileData
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+@Immutable
 data class ProfileUiState(
     val isLoading: Boolean = false,
     val profile: ProfileData = ProfileData(),
@@ -36,6 +38,17 @@ class ProfileViewModel(
         viewModelScope.launch {
             manager.themeModeFlow.collect { mode ->
                 _uiState.update { it.copy(themeMode = mode) }
+            }
+        }
+        viewModelScope.launch {
+            manager.userSessionFlow.collect { session ->
+                if (session.userId != null && session.userId > 0) {
+                    currentUserId = session.userId
+                }
+                val av = session.userAvatarUri ?: session.userAvatar
+                if (!av.isNullOrBlank()) {
+                    _uiState.update { it.copy(profile = it.profile.copy(avatar = av)) }
+                }
             }
         }
         loadProfile()
@@ -71,7 +84,7 @@ class ProfileViewModel(
                     val session = sessionManager?.userSessionFlow?.first()
                     val sessionName = session?.userName
                     val sessionEmail = session?.userEmail
-                    val sessionAvatar = session?.userAvatar
+                    val sessionAvatar = session?.userAvatarUri ?: session?.userAvatar
                     val sessionBio = session?.userBio
                     val finalData = data.copy(
                         name = if (!sessionName.isNullOrBlank()) sessionName else data.name,

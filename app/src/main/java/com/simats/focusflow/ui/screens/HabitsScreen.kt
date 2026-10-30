@@ -696,7 +696,7 @@ private fun HabitsInsightsView(
             modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(habits) { h ->
+            items(habits, key = { it.id }) { h ->
                 Surface(
                     onClick = { onHabitClick(h) },
                     shape = RoundedCornerShape(12.dp),
@@ -1446,7 +1446,7 @@ private fun AddHabitDialog(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(iconOptions) { icon ->
+                    items(iconOptions, key = { it }) { icon ->
                         val isSelected = selectedIcon == icon
                         Surface(
                             onClick = { selectedIcon = icon },
