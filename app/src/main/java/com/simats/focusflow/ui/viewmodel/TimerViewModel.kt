@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.simats.focusflow.data.models.FocusSessionRecord
 import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.service.FocusTimerService
@@ -30,8 +31,10 @@ data class TimerUiState(
     val remainingSeconds: Int = 25 * 60,
     val isRunning: Boolean = false,
     val completedSessions: Int = 0,
+    val recentSessions: List<FocusSessionRecord> = emptyList(),
     val toastMessage: String? = null,
-    val isSettingsOpen: Boolean = false
+    val isSettingsOpen: Boolean = false,
+    val isHistoryOpen: Boolean = false
 ) {
     val progress: Float
         get() = if (totalSeconds > 0) remainingSeconds.toFloat() / totalSeconds.toFloat() else 0f
@@ -91,6 +94,7 @@ class TimerViewModel(
             if (session.userId != null && session.userId > 0) {
                 currentUserId = session.userId
             }
+            loadSessionHistory()
         }
     }
 
@@ -102,6 +106,19 @@ class TimerViewModel(
             if (session.userId != null && session.userId > 0) {
                 currentUserId = session.userId
             }
+            loadSessionHistory()
+        }
+    }
+
+    fun loadSessionHistory() {
+        viewModelScope.launch {
+            val result = repository.getRecentSessions(currentUserId)
+            result.fold(
+                onSuccess = { list ->
+                    _uiState.update { it.copy(recentSessions = list) }
+                },
+                onFailure = { /* keep existing */ }
+            )
         }
     }
 
@@ -109,8 +126,15 @@ class TimerViewModel(
         _uiState.update { it.copy(isSettingsOpen = isOpen) }
     }
 
+    fun setHistoryOpen(isOpen: Boolean) {
+        _uiState.update { it.copy(isHistoryOpen = isOpen) }
+        if (isOpen) {
+            loadSessionHistory()
+        }
+    }
+
     fun updateCustomDurations(focus: Int, shortBreak: Int, longBreak: Int) {
-        val f = focus.coerceIn(10, 90)
+        val f = focus.coerceIn(5, 90)
         val sb = shortBreak.coerceIn(1, 15)
         val lb = longBreak.coerceIn(10, 30)
 

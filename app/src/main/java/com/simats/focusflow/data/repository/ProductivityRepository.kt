@@ -137,6 +137,22 @@ class ProductivityRepository(
         }
     }
 
+    suspend fun getRecentSessions(
+        userId: Int,
+        limit: Int = 20
+    ): Result<List<FocusSessionRecord>> = withContext(Dispatchers.IO) {
+        try {
+            val response = apiService.getRecentSessions(userId, limit)
+            if (response.isSuccessful && response.body()?.status == true) {
+                Result.success(response.body()?.data ?: emptyList())
+            } else {
+                Result.success(emptyList())
+            }
+        } catch (e: Exception) {
+            Result.success(emptyList())
+        }
+    }
+
     suspend fun getHabits(userId: Int): Result<HabitsResult> = withContext(Dispatchers.IO) {
         try {
             val response = apiService.getHabits(userId)

@@ -58,3 +58,4 @@ class AiRepository(
         res.map { it.insight ?: it.message ?: "I am Groot. Focus on what matters most today." }
     }
 }
+

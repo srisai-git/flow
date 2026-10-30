@@ -112,10 +112,13 @@ class AuthViewModel(
                     )
 
                     // Persist session to DataStore (returning users are considered onboarded)
+                    val effectiveAvatar = authenticatedUser.avatarUrl.ifBlank { authenticatedUser.avatar }
                     sessionManager?.saveSession(
                         userId = authenticatedUser.id,
                         name = authenticatedUser.name,
                         email = authenticatedUser.email,
+                        avatar = effectiveAvatar,
+                        bio = authenticatedUser.bio,
                         isOnboardingCompleted = true
                     )
 

@@ -12,14 +12,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.simats.focusflow.ui.theme.FocusFlowTheme
 
 @Composable
 fun CustomTopBar(
     title: String,
     subtitle: String? = null,
     onBack: (() -> Unit)? = null,
-    showBackIcon: Boolean = true
+    showBackIcon: Boolean = true,
+    titleColor: Color = Color.Unspecified
 ) {
+    val effectiveColor = if (titleColor != Color.Unspecified) titleColor else FocusFlowTheme.colors.textPrimary
+
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (showBackIcon && onBack != null) {
@@ -31,10 +35,9 @@ fun CustomTopBar(
                 ) {
                     Canvas(modifier = Modifier.size(24.dp)) {
                         val stroke = 2.dp.toPx()
-                        val color = Color(0xFF1E1E24)
-                        drawLine(color, Offset(size.width, size.height / 2), Offset(0f, size.height / 2), strokeWidth = stroke)
-                        drawLine(color, Offset(0f, size.height / 2), Offset(size.width * 0.4f, size.height * 0.1f), strokeWidth = stroke)
-                        drawLine(color, Offset(0f, size.height / 2), Offset(size.width * 0.4f, size.height * 0.9f), strokeWidth = stroke)
+                        drawLine(effectiveColor, Offset(size.width, size.height / 2), Offset(0f, size.height / 2), strokeWidth = stroke)
+                        drawLine(effectiveColor, Offset(0f, size.height / 2), Offset(size.width * 0.4f, size.height * 0.1f), strokeWidth = stroke)
+                        drawLine(effectiveColor, Offset(0f, size.height / 2), Offset(size.width * 0.4f, size.height * 0.9f), strokeWidth = stroke)
                     }
                 }
                 Spacer(modifier = Modifier.width(4.dp))
@@ -43,7 +46,7 @@ fun CustomTopBar(
                 text = title,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E1E24)
+                color = effectiveColor
             )
         }
         if (subtitle != null) {
@@ -51,7 +54,7 @@ fun CustomTopBar(
             Text(
                 text = subtitle,
                 fontSize = 12.sp,
-                color = Color(0xFF9CA3AF),
+                color = FocusFlowTheme.colors.textMuted,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(start = if (showBackIcon && onBack != null) 40.dp else 0.dp)
             )

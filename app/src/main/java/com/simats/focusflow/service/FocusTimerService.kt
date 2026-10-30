@@ -296,7 +296,7 @@ class FocusTimerService : Service() {
     }
 
     private fun handleSetDurations(focus: Int, shortBreak: Int, longBreak: Int) {
-        val f = focus.coerceIn(10, 90)
+        val f = focus.coerceIn(5, 90)
         val sb = shortBreak.coerceIn(1, 15)
         val lb = longBreak.coerceIn(10, 30)
 

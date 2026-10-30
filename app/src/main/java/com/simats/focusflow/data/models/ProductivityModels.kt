@@ -104,6 +104,9 @@ data class DashboardData(
     @SerializedName("user_name")
     val userName: String = "Sri Sai",
 
+    @SerializedName("user_avatar")
+    val userAvatar: String = "",
+
     @SerializedName("focus_minutes_today")
     val focusMinutesToday: Int = 0,
 
@@ -118,6 +121,15 @@ data class DashboardData(
 
     @SerializedName("streak_days")
     val streakDays: Int = 1,
+
+    @SerializedName("longest_streak")
+    val longestStreak: Int = 1,
+
+    @SerializedName("total_habits_completed")
+    val totalHabitsCompleted: Int = 0,
+
+    @SerializedName("total_focus_minutes")
+    val totalFocusMinutes: Int = 0,
 
     @SerializedName("priority_tasks")
     val priorityTasks: List<TaskItem> = emptyList(),
@@ -216,6 +228,47 @@ data class LogSessionResponse(
 
     @SerializedName("today_total_minutes")
     val todayTotalMinutes: Int? = null
+)
+
+@Immutable
+data class FocusSessionRecord(
+    @SerializedName("id")
+    val id: Int = 0,
+
+    @SerializedName("user_id")
+    val userId: Int = 0,
+
+    @SerializedName("task_id")
+    val taskId: Int? = null,
+
+    @SerializedName("duration_minutes")
+    val durationMinutes: Int = 25,
+
+    @SerializedName("session_type")
+    val sessionType: String = "pomodoro",
+
+    @SerializedName("status")
+    val status: String = "completed",
+
+    @SerializedName("started_at")
+    val startedAt: String = "",
+
+    @SerializedName("completed_at")
+    val completedAt: String = "",
+
+    @SerializedName("task_title")
+    val taskTitle: String = "",
+
+    @SerializedName("task_category")
+    val taskCategory: String = ""
+)
+
+data class FocusSessionsResponse(
+    @SerializedName("status")
+    val status: Boolean = false,
+
+    @SerializedName("data")
+    val data: List<FocusSessionRecord> = emptyList()
 )
 
 data class CreateTaskRequest(

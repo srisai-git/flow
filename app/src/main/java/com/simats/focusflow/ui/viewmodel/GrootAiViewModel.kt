@@ -24,7 +24,7 @@ data class GrootAiUiState(
     val messages: List<ChatMessage> = listOf(
         ChatMessage(
             isFromUser = false,
-            text = "I am Groot, your FocusFlow productivity assistant. I analyze your real database stats (habits, focus sessions, and tasks) to help you optimize your daily flow. How can I assist you today?"
+            text = "I am Groot, your versatile FocusFlow AI assistant. While my specialty is productivity, time management, and habit optimization, I am ready to assist you with any technical, academic, coding, creative, or general questions you have. How can I help you today?"
         )
     ),
     val isAiThinking: Boolean = false,
@@ -106,3 +106,4 @@ class GrootAiViewModel(
         }
     }
 }
+

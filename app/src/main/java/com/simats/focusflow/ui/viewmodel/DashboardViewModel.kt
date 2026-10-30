@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.simats.focusflow.data.models.DashboardData
 import com.simats.focusflow.data.models.HabitItem
 import com.simats.focusflow.data.models.TaskItem
+import com.simats.focusflow.data.repository.AiRepository
 import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.session.SessionManager
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,11 +18,15 @@ import kotlinx.coroutines.launch
 data class DashboardUiState(
     val isLoading: Boolean = false,
     val data: DashboardData = DashboardData(),
+    val userAvatar: String = "",
+    val aiSnippet: String = "Compounding consistency leads to effortless daily flow.",
+    val isStreakModalOpen: Boolean = false,
     val errorMessage: String? = null
 )
 
 class DashboardViewModel(
     private val repository: ProductivityRepository = ProductivityRepository(),
+    private val aiRepository: AiRepository = AiRepository(),
     private var sessionManager: SessionManager? = null
 ) : ViewModel() {
 
@@ -35,26 +40,59 @@ class DashboardViewModel(
         loadDashboard()
     }
 
+    fun setStreakModalOpen(isOpen: Boolean) {
+        _uiState.update { it.copy(isStreakModalOpen = isOpen) }
+    }
+
     fun loadDashboard() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
+            var sessionAvatar = ""
             sessionManager?.let { sm ->
                 val session = sm.userSessionFlow.first()
                 if (session.userId != null && session.userId > 0) {
                     currentUserId = session.userId
                 }
+                sessionAvatar = session.userAvatar ?: ""
             }
 
             val result = repository.getDashboard(currentUserId)
             result.fold(
                 onSuccess = { data ->
-                    _uiState.update { it.copy(isLoading = false, data = data) }
+                    val finalAvatar = if (data.userAvatar.isNotBlank()) data.userAvatar else sessionAvatar
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            data = data,
+                            userAvatar = finalAvatar
+                        )
+                    }
                 },
                 onFailure = { err ->
-                    _uiState.update { it.copy(isLoading = false, errorMessage = err.localizedMessage) }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            userAvatar = sessionAvatar,
+                            errorMessage = err.localizedMessage
+                        )
+                    }
                 }
             )
+
+            // Fetch compact 1-liner productivity snippet from Groot AI
+            launch {
+                val aiRes = aiRepository.getAiInsights(currentUserId, queryType = "daily_summary")
+                aiRes.fold(
+                    onSuccess = { res ->
+                        val insight = res.insight?.lines()?.firstOrNull()?.trim()
+                        if (!insight.isNullOrBlank()) {
+                            _uiState.update { it.copy(aiSnippet = insight) }
+                        }
+                    },
+                    onFailure = { /* keep default snippet */ }
+                )
+            }
         }
     }
 
@@ -92,4 +130,3 @@ class DashboardViewModel(
         }
     }
 }
-

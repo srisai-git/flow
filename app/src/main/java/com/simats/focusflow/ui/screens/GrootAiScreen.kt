@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.simats.focusflow.data.session.SessionManager
+import com.simats.focusflow.ui.components.GrootAvatar
 import com.simats.focusflow.ui.components.bounceClick
 import com.simats.focusflow.ui.theme.FocusFlowTheme
 import com.simats.focusflow.ui.viewmodel.ChatMessage
@@ -70,7 +71,8 @@ fun GrootAiScreen(
         listOf(
             "Analyze my weekly consistency",
             "How can I improve my focus rhythm?",
-            "Review my pending task backlog"
+            "Review my pending task backlog",
+            "Explain a coding or technical concept"
         )
     }
 
@@ -106,26 +108,13 @@ fun GrootAiScreen(
 
                     Spacer(modifier = Modifier.width(14.dp))
 
-                    Box(
-                        modifier = Modifier
-                            .size(38.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(colors.primary.copy(alpha = 0.16f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.SmartToy,
-                            contentDescription = null,
-                            tint = colors.primaryLight,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                    GrootAvatar(size = 38.dp)
 
                     Spacer(modifier = Modifier.width(12.dp))
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "GROOT AI COACH",
+                            text = "GROOT AI ASSISTANT",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textPrimary,
@@ -140,7 +129,7 @@ fun GrootAiScreen(
                             )
                             Spacer(modifier = Modifier.width(5.dp))
                             Text(
-                                text = "Online • Local Qwen Model",
+                                text = "Online • Local Qwen Microservice",
                                 fontSize = 11.sp,
                                 color = colors.textMuted
                             )
@@ -204,7 +193,7 @@ fun GrootAiScreen(
                             onValueChange = { viewModel.onInputTextChanged(it) },
                             placeholder = {
                                 Text(
-                                    text = "Ask Groot about your focus or tasks...",
+                                    text = "Ask Groot anything (productivity, coding, concepts)...",
                                     fontSize = 13.sp,
                                     color = colors.textMuted
                                 )
@@ -280,20 +269,7 @@ private fun ChatBubble(message: ChatMessage) {
         horizontalArrangement = if (message.isFromUser) Arrangement.End else Arrangement.Start
     ) {
         if (!message.isFromUser) {
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .clip(CircleShape)
-                    .background(colors.primary.copy(alpha = 0.16f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.SmartToy,
-                    contentDescription = null,
-                    tint = colors.primaryLight,
-                    modifier = Modifier.size(15.dp)
-                )
-            }
+            GrootAvatar(size = 28.dp)
             Spacer(modifier = Modifier.width(8.dp))
         }
 
@@ -359,20 +335,7 @@ private fun AiThinkingBubble() {
         horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(28.dp)
-                .clip(CircleShape)
-                .background(colors.primary.copy(alpha = 0.16f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.SmartToy,
-                contentDescription = null,
-                tint = colors.primaryLight,
-                modifier = Modifier.size(15.dp)
-            )
-        }
+        GrootAvatar(size = 28.dp)
 
         Spacer(modifier = Modifier.width(8.dp))
 
@@ -407,7 +370,7 @@ private fun AiThinkingBubble() {
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = "Groot is analyzing your metrics...",
+                    text = "Groot is thinking...",
                     fontSize = 12.sp,
                     color = colors.textMuted
                 )
@@ -415,3 +378,4 @@ private fun AiThinkingBubble() {
         }
     }
 }
+

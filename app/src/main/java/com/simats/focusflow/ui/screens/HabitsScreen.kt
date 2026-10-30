@@ -65,6 +65,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.simats.focusflow.data.models.HabitItem
 import com.simats.focusflow.data.models.HabitUserStats
 import com.simats.focusflow.data.session.SessionManager
+import com.simats.focusflow.ui.components.GrootAvatar
 import com.simats.focusflow.ui.components.bounceClick
 import com.simats.focusflow.ui.theme.FocusFlowTheme
 import com.simats.focusflow.ui.viewmodel.HabitInsightTimeframe
@@ -178,37 +179,6 @@ fun HabitsScreen(
                         fontSize = 12.sp,
                         color = colors.textMuted
                     )
-                }
-
-                // Interactive Streak Badge on Header (Tapping opens the elevated Streak Modal)
-                Surface(
-                    onClick = {
-                        viewModel.selectHabitForStreak(null)
-                        isStreakModalOpen = true
-                    },
-                    shape = RoundedCornerShape(20.dp),
-                    color = Color(0xFFF59E0B).copy(alpha = 0.14f),
-                    border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.35f)),
-                    modifier = Modifier.bounceClick()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.LocalFireDepartment,
-                            contentDescription = "Streak",
-                            tint = Color(0xFFF59E0B),
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(5.dp))
-                        Text(
-                            text = "${state.userStats.currentStreak}d Streak",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFF59E0B)
-                        )
-                    }
                 }
             }
 
@@ -807,20 +777,12 @@ private fun AiProductivityInsightsCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(colors.primary.copy(alpha = 0.16f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = null,
-                            tint = colors.primaryLight,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                    GrootAvatar(
+                        size = 32.dp,
+                        containerColor = colors.primary.copy(alpha = 0.16f),
+                        borderColor = colors.primary.copy(alpha = 0.35f),
+                        tint = colors.primaryLight
+                    )
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(

@@ -19,6 +19,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -37,13 +38,22 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.simats.focusflow.R
 import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.ui.components.CustomTopBar
-import com.simats.focusflow.ui.components.SmartTextField
 import com.simats.focusflow.ui.components.bounceClick
+import com.simats.focusflow.ui.theme.DarkBackground
+import com.simats.focusflow.ui.theme.DarkBorder
+import com.simats.focusflow.ui.theme.DarkPrimary
+import com.simats.focusflow.ui.theme.DarkPrimaryLight
+import com.simats.focusflow.ui.theme.DarkSurface
+import com.simats.focusflow.ui.theme.DarkSurfaceVariant
+import com.simats.focusflow.ui.theme.DarkTextMuted
+import com.simats.focusflow.ui.theme.DarkTextPrimary
+import com.simats.focusflow.ui.theme.SuccessGreen
 import com.simats.focusflow.ui.viewmodel.AuthUiState
 import com.simats.focusflow.ui.viewmodel.AuthViewModel
 
 /**
  * Modern minimalist Signup Screen for FocusFlow.
+ * Styled in dark canvas (#0F0F14), elevated surface card (#181722), and violet accents (#8B5CF6).
  * Connected to flow_backend via MVVM architecture and StateFlow.
  */
 @Composable
@@ -74,13 +84,11 @@ fun SignupScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val focusManager = LocalFocusManager.current
 
-    // Local validation logic
     val isNameValid = name.isBlank() || name.trim().length >= 2
     val isEmailValid = email.isBlank() || (email.contains("@") && email.contains(".") && email.length >= 5)
     val isPasswordValid = password.isBlank() || password.length >= 6
     val passwordsMatch = confirmPassword.isBlank() || (password == confirmPassword)
 
-    // React to success
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
             val userId = uiState.user?.id ?: 1
@@ -90,7 +98,6 @@ fun SignupScreen(
         }
     }
 
-    // React to error messages
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let { errorMsg ->
             snackbarHostState.showSnackbar(errorMsg)
@@ -99,21 +106,22 @@ fun SignupScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = Color.White
+        containerColor = DarkBackground
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color.White)
-                .padding(horizontal = 24.dp)
+                .background(DarkBackground)
+                .padding(horizontal = 20.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             CustomTopBar(
                 title = "Create Account",
-                onBack = onBack
+                onBack = onBack,
+                titleColor = DarkTextPrimary
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -122,35 +130,43 @@ fun SignupScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .size(38.dp)
-                        .background(Color(0xFF070510), CircleShape),
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .background(DarkSurfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.app_logo),
                         contentDescription = "FocusFlow Logo",
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(24.dp)
                     )
                 }
                 Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "FocusFlow",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E1E24)
-                )
+                Column {
+                    Text(
+                        text = "FocusFlow",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = DarkTextPrimary
+                    )
+                    Text(
+                        text = "Deep work and mindful habits",
+                        fontSize = 12.sp,
+                        color = DarkTextMuted
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             Text(
-                text = "Join thousands of mindful achievers building deep focus habits.",
-                fontSize = 15.sp,
-                color = Color(0xFF6B7280),
-                lineHeight = 22.sp
+                text = "Join mindful achievers building focused work habits.",
+                fontSize = 14.sp,
+                color = DarkTextMuted,
+                lineHeight = 20.sp
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Error Banner Display
             if (uiState.errorMessage != null) {
@@ -158,9 +174,9 @@ fun SignupScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 16.dp),
-                    color = Color(0xFFFEF2F2),
+                    color = Color(0xFF2A1519),
                     shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, Color(0xFFFCA5A5))
+                    border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.5f))
                 ) {
                     Row(
                         modifier = Modifier
@@ -168,277 +184,411 @@ fun SignupScreen(
                             .padding(horizontal = 14.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFDC2626), modifier = Modifier.padding(end = 10.dp).size(18.dp))
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = Color(0xFFEF4444),
+                            modifier = Modifier.padding(end = 10.dp).size(18.dp)
+                        )
                         Text(
                             text = uiState.errorMessage ?: "",
                             fontSize = 13.sp,
-                            color = Color(0xFF991B1B),
+                            color = Color(0xFFFCA5A5),
                             fontWeight = FontWeight.Medium,
                             modifier = Modifier.weight(1f)
                         )
-                        Icon(Icons.Default.Close, contentDescription = "Clear", tint = Color(0xFF991B1B), modifier = Modifier.clickable { viewModel.clearError() }.padding(start = 8.dp).size(16.dp))
-                    }
-                }
-            }
-
-            // Name Field
-            SmartTextField(
-                value = name,
-                onValueChange = {
-                    name = it
-                    if (uiState.errorMessage != null) viewModel.clearError()
-                },
-                label = "Full Name",
-                isValid = isNameValid,
-                errorMessage = if (hasAttemptedSubmit && name.isBlank()) {
-                    "Full name is required"
-                } else if (!isNameValid) {
-                    "Name must be at least 2 characters long"
-                } else null,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            // Email Field
-            SmartTextField(
-                value = email,
-                onValueChange = {
-                    email = it
-                    if (uiState.errorMessage != null) viewModel.clearError()
-                },
-                label = "Email Address",
-                isValid = isEmailValid,
-                errorMessage = if (hasAttemptedSubmit && email.isBlank()) {
-                    "Email address is required"
-                } else if (!isEmailValid) {
-                    "Please enter a valid email address"
-                } else null,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            // Password Field
-            Text(
-                text = "Password",
-                fontSize = 14.sp,
-                color = Color(0xFF6B7280),
-                fontWeight = FontWeight.Medium
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            OutlinedTextField(
-                value = password,
-                onValueChange = {
-                    password = it
-                    if (uiState.errorMessage != null) viewModel.clearError()
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .defaultMinSize(minHeight = 48.dp),
-                shape = RoundedCornerShape(12.dp),
-                isError = (!isPasswordValid) || (hasAttemptedSubmit && password.isBlank()),
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = if (password.length >= 6) Color(0xFF10B981) else Color(0xFFE5E7EB),
-                    focusedBorderColor = Color(0xFF7158E2),
-                    errorBorderColor = Color(0xFFDC2626)
-                ),
-                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Next
-                ),
-                keyboardActions = KeyboardActions(
-                    onNext = { focusManager.moveFocus(FocusDirection.Down) }
-                ),
-                singleLine = true,
-                trailingIcon = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(end = 12.dp)
-                    ) {
-                        if (password.length >= 6) {
-                            Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF10B981), modifier = Modifier.padding(end = 8.dp).size(16.dp))
-                        }
-                        Text(
-                            text = if (passwordVisible) "Hide" else "Show",
-                            color = Color(0xFF7158E2),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.clickable { passwordVisible = !passwordVisible }
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Clear",
+                            tint = Color(0xFFFCA5A5),
+                            modifier = Modifier
+                                .clickable { viewModel.clearError() }
+                                .padding(start = 8.dp)
+                                .size(16.dp)
                         )
                     }
                 }
-            )
-
-            if (hasAttemptedSubmit && password.isBlank()) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Password is required",
-                    fontSize = 12.sp,
-                    color = Color(0xFFDC2626)
-                )
-            } else if (!isPasswordValid) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Password must be at least 6 characters",
-                    fontSize = 12.sp,
-                    color = Color(0xFFDC2626)
-                )
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
+            // Elevated Form Card
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                color = DarkSurface,
+                border = BorderStroke(1.dp, DarkBorder)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp)
+                ) {
+                    // Name Field
+                    Text(
+                        text = "Full Name",
+                        fontSize = 13.sp,
+                        color = DarkTextMuted,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = {
+                            name = it
+                            if (uiState.errorMessage != null) viewModel.clearError()
+                        },
+                        placeholder = { Text("e.g. Sri Sai", color = DarkTextMuted, fontSize = 14.sp) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .defaultMinSize(minHeight = 48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        isError = (hasAttemptedSubmit && name.isBlank()) || !isNameValid,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = DarkPrimary,
+                            unfocusedBorderColor = DarkBorder,
+                            focusedTextColor = DarkTextPrimary,
+                            unfocusedTextColor = DarkTextPrimary,
+                            focusedContainerColor = DarkBackground,
+                            unfocusedContainerColor = DarkBackground,
+                            errorBorderColor = Color(0xFFEF4444)
+                        ),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Words,
+                            imeAction = ImeAction.Next
+                        ),
+                        trailingIcon = {
+                            if (name.isNotBlank() && isNameValid) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Valid name",
+                                    tint = SuccessGreen,
+                                    modifier = Modifier.padding(end = 12.dp).size(18.dp)
+                                )
+                            }
+                        }
+                    )
+                    if (hasAttemptedSubmit && name.isBlank()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Full name is required",
+                            fontSize = 12.sp,
+                            color = Color(0xFFEF4444)
+                        )
+                    } else if (!isNameValid) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Name must be at least 2 characters long",
+                            fontSize = 12.sp,
+                            color = Color(0xFFEF4444)
+                        )
+                    }
 
-            // Confirm Password Field
-            Text(
-                text = "Confirm Password",
-                fontSize = 14.sp,
-                color = Color(0xFF6B7280),
-                fontWeight = FontWeight.Medium
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            OutlinedTextField(
-                value = confirmPassword,
-                onValueChange = {
-                    confirmPassword = it
-                    if (uiState.errorMessage != null) viewModel.clearError()
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .defaultMinSize(minHeight = 48.dp),
-                shape = RoundedCornerShape(12.dp),
-                isError = (!passwordsMatch) || (hasAttemptedSubmit && confirmPassword.isBlank()),
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = if (confirmPassword.isNotBlank() && passwordsMatch) Color(0xFF10B981) else Color(0xFFE5E7EB),
-                    focusedBorderColor = Color(0xFF7158E2),
-                    errorBorderColor = Color(0xFFDC2626)
-                ),
-                visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Done
-                ),
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        focusManager.clearFocus()
-                        hasAttemptedSubmit = true
-                        if (agreedToTerms) {
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Email Field
+                    Text(
+                        text = "Email Address",
+                        fontSize = 13.sp,
+                        color = DarkTextMuted,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = {
+                            email = it
+                            if (uiState.errorMessage != null) viewModel.clearError()
+                        },
+                        placeholder = { Text("you@example.com", color = DarkTextMuted, fontSize = 14.sp) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .defaultMinSize(minHeight = 48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        isError = (hasAttemptedSubmit && email.isBlank()) || !isEmailValid,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = DarkPrimary,
+                            unfocusedBorderColor = DarkBorder,
+                            focusedTextColor = DarkTextPrimary,
+                            unfocusedTextColor = DarkTextPrimary,
+                            focusedContainerColor = DarkBackground,
+                            unfocusedContainerColor = DarkBackground,
+                            errorBorderColor = Color(0xFFEF4444)
+                        ),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Email,
+                            imeAction = ImeAction.Next
+                        ),
+                        trailingIcon = {
+                            if (email.isNotBlank() && isEmailValid) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Valid email",
+                                    tint = SuccessGreen,
+                                    modifier = Modifier.padding(end = 12.dp).size(18.dp)
+                                )
+                            }
+                        }
+                    )
+                    if (hasAttemptedSubmit && email.isBlank()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Email address is required",
+                            fontSize = 12.sp,
+                            color = Color(0xFFEF4444)
+                        )
+                    } else if (!isEmailValid) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Please enter a valid email address",
+                            fontSize = 12.sp,
+                            color = Color(0xFFEF4444)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Password Field
+                    Text(
+                        text = "Password",
+                        fontSize = 13.sp,
+                        color = DarkTextMuted,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = {
+                            password = it
+                            if (uiState.errorMessage != null) viewModel.clearError()
+                        },
+                        placeholder = { Text("At least 6 characters", color = DarkTextMuted, fontSize = 14.sp) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .defaultMinSize(minHeight = 48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        isError = (!isPasswordValid) || (hasAttemptedSubmit && password.isBlank()),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = DarkPrimary,
+                            unfocusedBorderColor = DarkBorder,
+                            focusedTextColor = DarkTextPrimary,
+                            unfocusedTextColor = DarkTextPrimary,
+                            focusedContainerColor = DarkBackground,
+                            unfocusedContainerColor = DarkBackground,
+                            errorBorderColor = Color(0xFFEF4444)
+                        ),
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Next
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                        ),
+                        singleLine = true,
+                        trailingIcon = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(end = 12.dp)
+                            ) {
+                                if (password.length >= 6) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = SuccessGreen,
+                                        modifier = Modifier.padding(end = 8.dp).size(16.dp)
+                                    )
+                                }
+                                Text(
+                                    text = if (passwordVisible) "Hide" else "Show",
+                                    color = DarkPrimaryLight,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.clickable { passwordVisible = !passwordVisible }
+                                )
+                            }
+                        }
+                    )
+                    if (hasAttemptedSubmit && password.isBlank()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Password is required",
+                            fontSize = 12.sp,
+                            color = Color(0xFFEF4444)
+                        )
+                    } else if (!isPasswordValid) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Password must be at least 6 characters",
+                            fontSize = 12.sp,
+                            color = Color(0xFFEF4444)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Confirm Password Field
+                    Text(
+                        text = "Confirm Password",
+                        fontSize = 13.sp,
+                        color = DarkTextMuted,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    OutlinedTextField(
+                        value = confirmPassword,
+                        onValueChange = {
+                            confirmPassword = it
+                            if (uiState.errorMessage != null) viewModel.clearError()
+                        },
+                        placeholder = { Text("Re-enter your password", color = DarkTextMuted, fontSize = 14.sp) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .defaultMinSize(minHeight = 48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        isError = (!passwordsMatch) || (hasAttemptedSubmit && confirmPassword.isBlank()),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = DarkPrimary,
+                            unfocusedBorderColor = DarkBorder,
+                            focusedTextColor = DarkTextPrimary,
+                            unfocusedTextColor = DarkTextPrimary,
+                            focusedContainerColor = DarkBackground,
+                            unfocusedContainerColor = DarkBackground,
+                            errorBorderColor = Color(0xFFEF4444)
+                        ),
+                        visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Done
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                focusManager.clearFocus()
+                                hasAttemptedSubmit = true
+                                if (agreedToTerms) {
+                                    viewModel.onRegister(
+                                        name = name,
+                                        email = email,
+                                        password = password,
+                                        confirmPassword = confirmPassword
+                                    )
+                                }
+                            }
+                        ),
+                        singleLine = true,
+                        trailingIcon = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(end = 12.dp)
+                            ) {
+                                if (confirmPassword.isNotBlank() && passwordsMatch) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = SuccessGreen,
+                                        modifier = Modifier.padding(end = 8.dp).size(16.dp)
+                                    )
+                                }
+                                Text(
+                                    text = if (confirmPasswordVisible) "Hide" else "Show",
+                                    color = DarkPrimaryLight,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.clickable { confirmPasswordVisible = !confirmPasswordVisible }
+                                )
+                            }
+                        }
+                    )
+                    if (hasAttemptedSubmit && confirmPassword.isBlank()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Please confirm your password",
+                            fontSize = 12.sp,
+                            color = Color(0xFFEF4444)
+                        )
+                    } else if (!passwordsMatch) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Passwords do not match",
+                            fontSize = 12.sp,
+                            color = Color(0xFFEF4444)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Terms & Privacy Checkbox
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { agreedToTerms = !agreedToTerms }
+                    ) {
+                        Checkbox(
+                            checked = agreedToTerms,
+                            onCheckedChange = { agreedToTerms = it },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = DarkPrimary,
+                                uncheckedColor = DarkTextMuted,
+                                checkmarkColor = Color.White
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "I agree to the Terms of Service & Privacy Policy",
+                            fontSize = 13.sp,
+                            color = DarkTextMuted
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Signup Action Button (Solid violet #8B5CF6 with rounded corners)
+                    Button(
+                        onClick = {
+                            focusManager.clearFocus()
+                            hasAttemptedSubmit = true
+                            if (!agreedToTerms) {
+                                viewModel.clearError()
+                                return@Button
+                            }
                             viewModel.onRegister(
                                 name = name,
                                 email = email,
                                 password = password,
                                 confirmPassword = confirmPassword
                             )
-                        }
-                    }
-                ),
-                singleLine = true,
-                trailingIcon = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(end = 12.dp)
+                        },
+                        enabled = !uiState.isLoading && agreedToTerms,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .bounceClick(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = DarkPrimary,
+                            disabledContainerColor = DarkPrimary.copy(alpha = 0.5f)
+                        ),
+                        shape = RoundedCornerShape(16.dp)
                     ) {
-                        if (confirmPassword.isNotBlank() && passwordsMatch) {
-                            Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF10B981), modifier = Modifier.padding(end = 8.dp).size(16.dp))
+                        if (uiState.isLoading) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                strokeWidth = 2.5.dp,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        } else {
+                            Text(
+                                text = "Create Account",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
                         }
-                        Text(
-                            text = if (confirmPasswordVisible) "Hide" else "Show",
-                            color = Color(0xFF7158E2),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.clickable { confirmPasswordVisible = !confirmPasswordVisible }
-                        )
                     }
                 }
-            )
-
-            if (hasAttemptedSubmit && confirmPassword.isBlank()) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Please confirm your password",
-                    fontSize = 12.sp,
-                    color = Color(0xFFDC2626)
-                )
-            } else if (!passwordsMatch) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Passwords do not match",
-                    fontSize = 12.sp,
-                    color = Color(0xFFDC2626)
-                )
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
-
-            // Terms & Privacy Checkbox
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { agreedToTerms = !agreedToTerms }
-            ) {
-                Checkbox(
-                    checked = agreedToTerms,
-                    onCheckedChange = { agreedToTerms = it },
-                    colors = CheckboxDefaults.colors(
-                        checkedColor = Color(0xFF7158E2),
-                        uncheckedColor = Color(0xFF9CA3AF)
-                    )
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "I agree to the Terms of Service & Privacy Policy",
-                    fontSize = 13.sp,
-                    color = Color(0xFF4B5563)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(26.dp))
-
-            // Signup Action Button
-            Button(
-                onClick = {
-                    focusManager.clearFocus()
-                    hasAttemptedSubmit = true
-                    if (!agreedToTerms) {
-                        viewModel.clearError()
-                        return@Button
-                    }
-                    viewModel.onRegister(
-                        name = name,
-                        email = email,
-                        password = password,
-                        confirmPassword = confirmPassword
-                    )
-                },
-                enabled = !uiState.isLoading && agreedToTerms,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .bounceClick(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF7158E2),
-                    disabledContainerColor = Color(0xFF7158E2).copy(alpha = 0.5f)
-                ),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(
-                        color = Color.White,
-                        strokeWidth = 2.5.dp,
-                        modifier = Modifier.size(24.dp)
-                    )
-                } else {
-                    Text(
-                        text = "Create Account",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.White
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(30.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
             // Navigation link back to Login
             Box(
@@ -453,12 +603,12 @@ fun SignupScreen(
                 ) {
                     Text(
                         text = "Already have an account? ",
-                        color = Color(0xFF6B7280),
+                        color = DarkTextMuted,
                         fontSize = 14.sp
                     )
                     Text(
                         text = "Log In",
-                        color = Color(0xFF7158E2),
+                        color = DarkPrimaryLight,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier
@@ -495,4 +645,3 @@ fun CreateAccountScreen(
 fun SignupScreenPreview() {
     SignupScreen()
 }
-

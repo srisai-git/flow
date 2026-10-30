@@ -13,7 +13,16 @@ data class User(
     val name: String = "",
 
     @SerializedName("email")
-    val email: String = ""
+    val email: String = "",
+
+    @SerializedName("avatar")
+    val avatar: String = "",
+
+    @SerializedName("avatar_url")
+    val avatarUrl: String = "",
+
+    @SerializedName("bio")
+    val bio: String = ""
 )
 
 /**

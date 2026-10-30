@@ -252,34 +252,6 @@ fun ProfileScreen(
                             overflow = TextOverflow.Ellipsis,
                             lineHeight = 17.sp
                         )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = colors.primary.copy(alpha = 0.12f),
-                            border = BorderStroke(1.dp, colors.primary.copy(alpha = 0.35f))
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = null,
-                                    tint = colors.primaryLight,
-                                    modifier = Modifier.size(12.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "PRO MEMBER",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.primaryLight,
-                                    letterSpacing = 0.8.sp
-                                )
-                            }
-                        }
                     }
 
                     Icon(

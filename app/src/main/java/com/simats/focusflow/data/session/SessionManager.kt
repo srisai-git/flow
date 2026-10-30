@@ -119,6 +119,8 @@ class SessionManager private constructor(
         userId: Int,
         name: String,
         email: String,
+        avatar: String = "",
+        bio: String = "",
         isOnboardingCompleted: Boolean = false
     ) {
         dataStore.edit { preferences ->
@@ -126,6 +128,12 @@ class SessionManager private constructor(
             preferences[KEY_USER_ID] = userId
             preferences[KEY_USER_NAME] = name
             preferences[KEY_USER_EMAIL] = email
+            if (avatar.isNotBlank()) {
+                preferences[KEY_USER_AVATAR] = avatar
+            }
+            if (bio.isNotBlank()) {
+                preferences[KEY_USER_BIO] = bio
+            }
             preferences[KEY_ONBOARDING_COMPLETED] = isOnboardingCompleted
         }
     }

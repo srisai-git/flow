@@ -31,6 +31,12 @@ interface FlowApiService {
     @POST("log_session.php")
     suspend fun logSession(@Body request: LogSessionRequest): Response<LogSessionResponse>
 
+    @GET("log_session.php")
+    suspend fun getRecentSessions(
+        @Query("user_id") userId: Int,
+        @Query("limit") limit: Int = 20
+    ): Response<FocusSessionsResponse>
+
     @GET("habits.php")
     suspend fun getHabits(@Query("user_id") userId: Int): Response<HabitsResponse>
 
