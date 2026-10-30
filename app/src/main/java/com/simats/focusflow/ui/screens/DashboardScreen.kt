@@ -43,6 +43,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -511,10 +512,12 @@ fun DashboardScreen(
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 data.priorityTasks.take(3).forEach { task ->
-                    PriorityTaskRow(
-                        task = task,
-                        onToggle = { viewModel.toggleTask(task.id) }
-                    )
+                    key(task.id) {
+                        PriorityTaskRow(
+                            task = task,
+                            onToggle = { viewModel.toggleTask(task.id) }
+                        )
+                    }
                 }
             }
         }
@@ -647,6 +650,20 @@ private fun AbstractGeometricClock(
         label = "pulse"
     )
 
+    val density = LocalDensity.current
+    val stroke6Px = remember(density) { with(density) { 6.dp.toPx() } }
+    val stroke1_5Px = remember(density) { with(density) { 1.5.dp.toPx() } }
+    val stroke2Px = remember(density) { with(density) { 2.dp.toPx() } }
+    val stroke1Px = remember(density) { with(density) { 1.dp.toPx() } }
+
+    val trackStroke = remember(stroke6Px) { Stroke(width = stroke6Px) }
+    val arcStroke = remember(stroke6Px) { Stroke(width = stroke6Px, cap = StrokeCap.Round) }
+    val innerTrackStroke = remember(stroke1_5Px) { Stroke(width = stroke1_5Px) }
+
+    val sweepBrush = remember(primary, primaryLight) {
+        Brush.sweepGradient(listOf(primary, primaryLight, primary))
+    }
+
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
@@ -660,9 +677,9 @@ private fun AbstractGeometricClock(
             val angleRad = Math.toRadians(angleDeg)
             val isMajor = (i % 3 == 0)
             val tickLen = if (isMajor) w * 0.08f else w * 0.045f
-            val strokeW = if (isMajor) 2.dp.toPx() else 1.dp.toPx()
+            val strokeW = if (isMajor) stroke2Px else stroke1Px
 
-            val startR = outerRadius + 2.dp.toPx()
+            val startR = outerRadius + stroke2Px
             val endR = startR + tickLen
 
             val startX = (center.x + startR * cos(angleRad)).toFloat()
@@ -684,22 +701,19 @@ private fun AbstractGeometricClock(
             color = border,
             radius = outerRadius,
             center = center,
-            style = Stroke(width = 6.dp.toPx())
+            style = trackStroke
         )
 
         // 3. Concentric Focus Progress Arc Ring
         if (progress > 0f) {
             drawArc(
-                brush = Brush.sweepGradient(
-                    listOf(primary, primaryLight, primary),
-                    center = center
-                ),
+                brush = sweepBrush,
                 startAngle = -90f,
                 sweepAngle = (progress * 360f).coerceIn(1f, 360f),
                 useCenter = false,
                 topLeft = Offset(center.x - outerRadius, center.y - outerRadius),
                 size = Size(outerRadius * 2, outerRadius * 2),
-                style = Stroke(width = 6.dp.toPx(), cap = StrokeCap.Round)
+                style = arcStroke
             )
         }
 
@@ -708,7 +722,7 @@ private fun AbstractGeometricClock(
             color = border.copy(alpha = 0.5f),
             radius = innerRadius,
             center = center,
-            style = Stroke(width = 1.5.dp.toPx())
+            style = innerTrackStroke
         )
 
         // 5. Center Dial & Rhythm Node
@@ -734,7 +748,7 @@ private fun AbstractGeometricClock(
             color = primaryLight,
             start = center,
             end = Offset(handEndX, handEndY),
-            strokeWidth = 2.dp.toPx(),
+            strokeWidth = stroke2Px,
             cap = StrokeCap.Round
         )
     }

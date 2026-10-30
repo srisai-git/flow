@@ -1,17 +1,21 @@
 package com.simats.focusflow.ui.viewmodel
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.simats.focusflow.data.models.TaskItem
 import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.session.SessionManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
+@Immutable
 enum class TaskFilter(val title: String) {
     TODAY("Today"),
     UPCOMING("Upcoming"),
@@ -19,6 +23,7 @@ enum class TaskFilter(val title: String) {
     ALL("All")
 }
 
+@Immutable
 data class TaskUiState(
     val isLoading: Boolean = false,
     val tasks: List<TaskItem> = emptyList(),
@@ -75,8 +80,10 @@ class TaskViewModel(
     }
 
     fun loadTasks() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+        viewModelScope.launch(Dispatchers.IO) {
+            withContext(Dispatchers.Main) {
+                _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            }
 
             sessionManager?.let { sm ->
                 val session = sm.userSessionFlow.first()
@@ -86,14 +93,16 @@ class TaskViewModel(
             }
 
             val result = repository.getTasks(currentUserId)
-            result.fold(
-                onSuccess = { list ->
-                    _uiState.update { it.copy(isLoading = false, tasks = list) }
-                },
-                onFailure = { err ->
-                    _uiState.update { it.copy(isLoading = false, errorMessage = err.localizedMessage) }
-                }
-            )
+            withContext(Dispatchers.Main) {
+                result.fold(
+                    onSuccess = { list ->
+                        _uiState.update { it.copy(isLoading = false, tasks = list) }
+                    },
+                    onFailure = { err ->
+                        _uiState.update { it.copy(isLoading = false, errorMessage = err.localizedMessage) }
+                    }
+                )
+            }
         }
     }
 
@@ -110,13 +119,15 @@ class TaskViewModel(
     }
 
     fun toggleTask(taskId: Int) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val currentList = _uiState.value.tasks.toMutableList()
             val index = currentList.indexOfFirst { it.id == taskId }
             if (index != -1) {
                 val updatedStatus = !currentList[index].isCompleted
                 currentList[index] = currentList[index].copy(isCompleted = updatedStatus)
-                _uiState.update { it.copy(tasks = currentList) }
+                withContext(Dispatchers.Main) {
+                    _uiState.update { it.copy(tasks = currentList) }
+                }
 
                 repository.toggleTask(currentUserId, taskId, updatedStatus)
             }
@@ -124,9 +135,11 @@ class TaskViewModel(
     }
 
     fun deleteTask(taskId: Int) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val currentList = _uiState.value.tasks.filter { it.id != taskId }
-            _uiState.update { it.copy(tasks = currentList) }
+            withContext(Dispatchers.Main) {
+                _uiState.update { it.copy(tasks = currentList) }
+            }
 
             repository.deleteTask(currentUserId, taskId)
         }
@@ -141,8 +154,10 @@ class TaskViewModel(
     ) {
         if (title.isBlank()) return
 
-        viewModelScope.launch {
-            _uiState.update { it.copy(isBottomSheetOpen = false) }
+        viewModelScope.launch(Dispatchers.IO) {
+            withContext(Dispatchers.Main) {
+                _uiState.update { it.copy(isBottomSheetOpen = false) }
+            }
 
             val result = repository.createTask(
                 userId = currentUserId,
@@ -153,16 +168,17 @@ class TaskViewModel(
                 category = category.trim()
             )
 
-            result.fold(
-                onSuccess = { createdTask ->
-                    val updated = _uiState.value.tasks.toMutableList().apply { add(0, createdTask) }
-                    _uiState.update { it.copy(tasks = updated) }
-                },
-                onFailure = { err ->
-                    _uiState.update { it.copy(errorMessage = err.localizedMessage) }
-                }
-            )
+            withContext(Dispatchers.Main) {
+                result.fold(
+                    onSuccess = { createdTask ->
+                        val updated = _uiState.value.tasks.toMutableList().apply { add(0, createdTask) }
+                        _uiState.update { it.copy(tasks = updated) }
+                    },
+                    onFailure = { err ->
+                        _uiState.update { it.copy(errorMessage = err.localizedMessage) }
+                    }
+                )
+            }
         }
     }
 }
-

@@ -8,13 +8,16 @@ import com.simats.focusflow.data.models.FocusSessionRecord
 import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.service.FocusTimerService
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
+@Immutable
 enum class TimerMode(val title: String) {
     FOCUS("Focus"),
     SHORT_BREAK("Short Break"),
@@ -84,7 +87,7 @@ class TimerViewModel(
                 }
             }
         }
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             ProductivityRepository.sessionLoggedEventFlow.collect {
                 loadSessionHistory()
             }
@@ -94,7 +97,7 @@ class TimerViewModel(
     fun initSessionManager(context: Context, manager: SessionManager) {
         this.appContext = context.applicationContext
         this.sessionManager = manager
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val session = manager.userSessionFlow.first()
             if (session.userId != null && session.userId > 0) {
                 currentUserId = session.userId
@@ -106,7 +109,7 @@ class TimerViewModel(
     // Compatibility overload
     fun initSessionManager(manager: SessionManager) {
         this.sessionManager = manager
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val session = manager.userSessionFlow.first()
             if (session.userId != null && session.userId > 0) {
                 currentUserId = session.userId
@@ -116,14 +119,16 @@ class TimerViewModel(
     }
 
     fun loadSessionHistory() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val result = repository.getRecentSessions(currentUserId)
-            result.fold(
-                onSuccess = { list ->
-                    _uiState.update { it.copy(recentSessions = list) }
-                },
-                onFailure = { /* keep existing */ }
-            )
+            withContext(Dispatchers.Main) {
+                result.fold(
+                    onSuccess = { list ->
+                        _uiState.update { it.copy(recentSessions = list) }
+                    },
+                    onFailure = { /* keep existing */ }
+                )
+            }
         }
     }
 

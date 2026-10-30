@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -46,6 +47,7 @@ import com.simats.focusflow.ui.components.bounceClick
 import com.simats.focusflow.ui.theme.FocusFlowTheme
 import com.simats.focusflow.ui.viewmodel.TimerMode
 import com.simats.focusflow.ui.viewmodel.TimerViewModel
+import java.util.Locale
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -70,12 +72,6 @@ fun TimerScreen(
             viewModel.clearToast()
         }
     }
-
-    val animatedProgress by animateFloatAsState(
-        targetValue = state.progress,
-        animationSpec = tween(durationMillis = 300),
-        label = "timerProgress"
-    )
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -202,57 +198,12 @@ fun TimerScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // 2. CENTRAL TIMER CIRCLE WITH PROGRESS DIAL
-            Box(
-                modifier = Modifier.size(240.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                val primaryColor = colors.primary
-                val primaryLight = colors.primaryLight
-                val surfaceVariant = colors.surfaceVariant
-
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val stroke = 12.dp.toPx()
-
-                    // Background Track Ring
-                    drawCircle(
-                        color = surfaceVariant,
-                        style = Stroke(width = stroke)
-                    )
-
-                    // Sweeping Progress Arc
-                    if (state.totalSeconds > 0) {
-                        drawArc(
-                            brush = Brush.sweepGradient(
-                                listOf(primaryColor, primaryLight, primaryColor)
-                            ),
-                            startAngle = -90f,
-                            sweepAngle = animatedProgress * 360f,
-                            useCenter = false,
-                            style = Stroke(width = stroke, cap = StrokeCap.Round)
-                        )
-                    }
-                }
-
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = state.formattedTime,
-                        fontSize = 48.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = colors.textPrimary,
-                        letterSpacing = 1.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(
-                        text = if (state.isRunning) "In Deep Flow" else "Paused",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (state.isRunning) colors.primaryLight else colors.textMuted
-                    )
-                }
-            }
+            // 2. CENTRAL TIMER CIRCLE WITH ISOLATED COUNTDOWN DIAL
+            TimerCountdownDial(
+                remainingSeconds = state.remainingSeconds,
+                totalSeconds = state.totalSeconds,
+                isRunning = state.isRunning
+            )
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -748,6 +699,89 @@ private fun CustomizeDurationsSheet(
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
+            )
+        }
+    }
+}
+
+/**
+ * Isolated Timer Countdown Dial composable that localizes 1-second recompositions
+ * to eliminate whole-screen UI re-rendering during active focus sessions.
+ */
+@Composable
+private fun TimerCountdownDial(
+    remainingSeconds: Int,
+    totalSeconds: Int,
+    isRunning: Boolean
+) {
+    val colors = FocusFlowTheme.colors
+    val primaryColor = colors.primary
+    val primaryLight = colors.primaryLight
+    val surfaceVariant = colors.surfaceVariant
+
+    val targetProgress = remember(remainingSeconds, totalSeconds) {
+        if (totalSeconds > 0) remainingSeconds.toFloat() / totalSeconds.toFloat() else 0f
+    }
+    val animatedProgress by animateFloatAsState(
+        targetValue = targetProgress,
+        animationSpec = tween(durationMillis = 300),
+        label = "timerProgress"
+    )
+
+    val formattedTime = remember(remainingSeconds) {
+        val mins = remainingSeconds / 60
+        val secs = remainingSeconds % 60
+        String.format(Locale.US, "%02d:%02d", mins, secs)
+    }
+
+    val sweepBrush = remember(primaryColor, primaryLight) {
+        Brush.sweepGradient(listOf(primaryColor, primaryLight, primaryColor))
+    }
+
+    Box(
+        modifier = Modifier.size(240.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        val density = LocalDensity.current
+        val strokeWidthPx = remember(density) { with(density) { 12.dp.toPx() } }
+        val bgStroke = remember(strokeWidthPx) { Stroke(width = strokeWidthPx) }
+        val arcStroke = remember(strokeWidthPx) { Stroke(width = strokeWidthPx, cap = StrokeCap.Round) }
+
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            // Background Track Ring
+            drawCircle(
+                color = surfaceVariant,
+                style = bgStroke
+            )
+
+            // Sweeping Progress Arc
+            if (totalSeconds > 0) {
+                drawArc(
+                    brush = sweepBrush,
+                    startAngle = -90f,
+                    sweepAngle = animatedProgress * 360f,
+                    useCenter = false,
+                    style = arcStroke
+                )
+            }
+        }
+
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = formattedTime,
+                fontSize = 48.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = colors.textPrimary,
+                letterSpacing = 1.sp
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = if (isRunning) "In Deep Flow" else "Paused",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = if (isRunning) colors.primaryLight else colors.textMuted
             )
         }
     }

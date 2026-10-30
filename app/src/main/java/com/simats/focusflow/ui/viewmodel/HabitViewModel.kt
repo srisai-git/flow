@@ -1,5 +1,6 @@
 package com.simats.focusflow.ui.viewmodel
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.simats.focusflow.data.models.HabitItem
@@ -7,24 +8,29 @@ import com.simats.focusflow.data.models.HabitUserStats
 import com.simats.focusflow.data.repository.AiRepository
 import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.session.SessionManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
+@Immutable
 enum class HabitTab {
     ROUTINE,
     INSIGHTS
 }
 
+@Immutable
 enum class HabitInsightTimeframe(val label: String) {
     DAY("Day"),
     WEEK("Week"),
     MONTH("Month")
 }
 
+@Immutable
 data class HabitUiState(
     val isLoading: Boolean = false,
     val habits: List<HabitItem> = emptyList(),
@@ -64,8 +70,10 @@ class HabitViewModel(
     }
 
     fun loadHabits() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+        viewModelScope.launch(Dispatchers.IO) {
+            withContext(Dispatchers.Main) {
+                _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            }
 
             sessionManager?.let { sm ->
                 val session = sm.userSessionFlow.first()
@@ -75,36 +83,42 @@ class HabitViewModel(
             }
 
             val result = repository.getHabits(currentUserId)
-            result.fold(
-                onSuccess = { res ->
-                    _uiState.update { 
-                        it.copy(
-                            isLoading = false, 
-                            habits = res.habits, 
-                            userStats = res.userStats
-                        ) 
+            withContext(Dispatchers.Main) {
+                result.fold(
+                    onSuccess = { res ->
+                        _uiState.update { 
+                            it.copy(
+                                isLoading = false, 
+                                habits = res.habits, 
+                                userStats = res.userStats
+                            ) 
+                        }
+                    },
+                    onFailure = { err ->
+                        _uiState.update { it.copy(isLoading = false, errorMessage = err.localizedMessage) }
                     }
-                },
-                onFailure = { err ->
-                    _uiState.update { it.copy(isLoading = false, errorMessage = err.localizedMessage) }
-                }
-            )
+                )
+            }
         }
     }
 
     fun loadAiInsight(forceRefresh: Boolean = false) {
         if (!forceRefresh && _uiState.value.aiInsight != null) return
-        viewModelScope.launch {
-            _uiState.update { it.copy(isAiLoading = true) }
+        viewModelScope.launch(Dispatchers.IO) {
+            withContext(Dispatchers.Main) {
+                _uiState.update { it.copy(isAiLoading = true) }
+            }
             val result = aiRepository.getHabitInsights(currentUserId)
-            result.fold(
-                onSuccess = { insight ->
-                    _uiState.update { it.copy(isAiLoading = false, aiInsight = insight) }
-                },
-                onFailure = {
-                    _uiState.update { it.copy(isAiLoading = false) }
-                }
-            )
+            withContext(Dispatchers.Main) {
+                result.fold(
+                    onSuccess = { insight ->
+                        _uiState.update { it.copy(isAiLoading = false, aiInsight = insight) }
+                    },
+                    onFailure = {
+                        _uiState.update { it.copy(isAiLoading = false) }
+                    }
+                )
+            }
         }
     }
 
@@ -128,7 +142,7 @@ class HabitViewModel(
     }
 
     fun toggleHabit(habitId: Int) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val currentList = _uiState.value.habits.toMutableList()
             val index = currentList.indexOfFirst { it.id == habitId }
             if (index != -1) {
@@ -140,14 +154,18 @@ class HabitViewModel(
                     isCompletedToday = updatedStatus,
                     streakCount = updatedStreak
                 )
-                _uiState.update { it.copy(habits = currentList) }
+                withContext(Dispatchers.Main) {
+                    _uiState.update { it.copy(habits = currentList) }
+                }
 
                 repository.toggleHabit(currentUserId, habitId)
 
                 // Refresh backend stats silently to update real charts & streaks
                 val refreshed = repository.getHabits(currentUserId)
                 refreshed.onSuccess { res ->
-                    _uiState.update { it.copy(habits = res.habits, userStats = res.userStats) }
+                    withContext(Dispatchers.Main) {
+                        _uiState.update { it.copy(habits = res.habits, userStats = res.userStats) }
+                    }
                 }
             }
         }
@@ -156,8 +174,10 @@ class HabitViewModel(
     fun createHabit(title: String, icon: String = "bolt", frequency: String = "daily") {
         if (title.isBlank()) return
 
-        viewModelScope.launch {
-            _uiState.update { it.copy(isAddHabitDialogOpen = false) }
+        viewModelScope.launch(Dispatchers.IO) {
+            withContext(Dispatchers.Main) {
+                _uiState.update { it.copy(isAddHabitDialogOpen = false) }
+            }
 
             val result = repository.createHabit(
                 userId = currentUserId,
@@ -169,33 +189,43 @@ class HabitViewModel(
             result.fold(
                 onSuccess = { createdHabit ->
                     val updated = _uiState.value.habits.toMutableList().apply { add(createdHabit) }
-                    _uiState.update { it.copy(habits = updated) }
+                    withContext(Dispatchers.Main) {
+                        _uiState.update { it.copy(habits = updated) }
+                    }
                     // Refresh stats
                     val refreshed = repository.getHabits(currentUserId)
                     refreshed.onSuccess { res ->
-                        _uiState.update { it.copy(habits = res.habits, userStats = res.userStats) }
+                        withContext(Dispatchers.Main) {
+                            _uiState.update { it.copy(habits = res.habits, userStats = res.userStats) }
+                        }
                     }
                 },
                 onFailure = { err ->
-                    _uiState.update { it.copy(errorMessage = err.localizedMessage) }
+                    withContext(Dispatchers.Main) {
+                        _uiState.update { it.copy(errorMessage = err.localizedMessage) }
+                    }
                 }
             )
         }
     }
 
     fun deleteHabit(habitId: Int) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val updated = _uiState.value.habits.filter { it.id != habitId }
-            _uiState.update { 
-                it.copy(
-                    habits = updated,
-                    selectedHabitForStreak = if (it.selectedHabitForStreak?.id == habitId) null else it.selectedHabitForStreak
-                ) 
+            withContext(Dispatchers.Main) {
+                _uiState.update { 
+                    it.copy(
+                        habits = updated,
+                        selectedHabitForStreak = if (it.selectedHabitForStreak?.id == habitId) null else it.selectedHabitForStreak
+                    ) 
+                }
             }
             repository.deleteHabit(currentUserId, habitId)
             val refreshed = repository.getHabits(currentUserId)
             refreshed.onSuccess { res ->
-                _uiState.update { it.copy(habits = res.habits, userStats = res.userStats) }
+                withContext(Dispatchers.Main) {
+                    _uiState.update { it.copy(habits = res.habits, userStats = res.userStats) }
+                }
             }
         }
     }

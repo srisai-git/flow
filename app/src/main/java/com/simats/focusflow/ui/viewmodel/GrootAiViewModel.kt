@@ -11,6 +11,7 @@ import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.repository.ProfileRepository
 import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.service.FocusTimerService
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -64,7 +66,7 @@ class GrootAiViewModel(
     fun initContext(context: Context, manager: SessionManager) {
         this.appContext = context.applicationContext
         this.sessionManager = manager
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val session = manager.userSessionFlow.first()
             if (session.userId != null && session.userId > 0) {
                 currentUserId = session.userId
@@ -75,7 +77,7 @@ class GrootAiViewModel(
     // Compatibility overload
     fun initSessionManager(manager: SessionManager) {
         this.sessionManager = manager
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val session = manager.userSessionFlow.first()
             if (session.userId != null && session.userId > 0) {
                 currentUserId = session.userId
@@ -123,7 +125,7 @@ class GrootAiViewModel(
             )
         }
 
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val result = aiRepository.getAiInsights(
                 userId = currentUserId,
                 queryType = "chat",
@@ -155,11 +157,13 @@ class GrootAiViewModel(
                         actionExecuted = actionExecuted
                     )
 
-                    _uiState.update {
-                        it.copy(
-                            messages = it.messages + aiMessage,
-                            isAiThinking = false
-                        )
+                    withContext(Dispatchers.Main) {
+                        _uiState.update {
+                            it.copy(
+                                messages = it.messages + aiMessage,
+                                isAiThinking = false
+                            )
+                        }
                     }
                 },
                 onFailure = {
@@ -175,11 +179,13 @@ class GrootAiViewModel(
                         isFromUser = false,
                         text = fallbackText
                     )
-                    _uiState.update {
-                        it.copy(
-                            messages = it.messages + fallbackMessage,
-                            isAiThinking = false
-                        )
+                    withContext(Dispatchers.Main) {
+                        _uiState.update {
+                            it.copy(
+                                messages = it.messages + fallbackMessage,
+                                isAiThinking = false
+                            )
+                        }
                     }
                 }
             )
@@ -199,7 +205,7 @@ class GrootAiViewModel(
                 }
                 "CREATE_TASK" -> {
                     if (action.title.isNotBlank()) {
-                        viewModelScope.launch {
+                        viewModelScope.launch(Dispatchers.IO) {
                             productivityRepository.createTask(
                                 userId = currentUserId,
                                 title = action.title,
@@ -214,7 +220,7 @@ class GrootAiViewModel(
                 }
                 "CREATE_HABIT" -> {
                     if (action.title.isNotBlank()) {
-                        viewModelScope.launch {
+                        viewModelScope.launch(Dispatchers.IO) {
                             productivityRepository.createHabit(
                                 userId = currentUserId,
                                 title = action.title,
@@ -227,7 +233,7 @@ class GrootAiViewModel(
                 }
                 "SET_GOAL" -> {
                     if (action.dailyMinutes > 0) {
-                        viewModelScope.launch {
+                        viewModelScope.launch(Dispatchers.IO) {
                             profileRepository.updatePreferences(
                                 userId = currentUserId,
                                 dailyFocusGoalMinutes = action.dailyMinutes,
