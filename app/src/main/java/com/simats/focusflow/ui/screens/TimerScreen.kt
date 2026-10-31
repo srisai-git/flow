@@ -226,7 +226,7 @@ fun TimerScreen(
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        listOf(15, 25, 45, 60).forEach { mins ->
+                        listOf(5, 15, 25, 45, 60).forEach { mins ->
                             val isCurrent = state.focusMinutes == mins
                             Surface(
                                 onClick = {
@@ -251,17 +251,17 @@ fun TimerScreen(
                                     fontSize = 12.sp,
                                     fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
                                     color = if (isCurrent) colors.primaryLight else colors.textMuted,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
                                 )
                             }
                         }
                         Surface(
                             onClick = { viewModel.setSettingsOpen(true) },
                             shape = RoundedCornerShape(10.dp),
-                            color = if (state.focusMinutes !in listOf(15, 25, 45, 60)) colors.primary.copy(alpha = 0.18f) else colors.surface,
+                            color = if (state.focusMinutes !in listOf(5, 15, 25, 45, 60)) colors.primary.copy(alpha = 0.18f) else colors.surface,
                             border = BorderStroke(
                                 1.dp,
-                                if (state.focusMinutes !in listOf(15, 25, 45, 60)) colors.primary else colors.border
+                                if (state.focusMinutes !in listOf(5, 15, 25, 45, 60)) colors.primary else colors.border
                             ),
                             modifier = Modifier
                                 .padding(horizontal = 3.dp)
@@ -279,10 +279,10 @@ fun TimerScreen(
                                 )
                                 Spacer(modifier = Modifier.width(3.dp))
                                 Text(
-                                    text = if (state.focusMinutes !in listOf(15, 25, 45, 60)) "${state.focusMinutes}m" else "Custom",
+                                    text = if (state.focusMinutes !in listOf(5, 15, 25, 45, 60)) "${state.focusMinutes}m" else "Custom",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = if (state.focusMinutes !in listOf(15, 25, 45, 60)) colors.primaryLight else colors.textMuted
+                                    color = if (state.focusMinutes !in listOf(5, 15, 25, 45, 60)) colors.primaryLight else colors.textMuted
                                 )
                             }
                         }

@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.os.SystemClock
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -18,11 +19,13 @@ import androidx.core.app.NotificationCompat
 import com.simats.focusflow.MainActivity
 import com.simats.focusflow.R
 import com.simats.focusflow.data.repository.ProductivityRepository
+import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.ui.viewmodel.TimerMode
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlin.math.max
 
@@ -67,8 +70,10 @@ data class TimerServiceState(
 class FocusTimerService : Service() {
 
     companion object {
-        const val CHANNEL_ID = "focusflow_timer_channel"
+        const val RUNNING_CHANNEL_ID = "focus_running_channel"
+        const val COMPLETE_CHANNEL_ID = "focus_complete_channel"
         const val NOTIFICATION_ID = 1001
+        const val COMPLETE_NOTIFICATION_ID = 1002
 
         const val ACTION_START = "com.simats.focusflow.action.START"
         const val ACTION_PAUSE = "com.simats.focusflow.action.PAUSE"
@@ -163,7 +168,17 @@ class FocusTimerService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        createNotificationChannel()
+        createNotificationChannels()
+        serviceScope.launch(Dispatchers.IO) {
+            try {
+                val session = SessionManager.getInstance(applicationContext).userSessionFlow.first()
+                if (session.userId != null && session.userId > 0) {
+                    _timerStateFlow.update { it.copy(activeUserId = session.userId) }
+                }
+            } catch (e: Exception) {
+                // Retain existing default
+            }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -209,7 +224,7 @@ class FocusTimerService : Service() {
             state = _timerStateFlow.value
         }
 
-        val targetEnd = System.currentTimeMillis() + (state.remainingSeconds * 1000L)
+        val targetEnd = SystemClock.elapsedRealtime() + (state.remainingSeconds * 1000L)
         _timerStateFlow.update {
             it.copy(isRunning = true, targetEndTimeMillis = targetEnd, toastMessage = null)
         }
@@ -225,7 +240,7 @@ class FocusTimerService : Service() {
             _timerStateFlow.update { it.copy(totalSeconds = secs, remainingSeconds = secs) }
         }
 
-        val targetEnd = System.currentTimeMillis() + (_timerStateFlow.value.remainingSeconds * 1000L)
+        val targetEnd = SystemClock.elapsedRealtime() + (_timerStateFlow.value.remainingSeconds * 1000L)
         _timerStateFlow.update {
             it.copy(isRunning = true, targetEndTimeMillis = targetEnd, toastMessage = null)
         }
@@ -333,7 +348,7 @@ class FocusTimerService : Service() {
         tickerJob?.cancel()
         tickerJob = serviceScope.launch {
             while (isActive && _timerStateFlow.value.isRunning) {
-                val now = System.currentTimeMillis()
+                val now = SystemClock.elapsedRealtime()
                 val target = _timerStateFlow.value.targetEndTimeMillis
                 val remainingSecs = max(0, ((target - now + 500) / 1000).toInt())
 
@@ -373,7 +388,7 @@ class FocusTimerService : Service() {
                 )
             }
 
-            // Dispatch session to local PHP backend
+            // Dispatch session to local PHP backend and reactive observers
             serviceScope.launch {
                 repository.logSession(
                     userId = current.activeUserId,
@@ -395,6 +410,12 @@ class FocusTimerService : Service() {
             }
         }
 
+        // 1. High-priority heads-up completion alert notification
+        val manager = getSystemService(NotificationManager::class.java)
+        val alertNotification = buildCompletionNotification(completedMode, sessionDuration)
+        manager?.notify(COMPLETE_NOTIFICATION_ID, alertNotification)
+
+        // 2. Ongoing silent notification update
         updateOngoingNotification(isComplete = true)
     }
 
@@ -422,20 +443,67 @@ class FocusTimerService : Service() {
         }
     }
 
-    private fun createNotificationChannel() {
+    private fun createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "FocusFlow Focus Timer",
+            val manager = getSystemService(NotificationManager::class.java) ?: return
+
+            // 1. Ongoing Silent Countdown Channel (IMPORTANCE_LOW)
+            val runningChannel = NotificationChannel(
+                RUNNING_CHANNEL_ID,
+                "Focus Timer Ongoing",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Ongoing notification for Pomodoro concentration countdown"
+                description = "Ongoing silent notification for Pomodoro concentration countdown"
                 setShowBadge(false)
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                enableVibration(false)
+                setSound(null, null)
             }
-            val manager = getSystemService(NotificationManager::class.java)
-            manager?.createNotificationChannel(channel)
+            manager.createNotificationChannel(runningChannel)
+
+            // 2. High-Priority Alert Channel for Interval Completion (IMPORTANCE_HIGH)
+            val completeChannel = NotificationChannel(
+                COMPLETE_CHANNEL_ID,
+                "Focus Timer Completed",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Alerts with sound and vibration when focus or break intervals complete"
+                setShowBadge(true)
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                enableVibration(true)
+                vibrationPattern = longArrayOf(0, 350, 150, 350)
+            }
+            manager.createNotificationChannel(completeChannel)
         }
+    }
+
+    private fun buildCompletionNotification(completedMode: TimerMode, durationMinutes: Int): Notification {
+        val openAppIntent = PendingIntent.getActivity(
+            this,
+            0,
+            Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val title = if (completedMode == TimerMode.FOCUS) "Focus Session Complete" else "Break Complete"
+        val content = if (completedMode == TimerMode.FOCUS) {
+            "Finished ${durationMinutes}m focus session. Recorded to your productivity records."
+        } else {
+            "Break finished. Ready to begin your next focus session?"
+        }
+
+        return NotificationCompat.Builder(this, COMPLETE_CHANNEL_ID)
+            .setContentTitle(title)
+            .setContentText(content)
+            .setSmallIcon(R.drawable.app_logo)
+            .setContentIntent(openAppIntent)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .build()
     }
 
     private fun buildNotification(isComplete: Boolean = false): Notification {
@@ -463,7 +531,7 @@ class FocusTimerService : Service() {
             "${state.formattedTime} remaining • Cycle ${state.completedSessions + 1}"
         }
 
-        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(this, RUNNING_CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(contentText)
             .setSmallIcon(R.drawable.app_logo)
@@ -481,6 +549,14 @@ class FocusTimerService : Service() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             builder.addAction(android.R.drawable.ic_media_pause, "Pause", pauseIntent)
+
+            val skipIntent = PendingIntent.getService(
+                this,
+                4,
+                Intent(this, FocusTimerService::class.java).apply { action = ACTION_SKIP },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(android.R.drawable.ic_media_next, "Skip", skipIntent)
         } else if (!isComplete) {
             val resumeIntent = PendingIntent.getService(
                 this,

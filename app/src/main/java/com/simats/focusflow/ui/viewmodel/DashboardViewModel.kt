@@ -45,7 +45,7 @@ class DashboardViewModel(
         // Automatically reload dashboard whenever a focus session completes or is logged
         viewModelScope.launch(Dispatchers.IO) {
             ProductivityRepository.sessionLoggedEventFlow.collect {
-                loadDashboard()
+                loadDashboard(showLoadingIndicator = false)
             }
         }
     }
@@ -102,10 +102,12 @@ class DashboardViewModel(
         _uiState.update { it.copy(isStreakModalOpen = isOpen) }
     }
 
-    fun loadDashboard() {
+    fun loadDashboard(showLoadingIndicator: Boolean = false) {
         viewModelScope.launch(Dispatchers.IO) {
-            withContext(Dispatchers.Main) {
-                _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            if (showLoadingIndicator) {
+                withContext(Dispatchers.Main) {
+                    _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+                }
             }
 
             var sessionAvatar = ""
