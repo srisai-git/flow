@@ -63,6 +63,8 @@ import java.util.Locale
 import kotlin.math.roundToInt
 
 private val DangerRed = Color(0xFFEF4444)
+private val SuccessGreen = Color(0xFF10B981)
+private val WarningAmber = Color(0xFFF59E0B)
 
 fun resolveAvatarIcon(avatarStr: String): ImageVector = when (avatarStr.removePrefix("avatar:").lowercase()) {
     "school" -> Icons.Default.School
@@ -106,7 +108,23 @@ fun ProfileScreen(
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showPreferencesSheet by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
+    var showFocusDetailSheet by remember { mutableStateOf(false) }
+    var showTasksDetailSheet by remember { mutableStateOf(false) }
+    var showStreakDetailSheet by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
+
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                viewModel.loadProfile()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     LaunchedEffect(state.successMessage, state.errorMessage) {
         state.successMessage?.let {
@@ -276,6 +294,7 @@ fun ProfileScreen(
                     value = String.format(Locale.US, "%.1fh", profile.totalFocusHours),
                     label = "Focus Time",
                     iconTint = colors.primaryLight,
+                    onClick = { showFocusDetailSheet = true },
                     modifier = Modifier.weight(1f)
                 )
 
@@ -285,6 +304,7 @@ fun ProfileScreen(
                     value = "${profile.completedTasksCount}",
                     label = "Tasks Done",
                     iconTint = Color(0xFF10B981),
+                    onClick = { showTasksDetailSheet = true },
                     modifier = Modifier.weight(1f)
                 )
 
@@ -294,6 +314,7 @@ fun ProfileScreen(
                     value = "${profile.currentStreak}d",
                     label = "Streak",
                     iconTint = Color(0xFFF59E0B),
+                    onClick = { showStreakDetailSheet = true },
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -585,6 +606,102 @@ fun ProfileScreen(
                     }
                 }
             )
+        }
+
+        // 11. FOCUS TIME DETAIL SHEET
+        if (showFocusDetailSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showFocusDetailSheet = false },
+                containerColor = colors.surface,
+                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                dragHandle = {
+                    Box(
+                        modifier = Modifier
+                            .padding(vertical = 12.dp)
+                            .width(40.dp)
+                            .height(4.dp)
+                            .clip(CircleShape)
+                            .background(colors.border)
+                    )
+                }
+            ) {
+                FocusTimeDetailSheetContent(
+                    profile = profile,
+                    onNavigateToInsights = {
+                        showFocusDetailSheet = false
+                        onNavigateToInsights()
+                    },
+                    onNavigateToTimer = {
+                        showFocusDetailSheet = false
+                        onNavigateToHome()
+                    },
+                    onDismiss = { showFocusDetailSheet = false }
+                )
+            }
+        }
+
+        // 12. TASKS DONE DETAIL SHEET
+        if (showTasksDetailSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showTasksDetailSheet = false },
+                containerColor = colors.surface,
+                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                dragHandle = {
+                    Box(
+                        modifier = Modifier
+                            .padding(vertical = 12.dp)
+                            .width(40.dp)
+                            .height(4.dp)
+                            .clip(CircleShape)
+                            .background(colors.border)
+                    )
+                }
+            ) {
+                TasksDoneDetailSheetContent(
+                    completedCount = profile.completedTasksCount,
+                    onNavigateToTasks = {
+                        showTasksDetailSheet = false
+                        onNavigateToTasks()
+                    },
+                    onDismiss = { showTasksDetailSheet = false }
+                )
+            }
+        }
+
+        // 13. STREAK DETAIL SHEET
+        if (showStreakDetailSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showStreakDetailSheet = false },
+                containerColor = colors.surface,
+                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                dragHandle = {
+                    Box(
+                        modifier = Modifier
+                            .padding(vertical = 12.dp)
+                            .width(40.dp)
+                            .height(4.dp)
+                            .clip(CircleShape)
+                            .background(colors.border)
+                    )
+                }
+            ) {
+                StreakDetailSheetContent(
+                    currentStreak = profile.currentStreak,
+                    onShareStreak = {
+                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_SUBJECT, "FocusFlow Streak")
+                            putExtra(Intent.EXTRA_TEXT, "I am on a ${profile.currentStreak}-day focus streak on FocusFlow! Compounding discipline every single day.")
+                        }
+                        context.startActivity(Intent.createChooser(shareIntent, "Share Streak"))
+                    },
+                    onNavigateToInsights = {
+                        showStreakDetailSheet = false
+                        onNavigateToInsights()
+                    },
+                    onDismiss = { showStreakDetailSheet = false }
+                )
+            }
         }
     }
 }
@@ -900,6 +1017,414 @@ private fun FocusPreferencesSheetContent(
     }
 }
 
+@Composable
+private fun FocusTimeDetailSheetContent(
+    profile: ProfileData,
+    onNavigateToInsights: () -> Unit,
+    onNavigateToTimer: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val colors = FocusFlowTheme.colors
+    val totalHoursFormatted = String.format(Locale.US, "%.1f", profile.totalFocusHours)
+    val dailyGoalHours = (profile.dailyFocusGoalMinutes / 60).coerceAtLeast(1)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
+            .padding(bottom = 36.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "FOCUS METRICS",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.primaryLight,
+                    letterSpacing = 1.2.sp
+                )
+                Text(
+                    text = "Deep Work Analytics",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.textPrimary
+                )
+            }
+            IconButton(onClick = onDismiss) {
+                Icon(Icons.Default.Close, contentDescription = "Close", tint = colors.textMuted)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Hero Metric Card
+        Surface(
+            shape = RoundedCornerShape(18.dp),
+            color = colors.surfaceVariant,
+            border = BorderStroke(1.dp, colors.border),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(54.dp)
+                        .clip(CircleShape)
+                        .background(colors.primary.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Timer,
+                        contentDescription = null,
+                        tint = colors.primaryLight,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "$totalHoursFormatted Hours",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = colors.textPrimary
+                )
+                Text(
+                    text = "${profile.totalFocusMinutes} total minutes in deep flow",
+                    fontSize = 13.sp,
+                    color = colors.textMuted
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(color = colors.border, thickness = 1.dp)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceAround
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "${dailyGoalHours}h / day",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.primaryLight
+                        )
+                        Text(
+                            text = "Daily Target",
+                            fontSize = 11.sp,
+                            color = colors.textMuted
+                        )
+                    }
+
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "${profile.preferredFocusDuration} min",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.primaryLight
+                        )
+                        Text(
+                            text = "Session Rhythm",
+                            fontSize = 11.sp,
+                            color = colors.textMuted
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Button(
+                onClick = onNavigateToTimer,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp)
+                    .bounceClick(),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
+            ) {
+                Icon(Icons.Default.Timer, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Start Focus", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            }
+
+            OutlinedButton(
+                onClick = onNavigateToInsights,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp)
+                    .bounceClick(),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, colors.border)
+            ) {
+                Text("View Insights", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = colors.textPrimary)
+            }
+        }
+    }
+}
+
+@Composable
+private fun TasksDoneDetailSheetContent(
+    completedCount: Int,
+    onNavigateToTasks: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val colors = FocusFlowTheme.colors
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
+            .padding(bottom = 36.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "TASK MASTERY",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = SuccessGreen,
+                    letterSpacing = 1.2.sp
+                )
+                Text(
+                    text = "Completed Deliverables",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.textPrimary
+                )
+            }
+            IconButton(onClick = onDismiss) {
+                Icon(Icons.Default.Close, contentDescription = "Close", tint = colors.textMuted)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Surface(
+            shape = RoundedCornerShape(18.dp),
+            color = colors.surfaceVariant,
+            border = BorderStroke(1.dp, colors.border),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(54.dp)
+                        .clip(CircleShape)
+                        .background(SuccessGreen.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = SuccessGreen,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "$completedCount Tasks",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = colors.textPrimary
+                )
+                Text(
+                    text = "High-leverage tasks successfully resolved",
+                    fontSize = 13.sp,
+                    color = colors.textMuted
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(color = colors.border, thickness = 1.dp)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "Consistently checking off prioritized items compounds into transformative momentum. Keep up the high execution cadence!",
+                    fontSize = 12.5.sp,
+                    color = colors.textMuted,
+                    lineHeight = 17.sp,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Button(
+            onClick = onNavigateToTasks,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .bounceClick(),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
+        ) {
+            Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Go to Task Board", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        }
+    }
+}
+
+@Composable
+private fun StreakDetailSheetContent(
+    currentStreak: Int,
+    onShareStreak: () -> Unit,
+    onNavigateToInsights: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val colors = FocusFlowTheme.colors
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
+            .padding(bottom = 36.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "DISCIPLINE STREAK",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = WarningAmber,
+                    letterSpacing = 1.2.sp
+                )
+                Text(
+                    text = "Daily Habit Cadence",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.textPrimary
+                )
+            }
+            IconButton(onClick = onDismiss) {
+                Icon(Icons.Default.Close, contentDescription = "Close", tint = colors.textMuted)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Surface(
+            shape = RoundedCornerShape(18.dp),
+            color = colors.surfaceVariant,
+            border = BorderStroke(1.dp, colors.border),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(54.dp)
+                        .clip(CircleShape)
+                        .background(WarningAmber.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FlashOn,
+                        contentDescription = null,
+                        tint = WarningAmber,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "$currentStreak Days",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = colors.textPrimary
+                )
+                Text(
+                    text = "Unbroken streak of daily focus & habit logging",
+                    fontSize = 13.sp,
+                    color = colors.textMuted
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(color = colors.border, thickness = 1.dp)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                val milestoneText = when {
+                    currentStreak >= 30 -> "Sensational! You are past the 30-day mastery threshold."
+                    currentStreak >= 14 -> "Formidable discipline! You are halfway to a 30-day streak."
+                    currentStreak >= 7 -> "One week down! Building solid neural pathways for deep work."
+                    currentStreak > 0 -> "Solid start! Log a focus session or habit daily to build compounding momentum."
+                    else -> "Start today with a single 25-minute Pomodoro session to kick off your streak!"
+                }
+
+                Text(
+                    text = milestoneText,
+                    fontSize = 12.5.sp,
+                    color = colors.textMuted,
+                    lineHeight = 17.sp,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Button(
+                onClick = onShareStreak,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp)
+                    .bounceClick(),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
+            ) {
+                Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Share Streak", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            }
+
+            OutlinedButton(
+                onClick = onNavigateToInsights,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp)
+                    .bounceClick(),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, colors.border)
+            ) {
+                Text("View Insights", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = colors.textPrimary)
+            }
+        }
+    }
+}
+
 private fun shareProductivityCsv(context: Context, profile: ProfileData) {
     val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
     val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
@@ -924,12 +1449,31 @@ private fun shareProductivityCsv(context: Context, profile: ProfileData) {
         appendLine("$dateStr,Daily Target,Hours,${(profile.dailyFocusGoalMinutes / 60).coerceAtLeast(1)}")
     }
 
-    val sendIntent = Intent(Intent.ACTION_SEND).apply {
-        type = "text/csv"
-        putExtra(Intent.EXTRA_SUBJECT, "FocusFlow Productivity Export - $dateStr")
-        putExtra(Intent.EXTRA_TEXT, csv)
+    val shareMessage = buildString {
+        appendLine("✨ FOCUSFLOW PRODUCTIVITY EXPORT")
+        appendLine("👤 User: ${profile.name}")
+        appendLine("📅 Date: $dateStr")
+        appendLine()
+        appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━")
+        appendLine("📊 KEY ACHIEVEMENTS")
+        appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━")
+        appendLine("⏳ Total Focus Time: ${String.format(Locale.US, "%.1f", profile.totalFocusHours)} hrs (${profile.totalFocusMinutes} mins)")
+        appendLine("🔥 Active Habit Streak: ${profile.currentStreak} days")
+        appendLine("✅ Tasks Completed: ${profile.completedTasksCount}")
+        appendLine("🎯 Daily Target: ${(profile.dailyFocusGoalMinutes / 60).coerceAtLeast(1)} hrs/day")
+        appendLine()
+        appendLine("🚀 Empowering mindful deep work with FocusFlow.")
+        appendLine()
+        appendLine("--- Data Records ---")
+        appendLine(csv)
     }
-    context.startActivity(Intent.createChooser(sendIntent, "Export Productivity Data (CSV)"))
+
+    val sendIntent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_SUBJECT, "FocusFlow Productivity Export - $dateStr")
+        putExtra(Intent.EXTRA_TEXT, shareMessage)
+    }
+    context.startActivity(Intent.createChooser(sendIntent, "Export Productivity Data"))
 }
 
 @Composable
@@ -938,10 +1482,12 @@ private fun StatSummaryCard(
     value: String,
     label: String,
     iconTint: Color? = null,
+    onClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val colors = FocusFlowTheme.colors
     Surface(
+        onClick = onClick,
         modifier = modifier.bounceClick(),
         shape = RoundedCornerShape(16.dp),
         color = colors.surface,

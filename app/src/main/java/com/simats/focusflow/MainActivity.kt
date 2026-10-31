@@ -79,7 +79,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val context = LocalContext.current
             val sessionManager = remember { SessionManager.getInstance(context) }
-            val themeMode by sessionManager.themeModeFlow.collectAsState(initial = "dark")
+            val themeMode by sessionManager.themeModeFlow.collectAsState(initial = "light")
 
             FOCUSFLOWTheme(themeMode = themeMode) {
                 val navController = rememberNavController()

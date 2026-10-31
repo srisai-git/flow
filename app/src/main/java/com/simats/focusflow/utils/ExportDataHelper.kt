@@ -79,7 +79,63 @@ object ExportDataHelper {
                 incTasks = incTasks
             )
 
-            // 4. Write files to internal cache directory
+            // 4. Build Spaced, Emoji-Enhanced Share Message for Social / Chat Sharing
+            val shareMessageText = buildString {
+                appendLine("✨ FOCUSFLOW PRODUCTIVITY REPORT")
+                appendLine("👤 User: $resolvedName")
+                appendLine("📅 Date: $exportTimestamp")
+                appendLine()
+                appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━")
+                appendLine("📊 SUMMARY METRICS")
+                appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━")
+                appendLine("⏳ Total Focus Time: ${String.format(Locale.US, "%.1f", totalHours)} hrs")
+                appendLine("🔥 Current Habit Streak: $streakDays days")
+                appendLine("✅ Tasks Completed: ${completedTasks.size}")
+                appendLine()
+
+                if (incSessions && sessions.isNotEmpty()) {
+                    appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━")
+                    appendLine("⏱️ RECENT FOCUS SESSIONS")
+                    appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━")
+                    sessions.take(5).forEach { s ->
+                        val date = s.startedAt.take(10).ifBlank { exportTimestamp.take(10) }
+                        val tag = s.taskTitle.ifBlank { s.sessionType }
+                        appendLine("• $date: ${s.durationMinutes} min ($tag)")
+                    }
+                    if (sessions.size > 5) {
+                        appendLine("  ...and ${sessions.size - 5} more sessions in attached reports")
+                    }
+                    appendLine()
+                }
+
+                if (incStreaks && habitsList.isNotEmpty()) {
+                    appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━")
+                    appendLine("⚡ HABIT CONSISTENCY")
+                    appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━")
+                    habitsList.forEach { h ->
+                        val best = if (h.longestStreak > 0) h.longestStreak else h.streakCount
+                        appendLine("• ${h.title}: ${h.streakCount}d streak (Best: ${best}d)")
+                    }
+                    appendLine()
+                }
+
+                if (incTasks && completedTasks.isNotEmpty()) {
+                    appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━")
+                    appendLine("📋 COMPLETED TASKS")
+                    appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━")
+                    completedTasks.take(5).forEach { t ->
+                        appendLine("• [x] ${t.title} (${t.priority.uppercase()})")
+                    }
+                    if (completedTasks.size > 5) {
+                        appendLine("  ...and ${completedTasks.size - 5} more tasks in attached reports")
+                    }
+                    appendLine()
+                }
+
+                appendLine("🚀 Empowering mindful deep work with FocusFlow.")
+            }
+
+            // 5. Write files to internal cache directory
             val exportDir = File(context.cacheDir, "exports").apply { mkdirs() }
             val txtFile = File(exportDir, "focusflow_export_$dateSlug.txt").apply {
                 writeText(textContent)
@@ -88,7 +144,7 @@ object ExportDataHelper {
                 writeText(csvContent)
             }
 
-            // 5. Build Content URIs via FileProvider
+            // 6. Build Content URIs via FileProvider
             val authority = "${context.packageName}.fileprovider"
             val txtUri = FileProvider.getUriForFile(context, authority, txtFile)
             val csvUri = FileProvider.getUriForFile(context, authority, csvFile)
@@ -99,7 +155,7 @@ object ExportDataHelper {
                 type = "*/*"
                 putParcelableArrayListExtra(Intent.EXTRA_STREAM, shareUris)
                 putExtra(Intent.EXTRA_SUBJECT, "FocusFlow Productivity Export - $resolvedName")
-                putExtra(Intent.EXTRA_TEXT, textContent)
+                putExtra(Intent.EXTRA_TEXT, shareMessageText)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
 

@@ -308,7 +308,7 @@ fun DashboardScreen(
         Surface(
             onClick = onNavigateToGrootAi,
             shape = RoundedCornerShape(18.dp),
-            color = Color(0xFF161522),
+            color = colors.surface,
             border = BorderStroke(1.dp, Brush.horizontalGradient(listOf(colors.primary.copy(alpha = 0.55f), colors.border))),
             modifier = Modifier
                 .fillMaxWidth()
@@ -325,13 +325,13 @@ fun DashboardScreen(
                         modifier = Modifier
                             .size(38.dp)
                             .clip(CircleShape)
-                            .background(colors.primary.copy(alpha = 0.18f))
+                            .background(colors.primary.copy(alpha = 0.14f))
                     )
                     GrootAvatar(
                         size = 32.dp,
-                        containerColor = colors.primary.copy(alpha = 0.25f),
+                        containerColor = colors.primary.copy(alpha = 0.2f),
                         borderColor = colors.primary.copy(alpha = 0.5f),
-                        tint = colors.primaryLight
+                        tint = colors.primary
                     )
                 }
 
@@ -343,7 +343,7 @@ fun DashboardScreen(
                             text = "GROOT AI ASSISTANT",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = colors.primaryLight,
+                            color = colors.primary,
                             letterSpacing = 1.sp
                         )
                         Spacer(modifier = Modifier.width(6.dp))
@@ -356,7 +356,7 @@ fun DashboardScreen(
                     }
                     Spacer(modifier = Modifier.height(3.dp))
                     Text(
-                        text = uiState.aiSnippet,
+                        text = uiState.aiSnippet.ifBlank { "Ask me anything or let me run timers, tasks, and habits for you." },
                         fontSize = 12.5.sp,
                         color = colors.textPrimary,
                         maxLines = 2,
@@ -369,24 +369,24 @@ fun DashboardScreen(
 
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = colors.primary.copy(alpha = 0.18f),
+                    color = colors.primary.copy(alpha = 0.12f),
                     border = BorderStroke(1.dp, colors.primary.copy(alpha = 0.35f))
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = "Chat",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = colors.primaryLight
+                            color = colors.primary
                         )
                         Spacer(modifier = Modifier.width(3.dp))
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                             contentDescription = null,
-                            tint = colors.primaryLight,
+                            tint = colors.primary,
                             modifier = Modifier.size(12.dp)
                         )
                     }

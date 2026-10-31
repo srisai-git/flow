@@ -53,21 +53,11 @@ import com.simats.focusflow.data.models.AiAction
 import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.ui.components.GrootAvatar
 import com.simats.focusflow.ui.components.bounceClick
+import com.simats.focusflow.ui.theme.FocusFlowTheme
 import com.simats.focusflow.ui.viewmodel.ChatMessage
 import com.simats.focusflow.ui.viewmodel.GrootAiViewModel
 
-private val CanvasDark = Color(0xFF0F0F14)
-private val SurfaceDark = Color(0xFF181722)
-private val BorderDark = Color(0xFF262433)
-private val UserBubbleBg = Color(0xFF262433)
-private val GrootBubbleBg = Color(0xFF181722)
-private val VioletPrimary = Color(0xFF8B5CF6)
-private val VioletSecondary = Color(0xFF6366F1)
-private val VioletBorder = Color(0xFF8B5CF6).copy(alpha = 0.45f)
-private val VioletLight = Color(0xFFC4B5FD)
 private val AccentGreen = Color(0xFF10B981)
-private val TextWhite = Color(0xFFF1F1F5)
-private val TextMuted = Color(0xFF9CA3AF)
 
 data class QuickPrompt(val label: String, val category: String)
 
@@ -78,6 +68,7 @@ fun GrootAiScreen(
     viewModel: GrootAiViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val colors = FocusFlowTheme.colors
 
     LaunchedEffect(Unit) {
         viewModel.initContext(context, SessionManager.getInstance(context))
@@ -112,12 +103,12 @@ fun GrootAiScreen(
     }
 
     Scaffold(
-        containerColor = CanvasDark,
+        containerColor = colors.background,
         topBar = {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = SurfaceDark,
-                border = BorderStroke(1.dp, BorderDark)
+                color = colors.surface,
+                border = BorderStroke(1.dp, colors.border)
             ) {
                 Row(
                     modifier = Modifier
@@ -130,13 +121,13 @@ fun GrootAiScreen(
                         modifier = Modifier
                             .size(38.dp)
                             .clip(CircleShape)
-                            .background(BorderDark)
+                            .background(colors.surfaceVariant)
                             .bounceClick()
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = TextWhite,
+                            tint = colors.textPrimary,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -149,7 +140,7 @@ fun GrootAiScreen(
                             modifier = Modifier
                                 .size(44.dp)
                                 .clip(CircleShape)
-                                .background(VioletPrimary.copy(alpha = 0.15f))
+                                .background(colors.primary.copy(alpha = 0.15f))
                         )
                         GrootAvatar(size = 38.dp)
                     }
@@ -162,20 +153,20 @@ fun GrootAiScreen(
                                 text = "Groot AI",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = TextWhite,
+                                color = colors.textPrimary,
                                 letterSpacing = 0.4.sp
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
-                                color = VioletPrimary.copy(alpha = 0.2f),
-                                border = BorderStroke(1.dp, VioletBorder)
+                                color = colors.primary.copy(alpha = 0.18f),
+                                border = BorderStroke(1.dp, colors.primary.copy(alpha = 0.35f))
                             ) {
                                 Text(
                                     text = "AGENT",
                                     fontSize = 9.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = VioletLight,
+                                    color = colors.primaryLight,
                                     modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
                                 )
                             }
@@ -191,7 +182,7 @@ fun GrootAiScreen(
                             Text(
                                 text = "Autonomous Actions & General Q&A",
                                 fontSize = 11.sp,
-                                color = TextMuted
+                                color = colors.textMuted
                             )
                         }
                     }
@@ -201,13 +192,13 @@ fun GrootAiScreen(
                         modifier = Modifier
                             .size(38.dp)
                             .clip(CircleShape)
-                            .background(BorderDark)
+                            .background(colors.surfaceVariant)
                             .bounceClick()
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.DeleteSweep,
                             contentDescription = "Clear Chat",
-                            tint = TextMuted,
+                            tint = colors.textMuted,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -217,8 +208,8 @@ fun GrootAiScreen(
         bottomBar = {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = SurfaceDark,
-                border = BorderStroke(1.dp, BorderDark)
+                color = colors.surface,
+                border = BorderStroke(1.dp, colors.border)
             ) {
                 Column(
                     modifier = Modifier
@@ -234,8 +225,8 @@ fun GrootAiScreen(
                             Surface(
                                 onClick = { viewModel.sendMessage(item.label) },
                                 shape = RoundedCornerShape(12.dp),
-                                color = BorderDark,
-                                border = BorderStroke(1.dp, BorderDark),
+                                color = colors.surfaceVariant,
+                                border = BorderStroke(1.dp, colors.border),
                                 modifier = Modifier.bounceClick(),
                                 enabled = !state.isAiThinking
                             ) {
@@ -251,7 +242,7 @@ fun GrootAiScreen(
                                             else -> Icons.Outlined.Star
                                         },
                                         contentDescription = null,
-                                        tint = VioletLight,
+                                        tint = colors.primaryLight,
                                         modifier = Modifier.size(13.dp)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
@@ -259,7 +250,7 @@ fun GrootAiScreen(
                                         text = item.label,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Medium,
-                                        color = TextWhite
+                                        color = colors.textPrimary
                                     )
                                 }
                             }
@@ -280,7 +271,7 @@ fun GrootAiScreen(
                                 Text(
                                     text = "Ask anything or command actions (start timer, add task)...",
                                     fontSize = 13.sp,
-                                    color = TextMuted
+                                    color = colors.textMuted
                                 )
                             },
                             modifier = Modifier
@@ -290,12 +281,12 @@ fun GrootAiScreen(
                             maxLines = 4,
                             minLines = 1,
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = VioletPrimary,
-                                unfocusedBorderColor = BorderDark,
-                                focusedContainerColor = CanvasDark,
-                                unfocusedContainerColor = CanvasDark,
-                                focusedTextColor = TextWhite,
-                                unfocusedTextColor = TextWhite
+                                focusedBorderColor = colors.primary,
+                                unfocusedBorderColor = colors.border,
+                                focusedContainerColor = colors.surfaceVariant,
+                                unfocusedContainerColor = colors.surfaceVariant,
+                                focusedTextColor = colors.textPrimary,
+                                unfocusedTextColor = colors.textPrimary
                             ),
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
                             keyboardActions = KeyboardActions(onSend = { viewModel.sendMessage() })
@@ -310,9 +301,9 @@ fun GrootAiScreen(
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(
                                     if (state.inputText.isNotBlank() && !state.isAiThinking)
-                                        Brush.horizontalGradient(listOf(VioletPrimary, VioletSecondary))
+                                        Brush.horizontalGradient(listOf(colors.primary, colors.primaryLight))
                                     else
-                                        Brush.horizontalGradient(listOf(BorderDark, BorderDark))
+                                        Brush.horizontalGradient(listOf(colors.border, colors.border))
                                 )
                                 .bounceClick(),
                             enabled = state.inputText.isNotBlank() && !state.isAiThinking
@@ -320,7 +311,7 @@ fun GrootAiScreen(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.Send,
                                 contentDescription = "Send",
-                                tint = if (state.inputText.isNotBlank() && !state.isAiThinking) Color.White else TextMuted,
+                                tint = if (state.inputText.isNotBlank() && !state.isAiThinking) Color.White else colors.textMuted,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -333,16 +324,16 @@ fun GrootAiScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(CanvasDark)
+                .background(colors.background)
         ) {
-            // Ambient Atmospheric Gradients (adds modern depth to simple background)
+            // Ambient Atmospheric Gradients (adds modern depth)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(260.dp)
                     .background(
                         Brush.radialGradient(
-                            colors = listOf(VioletPrimary.copy(alpha = 0.08f), Color.Transparent),
+                            colors = listOf(colors.primary.copy(alpha = 0.06f), Color.Transparent),
                             center = Offset(700f, -50f),
                             radius = 600f
                         )
@@ -356,7 +347,7 @@ fun GrootAiScreen(
                     .height(220.dp)
                     .background(
                         Brush.radialGradient(
-                            colors = listOf(VioletSecondary.copy(alpha = 0.06f), Color.Transparent),
+                            colors = listOf(colors.primary.copy(alpha = 0.04f), Color.Transparent),
                             center = Offset(100f, 300f),
                             radius = 500f
                         )
@@ -394,6 +385,7 @@ private fun ChatBubble(
     message: ChatMessage,
     onActionClick: (AiAction) -> Unit
 ) {
+    val colors = FocusFlowTheme.colors
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (message.isFromUser) Arrangement.End else Arrangement.Start
@@ -410,10 +402,10 @@ private fun ChatBubble(
                 bottomStart = if (message.isFromUser) 18.dp else 4.dp,
                 bottomEnd = if (message.isFromUser) 4.dp else 18.dp
             ),
-            color = if (message.isFromUser) UserBubbleBg else GrootBubbleBg,
+            color = if (message.isFromUser) colors.primary else colors.surface,
             border = BorderStroke(
                 1.dp,
-                if (message.isFromUser) BorderDark else VioletBorder
+                if (message.isFromUser) colors.primary else colors.border
             ),
             modifier = Modifier.widthIn(max = 330.dp)
         ) {
@@ -427,13 +419,13 @@ private fun ChatBubble(
                             text = "Groot",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = VioletLight
+                            color = colors.primary
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Icon(
                             imageVector = Icons.Outlined.AutoAwesome,
                             contentDescription = null,
-                            tint = VioletLight,
+                            tint = colors.primary,
                             modifier = Modifier.size(11.dp)
                         )
                     }
@@ -444,7 +436,7 @@ private fun ChatBubble(
                     text = message.text,
                     fontSize = 13.5.sp,
                     lineHeight = 20.sp,
-                    color = TextWhite,
+                    color = if (message.isFromUser) Color.White else colors.textPrimary,
                     fontWeight = FontWeight.Normal
                 )
 
@@ -458,7 +450,7 @@ private fun ChatBubble(
                 Text(
                     text = message.timestamp,
                     fontSize = 10.sp,
-                    color = TextMuted,
+                    color = if (message.isFromUser) Color.White.copy(alpha = 0.7f) else colors.textMuted,
                     modifier = Modifier.align(Alignment.End)
                 )
             }
@@ -471,6 +463,7 @@ private fun ActionCard(
     action: AiAction,
     onClick: () -> Unit
 ) {
+    val colors = FocusFlowTheme.colors
     val actionType = action.type.uppercase()
     val isTimer = actionType == "START_TIMER"
     val isTask = actionType == "CREATE_TASK"
@@ -481,8 +474,8 @@ private fun ActionCard(
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(14.dp),
-        color = Color(0xFF1E1C2B),
-        border = BorderStroke(1.dp, VioletPrimary.copy(alpha = 0.6f)),
+        color = colors.surfaceVariant,
+        border = BorderStroke(1.dp, colors.primary.copy(alpha = 0.45f)),
         modifier = Modifier
             .fillMaxWidth()
             .bounceClick()
@@ -502,7 +495,7 @@ private fun ActionCard(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(VioletPrimary.copy(alpha = 0.25f)),
+                        .background(colors.primary.copy(alpha = 0.18f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -514,7 +507,7 @@ private fun ActionCard(
                             else -> Icons.Outlined.NearMe
                         },
                         contentDescription = null,
-                        tint = VioletLight,
+                        tint = colors.primary,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -532,7 +525,7 @@ private fun ActionCard(
                         },
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextWhite
+                        color = colors.textPrimary
                     )
                     Text(
                         text = when {
@@ -543,7 +536,7 @@ private fun ActionCard(
                             else -> action.screenName.ifBlank { action.route.uppercase() }
                         },
                         fontSize = 11.sp,
-                        color = TextMuted,
+                        color = colors.textMuted,
                         maxLines = 1
                     )
                 }
@@ -551,7 +544,7 @@ private fun ActionCard(
 
             Surface(
                 shape = RoundedCornerShape(8.dp),
-                color = VioletPrimary,
+                color = colors.primary,
                 modifier = Modifier.padding(start = 8.dp)
             ) {
                 Row(
@@ -584,6 +577,7 @@ private fun ActionCard(
 
 @Composable
 private fun AiThinkingBubble() {
+    val colors = FocusFlowTheme.colors
     val infiniteTransition = rememberInfiniteTransition(label = "thinking")
     val alphaAnim by infiniteTransition.animateFloat(
         initialValue = 0.25f,
@@ -606,8 +600,8 @@ private fun AiThinkingBubble() {
 
         Surface(
             shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomStart = 4.dp, bottomEnd = 18.dp),
-            color = GrootBubbleBg,
-            border = BorderStroke(1.dp, VioletBorder)
+            color = colors.surface,
+            border = BorderStroke(1.dp, if (colors.isDark) colors.primary.copy(alpha = 0.45f) else colors.border)
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
@@ -617,27 +611,27 @@ private fun AiThinkingBubble() {
                     modifier = Modifier
                         .size(8.dp)
                         .clip(CircleShape)
-                        .background(VioletPrimary.copy(alpha = alphaAnim))
+                        .background(colors.primary.copy(alpha = alphaAnim))
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Box(
                     modifier = Modifier
                         .size(8.dp)
                         .clip(CircleShape)
-                        .background(VioletPrimary.copy(alpha = (alphaAnim * 0.8f).coerceIn(0.2f, 1f)))
+                        .background(colors.primary.copy(alpha = (alphaAnim * 0.8f).coerceIn(0.2f, 1f)))
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Box(
                     modifier = Modifier
                         .size(8.dp)
                         .clip(CircleShape)
-                        .background(VioletPrimary.copy(alpha = (alphaAnim * 0.6f).coerceIn(0.2f, 1f)))
+                        .background(colors.primary.copy(alpha = (alphaAnim * 0.6f).coerceIn(0.2f, 1f)))
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = "Groot is thinking & preparing actions...",
                     fontSize = 12.sp,
-                    color = TextMuted
+                    color = colors.textMuted
                 )
             }
         }

@@ -47,15 +47,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.ui.components.bounceClick
+import com.simats.focusflow.ui.theme.FocusFlowTheme
 import com.simats.focusflow.ui.viewmodel.EditProfileViewModel
 
-private val CanvasDark = Color(0xFF0F0F14)
-private val CardDark = Color(0xFF181722)
-private val BorderDark = Color(0xFF262433)
-private val VioletPrimary = Color(0xFF8B5CF6)
-private val VioletLight = Color(0xFFC4B5FD)
-private val TextWhite = Color(0xFFF1F1F5)
-private val TextMuted = Color(0xFF9CA3AF)
 private val DangerRed = Color(0xFFEF4444)
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,6 +60,8 @@ fun EditProfileScreen(
     viewModel: EditProfileViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val colors = FocusFlowTheme.colors
+
     LaunchedEffect(Unit) {
         viewModel.initSessionManager(SessionManager.getInstance(context))
     }
@@ -106,13 +102,13 @@ fun EditProfileScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = CanvasDark
+        containerColor = colors.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(CanvasDark)
+                .background(colors.background)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
         ) {
@@ -128,14 +124,14 @@ fun EditProfileScreen(
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
-                        .background(CardDark)
-                        .border(1.dp, BorderDark, CircleShape)
+                        .background(colors.surface)
+                        .border(1.dp, colors.border, CircleShape)
                         .bounceClick()
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = TextWhite,
+                        tint = colors.textPrimary,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -147,14 +143,14 @@ fun EditProfileScreen(
                         text = "EDIT PROFILE",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = VioletLight,
+                        color = colors.primaryLight,
                         letterSpacing = 1.5.sp
                     )
                     Text(
                         text = "Personal Details",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextWhite
+                        color = colors.textPrimary
                     )
                 }
             }
@@ -165,8 +161,8 @@ fun EditProfileScreen(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                color = CardDark,
-                border = BorderStroke(1.dp, BorderDark)
+                color = colors.surface,
+                border = BorderStroke(1.dp, colors.border)
             ) {
                 Column(
                     modifier = Modifier
@@ -186,8 +182,8 @@ fun EditProfileScreen(
                             modifier = Modifier
                                 .size(82.dp)
                                 .clip(CircleShape)
-                                .background(VioletPrimary.copy(alpha = 0.2f))
-                                .border(2.dp, VioletPrimary, CircleShape),
+                                .background(colors.primary.copy(alpha = 0.15f))
+                                .border(2.dp, colors.primary, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             val avatarStr = state.avatar
@@ -209,14 +205,14 @@ fun EditProfileScreen(
                                 Icon(
                                     imageVector = resolveAvatarIcon(avatarStr),
                                     contentDescription = null,
-                                    tint = VioletLight,
+                                    tint = colors.primary,
                                     modifier = Modifier.size(44.dp)
                                 )
                             } else {
                                 Icon(
                                     imageVector = Icons.Default.Person,
                                     contentDescription = null,
-                                    tint = VioletLight,
+                                    tint = colors.primary,
                                     modifier = Modifier.size(44.dp)
                                 )
                             }
@@ -227,8 +223,8 @@ fun EditProfileScreen(
                             modifier = Modifier
                                 .size(28.dp)
                                 .clip(CircleShape)
-                                .background(VioletPrimary)
-                                .border(2.dp, CardDark, CircleShape),
+                                .background(colors.primary)
+                                .border(2.dp, colors.surface, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -244,7 +240,7 @@ fun EditProfileScreen(
 
                     TextButton(
                         onClick = { showAvatarPickerSheet = true },
-                        colors = ButtonDefaults.textButtonColors(contentColor = VioletLight)
+                        colors = ButtonDefaults.textButtonColors(contentColor = colors.primary)
                     ) {
                         Text(
                             text = "Change Profile Picture",
@@ -261,8 +257,8 @@ fun EditProfileScreen(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                color = CardDark,
-                border = BorderStroke(1.dp, BorderDark)
+                color = colors.surface,
+                border = BorderStroke(1.dp, colors.border)
             ) {
                 Column(
                     modifier = Modifier
@@ -274,7 +270,7 @@ fun EditProfileScreen(
                         text = "DISPLAY NAME *",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = VioletLight,
+                        color = colors.primaryLight,
                         letterSpacing = 1.sp
                     )
                     Spacer(modifier = Modifier.height(6.dp))
@@ -282,12 +278,12 @@ fun EditProfileScreen(
                     OutlinedTextField(
                         value = state.name,
                         onValueChange = { viewModel.onNameChange(it) },
-                        placeholder = { Text("Enter your full name", color = TextMuted) },
+                        placeholder = { Text("Enter your full name", color = colors.textMuted) },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Person,
                                 contentDescription = null,
-                                tint = VioletLight,
+                                tint = colors.primaryLight,
                                 modifier = Modifier.size(20.dp)
                             )
                         },
@@ -295,13 +291,13 @@ fun EditProfileScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = VioletPrimary,
-                            unfocusedBorderColor = BorderDark,
+                            focusedBorderColor = colors.primary,
+                            unfocusedBorderColor = colors.border,
                             errorBorderColor = DangerRed,
-                            focusedContainerColor = CanvasDark,
-                            unfocusedContainerColor = CanvasDark,
-                            focusedTextColor = TextWhite,
-                            unfocusedTextColor = TextWhite
+                            focusedContainerColor = colors.surfaceVariant,
+                            unfocusedContainerColor = colors.surfaceVariant,
+                            focusedTextColor = colors.textPrimary,
+                            unfocusedTextColor = colors.textPrimary
                         ),
                         singleLine = true
                     )
@@ -322,7 +318,7 @@ fun EditProfileScreen(
                         text = "ABOUT",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = VioletLight,
+                        color = colors.primaryLight,
                         letterSpacing = 1.sp
                     )
                     Spacer(modifier = Modifier.height(6.dp))
@@ -330,18 +326,18 @@ fun EditProfileScreen(
                     OutlinedTextField(
                         value = state.bio,
                         onValueChange = { viewModel.onBioChange(it) },
-                        placeholder = { Text("Share a short bio or study goal...", color = TextMuted) },
+                        placeholder = { Text("Share a short bio or study goal...", color = colors.textMuted) },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 3,
                         maxLines = 5,
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = VioletPrimary,
-                            unfocusedBorderColor = BorderDark,
-                            focusedContainerColor = CanvasDark,
-                            unfocusedContainerColor = CanvasDark,
-                            focusedTextColor = TextWhite,
-                            unfocusedTextColor = TextWhite
+                            focusedBorderColor = colors.primary,
+                            unfocusedBorderColor = colors.border,
+                            focusedContainerColor = colors.surfaceVariant,
+                            unfocusedContainerColor = colors.surfaceVariant,
+                            focusedTextColor = colors.textPrimary,
+                            unfocusedTextColor = colors.textPrimary
                         )
                     )
 
@@ -353,21 +349,21 @@ fun EditProfileScreen(
                             text = "EMAIL ADDRESS",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextMuted,
+                            color = colors.textMuted,
                             letterSpacing = 1.sp
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Icon(
                             imageVector = Icons.Default.Lock,
                             contentDescription = "Locked",
-                            tint = TextMuted,
+                            tint = colors.textMuted,
                             modifier = Modifier.size(12.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "(Read-only)",
                             fontSize = 10.sp,
-                            color = TextMuted
+                            color = colors.textMuted
                         )
                     }
                     Spacer(modifier = Modifier.height(6.dp))
@@ -381,23 +377,23 @@ fun EditProfileScreen(
                             Icon(
                                 imageVector = Icons.Default.Lock,
                                 contentDescription = "Locked",
-                                tint = TextMuted,
+                                tint = colors.textMuted,
                                 modifier = Modifier.size(18.dp)
                             )
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            disabledBorderColor = BorderDark,
-                            disabledContainerColor = Color(0xFF13121B),
-                            disabledTextColor = TextMuted,
-                            disabledLeadingIconColor = TextMuted
+                            disabledBorderColor = colors.border,
+                            disabledContainerColor = colors.surfaceVariant.copy(alpha = 0.5f),
+                            disabledTextColor = colors.textMuted,
+                            disabledLeadingIconColor = colors.textMuted
                         ),
                         singleLine = true
                     )
                     Text(
                         text = "Email address cannot be changed once registered.",
-                        color = TextMuted.copy(alpha = 0.7f),
+                        color = colors.textMuted.copy(alpha = 0.7f),
                         fontSize = 11.sp,
                         modifier = Modifier.padding(start = 4.dp, top = 4.dp)
                     )
@@ -419,8 +415,8 @@ fun EditProfileScreen(
                     .height(54.dp)
                     .bounceClick(),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = VioletPrimary,
-                    disabledContainerColor = VioletPrimary.copy(alpha = 0.4f)
+                    containerColor = colors.primary,
+                    disabledContainerColor = colors.primary.copy(alpha = 0.4f)
                 ),
                 shape = RoundedCornerShape(16.dp)
             ) {
@@ -463,7 +459,7 @@ fun EditProfileScreen(
             ModalBottomSheet(
                 onDismissRequest = { showAvatarPickerSheet = false },
                 sheetState = sheetState,
-                containerColor = CardDark,
+                containerColor = colors.surface,
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
                 dragHandle = {
                     Box(
@@ -472,7 +468,7 @@ fun EditProfileScreen(
                             .width(40.dp)
                             .height(4.dp)
                             .clip(CircleShape)
-                            .background(BorderDark)
+                            .background(colors.border)
                     )
                 }
             ) {
@@ -491,13 +487,13 @@ fun EditProfileScreen(
                             text = "Change Profile Picture",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextWhite
+                            color = colors.textPrimary
                         )
                         IconButton(onClick = { showAvatarPickerSheet = false }) {
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Close",
-                                tint = TextMuted
+                                tint = colors.textMuted
                             )
                         }
                     }
@@ -510,8 +506,8 @@ fun EditProfileScreen(
                             galleryLauncher.launch("image/*")
                         },
                         shape = RoundedCornerShape(16.dp),
-                        color = CanvasDark,
-                        border = BorderStroke(1.dp, BorderDark),
+                        color = colors.surfaceVariant,
+                        border = BorderStroke(1.dp, colors.border),
                         modifier = Modifier
                             .fillMaxWidth()
                             .bounceClick()
@@ -526,13 +522,13 @@ fun EditProfileScreen(
                                 modifier = Modifier
                                     .size(46.dp)
                                     .clip(CircleShape)
-                                    .background(VioletPrimary.copy(alpha = 0.18f)),
+                                    .background(colors.primary.copy(alpha = 0.15f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Image,
                                     contentDescription = "Gallery",
-                                    tint = VioletPrimary,
+                                    tint = colors.primary,
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
@@ -542,13 +538,13 @@ fun EditProfileScreen(
                                     text = "Choose Photo from Gallery",
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = TextWhite
+                                    color = colors.textPrimary
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
                                     text = "Select any picture from your device",
                                     fontSize = 12.sp,
-                                    color = TextMuted
+                                    color = colors.textMuted
                                 )
                             }
                         }
@@ -561,7 +557,7 @@ fun EditProfileScreen(
                         text = "OR CHOOSE DEFAULT ICON AVATAR",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = VioletLight,
+                        color = colors.primaryLight,
                         letterSpacing = 1.sp
                     )
                     Spacer(modifier = Modifier.height(12.dp))
@@ -578,10 +574,10 @@ fun EditProfileScreen(
                                     showAvatarPickerSheet = false
                                 },
                                 shape = CircleShape,
-                                color = if (isSelected) VioletPrimary else CanvasDark,
+                                color = if (isSelected) colors.primary else colors.surfaceVariant,
                                 border = BorderStroke(
                                     1.5.dp,
-                                    if (isSelected) VioletLight else BorderDark
+                                    if (isSelected) colors.primaryLight else colors.border
                                 ),
                                 modifier = Modifier
                                     .size(48.dp)
@@ -591,7 +587,7 @@ fun EditProfileScreen(
                                     Icon(
                                         imageVector = resolveAvatarIcon(avatarKey),
                                         contentDescription = null,
-                                        tint = if (isSelected) Color.White else VioletLight,
+                                        tint = if (isSelected) Color.White else colors.primary,
                                         modifier = Modifier.size(24.dp)
                                     )
                                 }

@@ -11,12 +11,12 @@ import java.util.concurrent.TimeUnit
  * Network Notes:
  * - `http://10.0.2.2/flow_backend/` is the standard loopback IP for the Android Emulator to access localhost/XAMPP.
  * - When testing on a physical Android device over Wi-Fi, change the IP to your PC's LAN IP
- *   (e.g., `http://192.168.1.100/flow_backend/`) or run: `adb reverse tcp:80 tcp:80`.
+ *   (e.g., `http://172.23.176.89/flow_backend/`) or run: `adb reverse tcp:80 tcp:80`.
  * - Cleartext HTTP is supported via `android:usesCleartextTraffic="true"` in AndroidManifest.xml.
  */
 object RetrofitClient {
 
-    private const val DEFAULT_BASE_URL = "http://172.23.176.89/flow_backend/"
+    private const val DEFAULT_BASE_URL = "https://reaction-union-sublevel.ngrok-free.dev/flow_backend/"
 
     @Volatile
     private var customBaseUrl: String? = null

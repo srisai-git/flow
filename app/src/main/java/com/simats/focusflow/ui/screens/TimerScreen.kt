@@ -88,7 +88,7 @@ fun TimerScreen(
         ) {
             Spacer(modifier = Modifier.height(24.dp))
 
-            // HEADER ROW WITH HISTORY & TUNE ACTION BUTTONS
+            // HEADER ROW WITH HISTORY ACTION BUTTON
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -96,7 +96,7 @@ fun TimerScreen(
             ) {
                 Column {
                     Text(
-                        text = "POMODORO FOCUS",
+                        text = "FOCUSFLOW",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.primaryLight,
@@ -104,51 +104,29 @@ fun TimerScreen(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Deep Work Interval",
+                        text = "Focus Timer",
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.textPrimary
                     )
                 }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Recent Sessions History Button
-                    IconButton(
-                        onClick = { viewModel.setHistoryOpen(true) },
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clip(CircleShape)
-                            .background(colors.surface)
-                            .border(1.dp, colors.border, CircleShape)
-                            .bounceClick()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.History,
-                            contentDescription = "Session History",
-                            tint = colors.primaryLight,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    // Customize Durations Action Button
-                    IconButton(
-                        onClick = { viewModel.setSettingsOpen(true) },
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clip(CircleShape)
-                            .background(colors.surface)
-                            .border(1.dp, colors.border, CircleShape)
-                            .bounceClick()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Tune,
-                            contentDescription = "Customize Timer",
-                            tint = colors.primaryLight,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                // Recent Sessions History Button
+                IconButton(
+                    onClick = { viewModel.setHistoryOpen(true) },
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .background(colors.surface)
+                        .border(1.dp, colors.border, CircleShape)
+                        .bounceClick()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.History,
+                        contentDescription = "Session History",
+                        tint = colors.primaryLight,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
 
@@ -196,7 +174,123 @@ fun TimerScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(18.dp))
+
+            // PROMINENT CENTERED TIME INTERVAL SELECTOR & QUICK CHIPS
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Surface(
+                    onClick = { viewModel.setSettingsOpen(true) },
+                    shape = RoundedCornerShape(14.dp),
+                    color = colors.surface,
+                    border = BorderStroke(1.dp, colors.primary.copy(alpha = 0.35f)),
+                    modifier = Modifier.bounceClick()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Tune,
+                            contentDescription = null,
+                            tint = colors.primaryLight,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Interval: ",
+                            fontSize = 12.5.sp,
+                            color = colors.textMuted
+                        )
+                        Text(
+                            text = "${state.getDurationMinutes(state.currentMode)} Minutes",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.primaryLight
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "• Tap to adjust",
+                            fontSize = 11.sp,
+                            color = colors.textMuted
+                        )
+                    }
+                }
+
+                if (state.currentMode == TimerMode.FOCUS) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        listOf(15, 25, 45, 60).forEach { mins ->
+                            val isCurrent = state.focusMinutes == mins
+                            Surface(
+                                onClick = {
+                                    viewModel.updateCustomDurations(
+                                        focus = mins,
+                                        shortBreak = state.shortBreakMinutes,
+                                        longBreak = state.longBreakMinutes
+                                    )
+                                },
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isCurrent) colors.primary.copy(alpha = 0.18f) else colors.surface,
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (isCurrent) colors.primary else colors.border
+                                ),
+                                modifier = Modifier
+                                    .padding(horizontal = 3.dp)
+                                    .bounceClick()
+                            ) {
+                                Text(
+                                    text = "${mins}m",
+                                    fontSize = 12.sp,
+                                    fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isCurrent) colors.primaryLight else colors.textMuted,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                )
+                            }
+                        }
+                        Surface(
+                            onClick = { viewModel.setSettingsOpen(true) },
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (state.focusMinutes !in listOf(15, 25, 45, 60)) colors.primary.copy(alpha = 0.18f) else colors.surface,
+                            border = BorderStroke(
+                                1.dp,
+                                if (state.focusMinutes !in listOf(15, 25, 45, 60)) colors.primary else colors.border
+                            ),
+                            modifier = Modifier
+                                .padding(horizontal = 3.dp)
+                                .bounceClick()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Tune,
+                                    contentDescription = null,
+                                    tint = colors.primaryLight,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text(
+                                    text = if (state.focusMinutes !in listOf(15, 25, 45, 60)) "${state.focusMinutes}m" else "Custom",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (state.focusMinutes !in listOf(15, 25, 45, 60)) colors.primaryLight else colors.textMuted
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
 
             // 2. CENTRAL TIMER CIRCLE WITH ISOLATED COUNTDOWN DIAL
             TimerCountdownDial(

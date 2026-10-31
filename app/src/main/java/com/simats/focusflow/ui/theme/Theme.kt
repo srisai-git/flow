@@ -50,7 +50,7 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun FOCUSFLOWTheme(
-    themeMode: String = "dark",
+    themeMode: String = "light",
     content: @Composable () -> Unit
 ) {
     val isDark = when (themeMode.lowercase()) {

@@ -193,7 +193,7 @@ class SessionManager private constructor(
     }
 
     /**
-     * Emits the selected theme mode ("dark" or "light"). Defaults to "dark".
+     * Emits the selected theme mode ("dark" or "light"). Defaults to "light".
      */
     val themeModeFlow: Flow<String> = dataStore.data
         .catch { exception ->
@@ -204,7 +204,7 @@ class SessionManager private constructor(
             }
         }
         .map { preferences ->
-            preferences[KEY_THEME_MODE] ?: "dark"
+            preferences[KEY_THEME_MODE] ?: "light"
         }
 
     /**
@@ -217,7 +217,7 @@ class SessionManager private constructor(
     }
 
     /**
-     * Clears all session keys upon logout.
+     * Clears all session keys upon logout and resets theme to clean light default.
      */
     suspend fun clearSession() {
         dataStore.edit { preferences ->
@@ -229,6 +229,7 @@ class SessionManager private constructor(
             preferences.remove(KEY_USER_AVATAR_URI)
             preferences.remove(KEY_USER_BIO)
             preferences.remove(KEY_ONBOARDING_COMPLETED)
+            preferences[KEY_THEME_MODE] = "light"
         }
     }
 }

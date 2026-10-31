@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.simats.focusflow.data.models.AiAction
 import com.simats.focusflow.data.models.ChatHistoryMessage
 import com.simats.focusflow.data.repository.AiRepository
@@ -22,6 +24,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -62,10 +65,12 @@ class GrootAiViewModel(
 
     private var appContext: Context? = null
     private var currentUserId: Int = 1
+    private val gson = Gson()
 
     fun initContext(context: Context, manager: SessionManager) {
         this.appContext = context.applicationContext
         this.sessionManager = manager
+        loadPersistedMessages()
         viewModelScope.launch(Dispatchers.IO) {
             val session = manager.userSessionFlow.first()
             if (session.userId != null && session.userId > 0) {
@@ -77,10 +82,49 @@ class GrootAiViewModel(
     // Compatibility overload
     fun initSessionManager(manager: SessionManager) {
         this.sessionManager = manager
+        loadPersistedMessages()
         viewModelScope.launch(Dispatchers.IO) {
             val session = manager.userSessionFlow.first()
             if (session.userId != null && session.userId > 0) {
                 currentUserId = session.userId
+            }
+        }
+    }
+
+    private fun persistMessages(messages: List<ChatMessage>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                appContext?.let { ctx ->
+                    val file = File(ctx.filesDir, "groot_chat_history.json")
+                    val json = gson.toJson(messages)
+                    file.writeText(json)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    private fun loadPersistedMessages() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                appContext?.let { ctx ->
+                    val file = File(ctx.filesDir, "groot_chat_history.json")
+                    if (file.exists()) {
+                        val json = file.readText()
+                        if (json.isNotBlank()) {
+                            val type = object : TypeToken<List<ChatMessage>>() {}.type
+                            val saved: List<ChatMessage>? = gson.fromJson(json, type)
+                            if (!saved.isNullOrEmpty()) {
+                                withContext(Dispatchers.Main) {
+                                    _uiState.update { it.copy(messages = saved) }
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
@@ -91,14 +135,27 @@ class GrootAiViewModel(
 
     fun clearChat() {
         aiRepository.clearHistory()
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                appContext?.let { ctx ->
+                    val file = File(ctx.filesDir, "groot_chat_history.json")
+                    if (file.exists()) {
+                        file.delete()
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+        val defaultList = listOf(
+            ChatMessage(
+                isFromUser = false,
+                text = "I am Groot, your autonomous FocusFlow AI collaborator. You can ask me anything across coding, math, general topics, or command me to perform in-app actions like starting focus timers, scheduling tasks, building habits, and analyzing your consistency."
+            )
+        )
         _uiState.update {
             it.copy(
-                messages = listOf(
-                    ChatMessage(
-                        isFromUser = false,
-                        text = "I am Groot, your autonomous FocusFlow AI collaborator. You can ask me anything across coding, math, general topics, or command me to perform in-app actions like starting focus timers, scheduling tasks, building habits, and analyzing your consistency."
-                    )
-                ),
+                messages = defaultList,
                 inputText = "",
                 isAiThinking = false
             )
@@ -110,7 +167,9 @@ class GrootAiViewModel(
         if (textToSend.isBlank() || _uiState.value.isAiThinking) return
 
         val userMessage = ChatMessage(isFromUser = true, text = textToSend)
-        val currentHistory = _uiState.value.messages.map {
+        val updatedWithUser = _uiState.value.messages + userMessage
+
+        val currentHistory = updatedWithUser.takeLast(10).map {
             ChatHistoryMessage(
                 role = if (it.isFromUser) "user" else "assistant",
                 content = it.text
@@ -119,11 +178,12 @@ class GrootAiViewModel(
 
         _uiState.update {
             it.copy(
-                messages = it.messages + userMessage,
+                messages = updatedWithUser,
                 inputText = if (query == null) "" else it.inputText,
                 isAiThinking = true
             )
         }
+        persistMessages(updatedWithUser)
 
         viewModelScope.launch(Dispatchers.IO) {
             val result = aiRepository.getAiInsights(
@@ -158,12 +218,14 @@ class GrootAiViewModel(
                     )
 
                     withContext(Dispatchers.Main) {
+                        val updatedWithAi = _uiState.value.messages + aiMessage
                         _uiState.update {
                             it.copy(
-                                messages = it.messages + aiMessage,
+                                messages = updatedWithAi,
                                 isAiThinking = false
                             )
                         }
+                        persistMessages(updatedWithAi)
                     }
                 },
                 onFailure = {
@@ -173,19 +235,21 @@ class GrootAiViewModel(
                         textToSend.contains("who are you", ignoreCase = true) ->
                             "I am Groot, your versatile AI collaborator inside FocusFlow."
                         else ->
-                            "I am Groot, your FocusFlow assistant. I am ready to help, but my local deep-reasoning engine (port 8000) is currently offline. Please ensure 'python server.py' is running in the groot_ai directory."
+                            "I am Groot, your dedicated FocusFlow assistant. I specialize in helping you optimize focus sessions, track habits, manage tasks, and boost your daily productivity. Feel free to ask anything about your routines, focus timer, or FocusFlow features!"
                     }
                     val fallbackMessage = ChatMessage(
                         isFromUser = false,
                         text = fallbackText
                     )
                     withContext(Dispatchers.Main) {
+                        val updatedWithFallback = _uiState.value.messages + fallbackMessage
                         _uiState.update {
                             it.copy(
-                                messages = it.messages + fallbackMessage,
+                                messages = updatedWithFallback,
                                 isAiThinking = false
                             )
                         }
+                        persistMessages(updatedWithFallback)
                     }
                 }
             )

@@ -64,10 +64,14 @@ class DashboardViewModel(
                 if (session.userId != null && session.userId > 0) {
                     currentUserId = session.userId
                 }
-                val av = session.userAvatarUri ?: session.userAvatar
-                if (!av.isNullOrBlank()) {
-                    withContext(Dispatchers.Main) {
-                        _uiState.update { it.copy(userAvatar = av) }
+                val av = session.userAvatarUri ?: session.userAvatar ?: ""
+                val sName = session.userName
+                withContext(Dispatchers.Main) {
+                    _uiState.update { current ->
+                        current.copy(
+                            userAvatar = if (av.isNotBlank()) av else current.userAvatar,
+                            data = if (!sName.isNullOrBlank()) current.data.copy(userName = sName) else current.data
+                        )
                     }
                 }
             }

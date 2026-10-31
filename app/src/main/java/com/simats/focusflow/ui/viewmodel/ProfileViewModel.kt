@@ -22,7 +22,7 @@ data class ProfileUiState(
     val errorMessage: String? = null,
     val successMessage: String? = null,
     val showResetDialog: Boolean = false,
-    val themeMode: String = "dark"
+    val themeMode: String = "light"
 )
 
 class ProfileViewModel(
@@ -49,10 +49,17 @@ class ProfileViewModel(
                 if (session.userId != null && session.userId > 0) {
                     currentUserId = session.userId
                 }
-                val av = session.userAvatarUri ?: session.userAvatar
-                if (!av.isNullOrBlank()) {
-                    withContext(Dispatchers.Main) {
-                        _uiState.update { it.copy(profile = it.profile.copy(avatar = av)) }
+                val av = session.userAvatarUri ?: session.userAvatar ?: ""
+                withContext(Dispatchers.Main) {
+                    _uiState.update { current ->
+                        current.copy(
+                            profile = current.profile.copy(
+                                name = session.userName?.takeIf { it.isNotBlank() } ?: current.profile.name,
+                                email = session.userEmail?.takeIf { it.isNotBlank() } ?: current.profile.email,
+                                bio = session.userBio ?: current.profile.bio,
+                                avatar = if (av.isNotBlank()) av else current.profile.avatar
+                            )
+                        )
                     }
                 }
             }
@@ -91,7 +98,17 @@ class ProfileViewModel(
             withContext(Dispatchers.Main) {
                 result.fold(
                     onSuccess = { data ->
-                        val finalData = data
+                        val session = sessionManager?.userSessionFlow?.first()
+                        val sName = session?.userName
+                        val sEmail = session?.userEmail
+                        val sAvatar = session?.userAvatarUri ?: session?.userAvatar
+                        val sBio = session?.userBio
+                        val finalData = data.copy(
+                            name = if (!sName.isNullOrBlank()) sName else data.name,
+                            email = if (!sEmail.isNullOrBlank()) sEmail else data.email,
+                            avatar = if (!sAvatar.isNullOrBlank()) sAvatar else data.avatar,
+                            bio = if (!sBio.isNullOrBlank()) sBio else data.bio
+                        )
                         _uiState.update { it.copy(isLoading = false, profile = finalData) }
                     },
                     onFailure = { err ->
