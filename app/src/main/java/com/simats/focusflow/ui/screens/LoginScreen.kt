@@ -66,7 +66,7 @@ fun LoginScreen(
 ) {
     val context = LocalContext.current
     LaunchedEffect(Unit) {
-        viewModel.initSessionManager(SessionManager.getInstance(context))
+        viewModel.initSessionManager(context, SessionManager.getInstance(context))
     }
 
     var email by remember { mutableStateOf("") }

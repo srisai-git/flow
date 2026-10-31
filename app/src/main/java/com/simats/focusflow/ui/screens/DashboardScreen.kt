@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.HourglassBottom
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Share
@@ -42,6 +43,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -50,6 +52,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.simats.focusflow.data.models.HabitItem
 import com.simats.focusflow.data.models.TaskItem
 import com.simats.focusflow.data.session.SessionManager
@@ -60,6 +64,7 @@ import com.simats.focusflow.ui.theme.DarkPrimary
 import com.simats.focusflow.ui.theme.DarkPrimaryLight
 import com.simats.focusflow.ui.theme.FocusFlowTheme
 import com.simats.focusflow.ui.viewmodel.DashboardViewModel
+import com.simats.focusflow.utils.ProfileImageManager
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.cos
@@ -89,7 +94,7 @@ fun DashboardScreen(
 ) {
     val context = LocalContext.current
     LaunchedEffect(Unit) {
-        viewModel.initSessionManager(SessionManager.getInstance(context))
+        viewModel.initSessionManager(context, SessionManager.getInstance(context))
     }
 
     val colors = FocusFlowTheme.colors
@@ -131,26 +136,75 @@ fun DashboardScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Welcome back,",
-                    fontSize = 13.sp,
-                    color = colors.textMuted,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    text = data.userName.ifBlank { "Focus User" },
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = colors.textPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = currentDateStr,
-                    fontSize = 12.sp,
-                    color = colors.primaryLight
-                )
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Interactive User Avatar leading icon (navigates to Profile)
+                Surface(
+                    onClick = onNavigateToProfile,
+                    shape = CircleShape,
+                    color = colors.primary.copy(alpha = 0.15f),
+                    border = BorderStroke(1.5.dp, colors.primary.copy(alpha = 0.45f)),
+                    modifier = Modifier
+                        .size(46.dp)
+                        .bounceClick()
+                ) {
+                    val avatarStr = uiState.userAvatar
+                    val isImage = ProfileImageManager.isImageAvatar(avatarStr)
+                    if (isImage) {
+                        val imageModel = ProfileImageManager.resolveImageModel(context, avatarStr)
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(imageModel)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = "Profile Picture",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape)
+                        )
+                    } else if (avatarStr.startsWith("avatar:")) {
+                        Icon(
+                            imageVector = resolveAvatarIcon(avatarStr),
+                            contentDescription = "Profile",
+                            tint = colors.primary,
+                            modifier = Modifier.padding(10.dp)
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Profile",
+                            tint = colors.primary,
+                            modifier = Modifier.padding(10.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column {
+                    Text(
+                        text = "Welcome back,",
+                        fontSize = 12.sp,
+                        color = colors.textMuted,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = data.userName.ifBlank { "Focus User" },
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = colors.textPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = currentDateStr,
+                        fontSize = 11.5.sp,
+                        color = colors.primaryLight
+                    )
+                }
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {

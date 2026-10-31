@@ -1,16 +1,22 @@
 package com.simats.focusflow.ui.viewmodel
 
+import android.content.Context
+import android.net.Uri
 import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.simats.focusflow.data.repository.ProfileRepository
 import com.simats.focusflow.data.session.SessionManager
+import com.simats.focusflow.utils.ProfileImageManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 
 data class EditProfileUiState(
     val name: String = "",
@@ -102,9 +108,35 @@ class EditProfileViewModel(
 
     fun onAvatarChange(avatar: String) {
         _uiState.update { it.copy(avatar = avatar) }
+        viewModelScope.launch(Dispatchers.IO) {
+            sessionManager?.saveAvatarPath(avatar, currentUserId)
+        }
     }
 
-    fun saveProfile(onSuccess: () -> Unit) {
+    /**
+     * Copies the picked gallery photo into app-private internal storage,
+     * updates the UI state with the permanent path, and caches to SessionManager immediately.
+     */
+    fun onGalleryImagePicked(context: Context, uri: Uri) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _uiState.update { it.copy(isLoading = true) }
+            val savedPath = ProfileImageManager.saveAvatarToInternalStorage(context, uri, currentUserId)
+            if (!savedPath.isNullOrBlank()) {
+                withContext(Dispatchers.Main) {
+                    _uiState.update { it.copy(avatar = savedPath, isLoading = false) }
+                }
+                sessionManager?.saveAvatarPath(savedPath, currentUserId)
+            } else {
+                withContext(Dispatchers.Main) {
+                    _uiState.update {
+                        it.copy(isLoading = false, errorMessage = "Failed to process selected picture.")
+                    }
+                }
+            }
+        }
+    }
+
+    fun saveProfile(context: Context? = null, onSuccess: () -> Unit) {
         val name = _uiState.value.name.trim()
         val email = _uiState.value.email.trim()
         val bio = _uiState.value.bio.trim()
@@ -120,38 +152,57 @@ class EditProfileViewModel(
             return
         }
 
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+        viewModelScope.launch(Dispatchers.IO) {
+            withContext(Dispatchers.Main) {
+                _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            }
+
+            // If avatar is a local file, prepare Base64 payload for backend sync if context is provided
+            val avatarPayload = if (context != null && avatar.startsWith("/") && File(avatar).exists()) {
+                ProfileImageManager.getBase64FromInternalAvatar(context, currentUserId) ?: avatar
+            } else {
+                avatar
+            }
+
             val result = repository.updateProfile(
                 userId = currentUserId,
                 name = name,
                 email = email,
                 bio = bio,
-                avatar = avatar,
+                avatar = avatarPayload,
                 sessionManager = sessionManager
             )
 
-            result.fold(
-                onSuccess = {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            isSuccess = true,
-                            successMessage = "Profile updated successfully!"
-                        )
+            // Ensure the local permanent path is preserved in session
+            sessionManager?.saveAvatarPath(avatar, currentUserId)
+
+            withContext(Dispatchers.Main) {
+                result.fold(
+                    onSuccess = {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                isSuccess = true,
+                                successMessage = "Profile updated successfully."
+                            )
+                        }
+                        onSuccess()
+                    },
+                    onFailure = { err ->
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = err.localizedMessage ?: "Failed to update profile."
+                            )
+                        }
                     }
-                    onSuccess()
-                },
-                onFailure = { err ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = err.localizedMessage ?: "Failed to update profile"
-                        )
-                    }
-                }
-            )
+                )
+            }
         }
+    }
+
+    fun saveProfile(onSuccess: () -> Unit) {
+        saveProfile(null, onSuccess)
     }
 
     fun clearMessages() {

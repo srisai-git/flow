@@ -45,10 +45,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.ui.components.bounceClick
 import com.simats.focusflow.ui.theme.FocusFlowTheme
 import com.simats.focusflow.ui.viewmodel.EditProfileViewModel
+import com.simats.focusflow.utils.ProfileImageManager
 
 private val DangerRed = Color(0xFFEF4444)
 
@@ -76,7 +78,7 @@ fun EditProfileScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            viewModel.onAvatarChange(it.toString())
+            viewModel.onGalleryImagePicked(context, it)
             showAvatarPickerSheet = false
         }
     }
@@ -187,14 +189,15 @@ fun EditProfileScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             val avatarStr = state.avatar
-                            val isImageUri = avatarStr.startsWith("content:") ||
-                                    avatarStr.startsWith("file:") ||
-                                    avatarStr.startsWith("http:") ||
-                                    avatarStr.startsWith("https:")
+                            val isImage = ProfileImageManager.isImageAvatar(avatarStr)
 
-                            if (isImageUri) {
+                            if (isImage) {
+                                val imageModel = ProfileImageManager.resolveImageModel(context, avatarStr)
                                 AsyncImage(
-                                    model = avatarStr,
+                                    model = ImageRequest.Builder(context)
+                                        .data(imageModel)
+                                        .crossfade(true)
+                                        .build(),
                                     contentDescription = "Profile Photo",
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier
@@ -405,7 +408,7 @@ fun EditProfileScreen(
             // 4. SAVE CHANGES ACTION BUTTON
             Button(
                 onClick = {
-                    viewModel.saveProfile {
+                    viewModel.saveProfile(context) {
                         onSaveSuccess()
                     }
                 },

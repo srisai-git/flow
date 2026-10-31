@@ -1,11 +1,13 @@
 package com.simats.focusflow.ui.viewmodel
 
+import android.content.Context
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.simats.focusflow.data.models.ProfileData
 import com.simats.focusflow.data.repository.ProfileRepository
 import com.simats.focusflow.data.session.SessionManager
+import com.simats.focusflow.utils.ProfileImageManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,6 +16,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 
 @Immutable
 data class ProfileUiState(
@@ -34,13 +37,81 @@ class ProfileViewModel(
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
     private var currentUserId: Int = 1
+    private var appContext: Context? = null
 
+    fun initSessionManager(context: Context, manager: SessionManager) {
+        this.appContext = context.applicationContext
+        this.sessionManager = manager
+
+        // Fast cold-start check: immediately load local avatar from disk if present
+        val existingAvatar = ProfileImageManager.getAvatarPathIfExists(context, currentUserId)
+        if (!existingAvatar.isNullOrBlank()) {
+            _uiState.update { current ->
+                current.copy(profile = current.profile.copy(avatar = existingAvatar))
+            }
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            manager.themeModeFlow.collect { mode ->
+                withContext(Dispatchers.Main) {
+                    _uiState.update { it.copy(themeMode = mode) }
+                }
+            }
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            manager.userAvatarPath.collect { path ->
+                if (!path.isNullOrBlank()) {
+                    withContext(Dispatchers.Main) {
+                        _uiState.update { current ->
+                            current.copy(profile = current.profile.copy(avatar = path))
+                        }
+                    }
+                }
+            }
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            manager.userSessionFlow.collect { session ->
+                if (session.userId != null && session.userId > 0) {
+                    currentUserId = session.userId
+                }
+                val av = session.userAvatarUri ?: session.userAvatar ?: ""
+                withContext(Dispatchers.Main) {
+                    _uiState.update { current ->
+                        current.copy(
+                            profile = current.profile.copy(
+                                name = session.userName?.takeIf { it.isNotBlank() } ?: current.profile.name,
+                                email = session.userEmail?.takeIf { it.isNotBlank() } ?: current.profile.email,
+                                bio = session.userBio ?: current.profile.bio,
+                                avatar = if (av.isNotBlank()) av else current.profile.avatar
+                            )
+                        )
+                    }
+                }
+            }
+        }
+        loadProfile()
+    }
+
+    // Compatibility overload
     fun initSessionManager(manager: SessionManager) {
         this.sessionManager = manager
         viewModelScope.launch(Dispatchers.IO) {
             manager.themeModeFlow.collect { mode ->
                 withContext(Dispatchers.Main) {
                     _uiState.update { it.copy(themeMode = mode) }
+                }
+            }
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            manager.userAvatarPath.collect { path ->
+                if (!path.isNullOrBlank()) {
+                    withContext(Dispatchers.Main) {
+                        _uiState.update { current ->
+                            current.copy(profile = current.profile.copy(avatar = path))
+                        }
+                    }
                 }
             }
         }
@@ -103,10 +174,31 @@ class ProfileViewModel(
                         val sEmail = session?.userEmail
                         val sAvatar = session?.userAvatarUri ?: session?.userAvatar
                         val sBio = session?.userBio
+
+                        // If remote avatar is a URL/base64 and no local file exists, cache in background
+                        appContext?.let { ctx ->
+                            if (!data.avatar.isNullOrBlank() && !data.avatar.startsWith("avatar:") && (data.avatar.startsWith("http") || data.avatar.startsWith("data:"))) {
+                                viewModelScope.launch(Dispatchers.IO) {
+                                    val cached = ProfileImageManager.cacheRemoteAvatarToInternalStorage(ctx, data.avatar, currentUserId)
+                                    if (cached != null) {
+                                        sessionManager?.saveAvatarPath(cached, currentUserId)
+                                    }
+                                }
+                            }
+                        }
+
+                        val localPath = appContext?.let { ProfileImageManager.getAvatarPathIfExists(it, currentUserId) }
+                        val effectiveAvatar = when {
+                            !localPath.isNullOrBlank() -> localPath
+                            !sAvatar.isNullOrBlank() -> sAvatar
+                            data.avatar.isNotBlank() -> data.avatar
+                            else -> ""
+                        }
+
                         val finalData = data.copy(
                             name = if (!sName.isNullOrBlank()) sName else data.name,
                             email = if (!sEmail.isNullOrBlank()) sEmail else data.email,
-                            avatar = if (!sAvatar.isNullOrBlank()) sAvatar else data.avatar,
+                            avatar = effectiveAvatar,
                             bio = if (!sBio.isNullOrBlank()) sBio else data.bio
                         )
                         _uiState.update { it.copy(isLoading = false, profile = finalData) }

@@ -1,5 +1,6 @@
 package com.simats.focusflow.ui.viewmodel
 
+import android.content.Context
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -9,6 +10,7 @@ import com.simats.focusflow.data.models.TaskItem
 import com.simats.focusflow.data.repository.AiRepository
 import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.session.SessionManager
+import com.simats.focusflow.utils.ProfileImageManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -48,8 +50,25 @@ class DashboardViewModel(
         }
     }
 
+    fun initSessionManager(context: Context, manager: SessionManager) {
+        val existingAvatar = ProfileImageManager.getAvatarPathIfExists(context, currentUserId)
+        if (!existingAvatar.isNullOrBlank()) {
+            _uiState.update { it.copy(userAvatar = existingAvatar) }
+        }
+        initSessionManager(manager)
+    }
+
     fun initSessionManager(manager: SessionManager) {
         this.sessionManager = manager
+        viewModelScope.launch(Dispatchers.IO) {
+            manager.userAvatarPath.collect { path ->
+                if (!path.isNullOrBlank()) {
+                    withContext(Dispatchers.Main) {
+                        _uiState.update { it.copy(userAvatar = path) }
+                    }
+                }
+            }
+        }
         viewModelScope.launch(Dispatchers.IO) {
             manager.userAvatarFlow.collect { avatar ->
                 if (!avatar.isNullOrBlank()) {

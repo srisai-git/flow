@@ -52,11 +52,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.simats.focusflow.data.models.ProfileData
 import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.ui.components.bounceClick
 import com.simats.focusflow.ui.theme.FocusFlowTheme
 import com.simats.focusflow.ui.viewmodel.ProfileViewModel
+import com.simats.focusflow.utils.ProfileImageManager
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -97,7 +99,7 @@ fun ProfileScreen(
 ) {
     val context = LocalContext.current
     LaunchedEffect(Unit) {
-        viewModel.initSessionManager(SessionManager.getInstance(context))
+        viewModel.initSessionManager(context, SessionManager.getInstance(context))
         viewModel.loadProfile()
     }
 
@@ -199,14 +201,15 @@ fun ProfileScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             val avatarStr = profile.avatar
-                            val isImageUri = avatarStr.startsWith("content:") ||
-                                    avatarStr.startsWith("file:") ||
-                                    avatarStr.startsWith("http:") ||
-                                    avatarStr.startsWith("https:")
+                            val isImage = ProfileImageManager.isImageAvatar(avatarStr)
 
-                            if (isImageUri) {
+                            if (isImage) {
+                                val imageModel = ProfileImageManager.resolveImageModel(context, avatarStr, profile.id)
                                 AsyncImage(
-                                    model = avatarStr,
+                                    model = ImageRequest.Builder(context)
+                                        .data(imageModel)
+                                        .crossfade(true)
+                                        .build(),
                                     contentDescription = "Profile Photo",
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier

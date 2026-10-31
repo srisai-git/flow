@@ -45,9 +45,12 @@ class SessionManager private constructor(
         val KEY_USER_EMAIL = stringPreferencesKey("key_user_email")
         val KEY_USER_AVATAR = stringPreferencesKey("key_user_avatar")
         val KEY_USER_AVATAR_URI = stringPreferencesKey("user_avatar_uri")
+        val KEY_USER_AVATAR_PATH = stringPreferencesKey("key_user_avatar_path")
         val KEY_USER_BIO = stringPreferencesKey("key_user_bio")
         val KEY_ONBOARDING_COMPLETED = booleanPreferencesKey("key_onboarding_completed")
         val KEY_THEME_MODE = stringPreferencesKey("key_theme_mode")
+
+        fun keyAvatarForUser(userId: Int) = stringPreferencesKey("key_avatar_for_user_$userId")
 
         @Volatile
         private var INSTANCE: SessionManager? = null
@@ -103,7 +106,22 @@ class SessionManager private constructor(
             }
         }
         .map { preferences ->
-            preferences[KEY_USER_AVATAR_URI] ?: preferences[KEY_USER_AVATAR]
+            preferences[KEY_USER_AVATAR_PATH] ?: preferences[KEY_USER_AVATAR_URI] ?: preferences[KEY_USER_AVATAR]
+        }
+
+    /**
+     * Emits the persistent local avatar file path directly.
+     */
+    val userAvatarPath: Flow<String?> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[KEY_USER_AVATAR_PATH] ?: preferences[KEY_USER_AVATAR_URI] ?: preferences[KEY_USER_AVATAR]
         }
 
     /**
@@ -118,7 +136,7 @@ class SessionManager private constructor(
             }
         }
         .map { preferences ->
-            val avatar = preferences[KEY_USER_AVATAR_URI] ?: preferences[KEY_USER_AVATAR]
+            val avatar = preferences[KEY_USER_AVATAR_PATH] ?: preferences[KEY_USER_AVATAR_URI] ?: preferences[KEY_USER_AVATAR]
             UserSession(
                 isLoggedIn = preferences[KEY_IS_LOGGED_IN] ?: false,
                 userId = preferences[KEY_USER_ID],
@@ -147,10 +165,22 @@ class SessionManager private constructor(
             preferences[KEY_USER_ID] = userId
             preferences[KEY_USER_NAME] = name
             preferences[KEY_USER_EMAIL] = email
-            if (avatar.isNotBlank()) {
-                preferences[KEY_USER_AVATAR] = avatar
-                preferences[KEY_USER_AVATAR_URI] = avatar
+
+            // Restore user-specific avatar path if available
+            val storedUserAvatar = preferences[keyAvatarForUser(userId)]
+            val finalAvatar = when {
+                !storedUserAvatar.isNullOrBlank() -> storedUserAvatar
+                avatar.isNotBlank() -> avatar
+                else -> preferences[KEY_USER_AVATAR_PATH] ?: ""
             }
+
+            if (finalAvatar.isNotBlank()) {
+                preferences[KEY_USER_AVATAR] = finalAvatar
+                preferences[KEY_USER_AVATAR_URI] = finalAvatar
+                preferences[KEY_USER_AVATAR_PATH] = finalAvatar
+                preferences[keyAvatarForUser(userId)] = finalAvatar
+            }
+
             if (bio.isNotBlank()) {
                 preferences[KEY_USER_BIO] = bio
             }
@@ -161,7 +191,7 @@ class SessionManager private constructor(
     /**
      * Updates the user profile name, email, bio, and avatar across the active session.
      */
-    suspend fun updateProfile(name: String, email: String, bio: String = "", avatar: String = "") {
+    suspend fun updateProfile(name: String, email: String, bio: String = "", avatar: String = "", userId: Int? = null) {
         dataStore.edit { preferences ->
             preferences[KEY_USER_NAME] = name
             preferences[KEY_USER_EMAIL] = email
@@ -169,6 +199,26 @@ class SessionManager private constructor(
             if (avatar.isNotBlank()) {
                 preferences[KEY_USER_AVATAR] = avatar
                 preferences[KEY_USER_AVATAR_URI] = avatar
+                preferences[KEY_USER_AVATAR_PATH] = avatar
+                val effectiveUid = userId ?: preferences[KEY_USER_ID]
+                if (effectiveUid != null && effectiveUid > 0) {
+                    preferences[keyAvatarForUser(effectiveUid)] = avatar
+                }
+            }
+        }
+    }
+
+    /**
+     * Saves the avatar path or URI directly to local DataStore.
+     */
+    suspend fun saveAvatarPath(path: String, userId: Int? = null) {
+        dataStore.edit { preferences ->
+            preferences[KEY_USER_AVATAR] = path
+            preferences[KEY_USER_AVATAR_URI] = path
+            preferences[KEY_USER_AVATAR_PATH] = path
+            val effectiveUid = userId ?: preferences[KEY_USER_ID]
+            if (effectiveUid != null && effectiveUid > 0) {
+                preferences[keyAvatarForUser(effectiveUid)] = path
             }
         }
     }
@@ -177,10 +227,7 @@ class SessionManager private constructor(
      * Saves the avatar URI/URL directly to local DataStore.
      */
     suspend fun saveAvatarUri(uri: String) {
-        dataStore.edit { preferences ->
-            preferences[KEY_USER_AVATAR] = uri
-            preferences[KEY_USER_AVATAR_URI] = uri
-        }
+        saveAvatarPath(uri)
     }
 
     /**
@@ -217,16 +264,22 @@ class SessionManager private constructor(
     }
 
     /**
-     * Clears all session keys upon logout and resets theme to clean light default.
+     * Clears active session keys upon logout while retaining user-keyed avatar paths.
      */
     suspend fun clearSession() {
         dataStore.edit { preferences ->
+            val currentUid = preferences[KEY_USER_ID]
+            val currentAvatar = preferences[KEY_USER_AVATAR_PATH] ?: preferences[KEY_USER_AVATAR]
+            if (currentUid != null && currentUid > 0 && !currentAvatar.isNullOrBlank()) {
+                preferences[keyAvatarForUser(currentUid)] = currentAvatar
+            }
             preferences.remove(KEY_IS_LOGGED_IN)
             preferences.remove(KEY_USER_ID)
             preferences.remove(KEY_USER_NAME)
             preferences.remove(KEY_USER_EMAIL)
             preferences.remove(KEY_USER_AVATAR)
             preferences.remove(KEY_USER_AVATAR_URI)
+            preferences.remove(KEY_USER_AVATAR_PATH)
             preferences.remove(KEY_USER_BIO)
             preferences.remove(KEY_ONBOARDING_COMPLETED)
             preferences[KEY_THEME_MODE] = "light"

@@ -1,5 +1,6 @@
 package com.simats.focusflow.ui.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.simats.focusflow.data.api.AuthApiService
@@ -11,6 +12,8 @@ import com.simats.focusflow.data.models.User
 import com.simats.focusflow.data.repository.AuthRepository
 import com.simats.focusflow.data.repository.AuthRepositoryImpl
 import com.simats.focusflow.data.session.SessionManager
+import com.simats.focusflow.utils.ProfileImageManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -42,6 +45,16 @@ class AuthViewModel(
 
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
+
+    private var appContext: Context? = null
+
+    /**
+     * Binds the SessionManager singleton for persistence with context for avatar caching.
+     */
+    fun initSessionManager(context: Context, manager: SessionManager) {
+        this.appContext = context.applicationContext
+        this.sessionManager = manager
+    }
 
     /**
      * Binds the SessionManager singleton for persistence.
@@ -121,6 +134,18 @@ class AuthViewModel(
                         bio = authenticatedUser.bio,
                         isOnboardingCompleted = true
                     )
+
+                    // If remote avatar exists, cache it to internal storage in background
+                    appContext?.let { ctx ->
+                        if (effectiveAvatar.isNotBlank() && !effectiveAvatar.startsWith("avatar:") && (effectiveAvatar.startsWith("http") || effectiveAvatar.startsWith("data:"))) {
+                            viewModelScope.launch(Dispatchers.IO) {
+                                val localPath = ProfileImageManager.cacheRemoteAvatarToInternalStorage(ctx, effectiveAvatar, authenticatedUser.id)
+                                if (localPath != null) {
+                                    sessionManager?.saveAvatarPath(localPath, authenticatedUser.id)
+                                }
+                            }
+                        }
+                    }
 
                     _uiState.update {
                         it.copy(
