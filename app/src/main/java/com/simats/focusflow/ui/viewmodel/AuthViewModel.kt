@@ -12,6 +12,7 @@ import com.simats.focusflow.data.models.User
 import com.simats.focusflow.data.repository.AuthRepository
 import com.simats.focusflow.data.repository.AuthRepositoryImpl
 import com.simats.focusflow.data.session.SessionManager
+import com.simats.focusflow.data.TokenSyncHelper
 import com.simats.focusflow.utils.ProfileImageManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -145,6 +146,10 @@ class AuthViewModel(
                                 }
                             }
                         }
+                        // Synchronize FCM Token for this authenticated user
+                        viewModelScope.launch(Dispatchers.IO) {
+                            TokenSyncHelper.syncForCurrentUser(ctx)
+                        }
                     }
 
                     _uiState.update {
@@ -247,6 +252,13 @@ class AuthViewModel(
                         email = newUser.email,
                         isOnboardingCompleted = false
                     )
+
+                    // Synchronize FCM Token for the newly registered user
+                    appContext?.let { ctx ->
+                        viewModelScope.launch(Dispatchers.IO) {
+                            TokenSyncHelper.syncForCurrentUser(ctx)
+                        }
+                    }
 
                     _uiState.update {
                         it.copy(

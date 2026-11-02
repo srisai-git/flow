@@ -360,6 +360,15 @@ fun ProfileScreen(
                     )
                     HorizontalDivider(color = colors.border, thickness = 1.dp)
 
+                    // Notifications & Reminders Screen Entry Point
+                    ProfileMenuRow(
+                        icon = Icons.Default.Notifications,
+                        title = "Notifications & Reminders",
+                        subtitle = "Alert schedules, gentleness prompts & test alerts",
+                        onClick = onNavigateToNotifications
+                    )
+                    HorizontalDivider(color = colors.border, thickness = 1.dp)
+
                     // Daily Focus Reminders Toggle Switch
                     Row(
                         modifier = Modifier

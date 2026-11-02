@@ -106,3 +106,28 @@ data class PreferencesResponse(
     @SerializedName("message")
     val message: String = ""
 )
+
+/**
+ * Request payload for synchronizing Firebase Cloud Messaging (FCM) registration token.
+ */
+data class UpdateTokenRequest(
+    @SerializedName("user_id")
+    val userId: Int,
+
+    @SerializedName("fcm_token")
+    val fcmToken: String
+)
+
+/**
+ * Response payload returned when updating FCM registration token.
+ */
+data class UpdateTokenResponse(
+    @SerializedName("status")
+    val status: String? = null,
+
+    @SerializedName("message")
+    val message: String? = null,
+
+    @SerializedName("user_id")
+    val userId: Int? = null
+)

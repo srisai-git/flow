@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.HourglassBottom
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Repeat
@@ -236,7 +237,33 @@ fun DashboardScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Notification Bell Quick Launcher
+                IconButton(
+                    onClick = onNavigateToNotifications,
+                    modifier = Modifier
+                        .size(42.dp)
+                        .bounceClick()
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = colors.surface,
+                        border = BorderStroke(1.dp, colors.border),
+                        modifier = Modifier.size(38.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = "Notifications & Reminders",
+                                tint = colors.primaryLight,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
 
                 // Groot AI Assistant Quick Launcher Icon (Single Top-Bar Entry Point)
                 IconButton(

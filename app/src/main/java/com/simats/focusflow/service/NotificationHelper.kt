@@ -115,3 +115,4 @@ object NotificationHelper {
         return text.replace(Regex("[\\x{10000}-\\x{10FFFF}\\x{2600}-\\x{27BF}\\x{2300}-\\x{23FF}\\x{2B50}\\x{2B55}]"), "").trim()
     }
 }
+

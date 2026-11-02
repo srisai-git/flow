@@ -66,5 +66,8 @@ interface FlowApiService {
 
     @POST("ask_groot.php")
     suspend fun getAiInsights(@Body request: AiRequest): Response<AiResponse>
+
+    @POST("update_token.php")
+    suspend fun updateFcmToken(@Body request: UpdateTokenRequest): Response<UpdateTokenResponse>
 }
 

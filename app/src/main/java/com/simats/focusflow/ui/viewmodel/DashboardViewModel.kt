@@ -10,6 +10,7 @@ import com.simats.focusflow.data.models.TaskItem
 import com.simats.focusflow.data.repository.AiRepository
 import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.session.SessionManager
+import com.simats.focusflow.data.TokenSyncHelper
 import com.simats.focusflow.utils.ProfileImageManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -50,7 +51,10 @@ class DashboardViewModel(
         }
     }
 
+    private var appContext: Context? = null
+
     fun initSessionManager(context: Context, manager: SessionManager) {
+        this.appContext = context.applicationContext
         val existingAvatar = ProfileImageManager.getAvatarPathIfExists(context, currentUserId)
         if (!existingAvatar.isNullOrBlank()) {
             _uiState.update { it.copy(userAvatar = existingAvatar) }
@@ -82,6 +86,9 @@ class DashboardViewModel(
             manager.userSessionFlow.collect { session ->
                 if (session.userId != null && session.userId > 0) {
                     currentUserId = session.userId
+                    appContext?.let { ctx ->
+                        TokenSyncHelper.syncForCurrentUser(ctx)
+                    }
                 }
                 val av = session.userAvatarUri ?: session.userAvatar ?: ""
                 val sName = session.userName

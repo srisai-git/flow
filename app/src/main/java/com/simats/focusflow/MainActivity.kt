@@ -124,12 +124,13 @@ class MainActivity : ComponentActivity() {
             token?.let { fcmToken ->
                 lifecycleScope.launch(Dispatchers.IO) {
                     val sessionManager = SessionManager.getInstance(applicationContext)
-                    val userId = try {
-                        sessionManager.userSessionFlow.first().userId ?: 1
-                    } catch (e: Exception) {
-                        1
+                    sessionManager.userSessionFlow.collect { session ->
+                        session.userId?.let { uid ->
+                            if (uid > 0) {
+                                TokenSyncHelper.syncFcmToken(fcmToken, uid)
+                            }
+                        }
                     }
-                    TokenSyncHelper.syncFcmToken(fcmToken, userId)
                 }
             }
         }
