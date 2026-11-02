@@ -49,6 +49,12 @@ class SessionManager private constructor(
         val KEY_USER_BIO = stringPreferencesKey("key_user_bio")
         val KEY_ONBOARDING_COMPLETED = booleanPreferencesKey("key_onboarding_completed")
         val KEY_THEME_MODE = stringPreferencesKey("key_theme_mode")
+        val KEY_NOTIFICATIONS_ENABLED = booleanPreferencesKey("key_notifications_enabled")
+        val KEY_DAILY_REMINDER_ENABLED = booleanPreferencesKey("key_daily_reminder_enabled")
+        val KEY_REMINDER_TIME = stringPreferencesKey("key_reminder_time")
+        val KEY_DEADLINE_REMINDER_ENABLED = booleanPreferencesKey("key_deadline_reminder_enabled")
+        val KEY_BREAK_REMINDER_ENABLED = booleanPreferencesKey("key_break_reminder_enabled")
+        val KEY_AI_REPORT_REMINDER_ENABLED = booleanPreferencesKey("key_ai_report_reminder_enabled")
 
         fun keyAvatarForUser(userId: Int) = stringPreferencesKey("key_avatar_for_user_$userId")
 
@@ -260,6 +266,72 @@ class SessionManager private constructor(
     suspend fun setThemeMode(mode: String) {
         dataStore.edit { preferences ->
             preferences[KEY_THEME_MODE] = mode
+        }
+    }
+
+    val notificationsEnabledFlow: Flow<Boolean> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
+        }
+        .map { preferences ->
+            preferences[KEY_NOTIFICATIONS_ENABLED] ?: true
+        }
+
+    val dailyReminderEnabledFlow: Flow<Boolean> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
+        }
+        .map { preferences ->
+            preferences[KEY_DAILY_REMINDER_ENABLED] ?: true
+        }
+
+    val reminderTimeFlow: Flow<String> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
+        }
+        .map { preferences ->
+            preferences[KEY_REMINDER_TIME] ?: "09:00 AM"
+        }
+
+    val deadlineReminderEnabledFlow: Flow<Boolean> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
+        }
+        .map { preferences ->
+            preferences[KEY_DEADLINE_REMINDER_ENABLED] ?: true
+        }
+
+    val breakReminderEnabledFlow: Flow<Boolean> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
+        }
+        .map { preferences ->
+            preferences[KEY_BREAK_REMINDER_ENABLED] ?: true
+        }
+
+    val aiReportReminderEnabledFlow: Flow<Boolean> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
+        }
+        .map { preferences ->
+            preferences[KEY_AI_REPORT_REMINDER_ENABLED] ?: false
+        }
+
+    suspend fun saveNotificationPreferences(
+        notificationsEnabled: Boolean,
+        dailyReminder: Boolean,
+        reminderTime: String,
+        deadlineReminder: Boolean = true,
+        breakReminder: Boolean = true,
+        aiReportReminder: Boolean = false
+    ) {
+        dataStore.edit { preferences ->
+            preferences[KEY_NOTIFICATIONS_ENABLED] = notificationsEnabled
+            preferences[KEY_DAILY_REMINDER_ENABLED] = dailyReminder
+            preferences[KEY_REMINDER_TIME] = reminderTime
+            preferences[KEY_DEADLINE_REMINDER_ENABLED] = deadlineReminder
+            preferences[KEY_BREAK_REMINDER_ENABLED] = breakReminder
+            preferences[KEY_AI_REPORT_REMINDER_ENABLED] = aiReportReminder
         }
     }
 
