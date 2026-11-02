@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Centered 'F' silhouette scaled with 25% internal safe padding -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M7,5h10v3H10v3h6v3h-6v5H7V5z" />
+</vector>

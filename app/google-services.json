@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1062763897753",
+    "project_id": "flow-a4fd1",
+    "storage_bucket": "flow-a4fd1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1062763897753:android:ef971c7a4338aed449e908",
+        "android_client_info": {
+          "package_name": "com.simats.focusflow"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCuGjb1FPl2Hjmc-IEdVENM3PA9hgAw8uw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1062763897753:android:ef971c7a4338aed449e909",
+        "android_client_info": {
+          "package_name": "com.simats.focusflow.v2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCuGjb1FPl2Hjmc-IEdVENM3PA9hgAw8uw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
