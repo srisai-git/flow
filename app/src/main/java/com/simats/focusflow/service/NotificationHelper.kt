@@ -92,6 +92,8 @@ object NotificationHelper {
             .setContentText(cleanBody)
             .setStyle(NotificationCompat.BigTextStyle().bigText(cleanBody))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)

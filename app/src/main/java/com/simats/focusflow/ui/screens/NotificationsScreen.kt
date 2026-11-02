@@ -37,6 +37,7 @@ import com.simats.focusflow.data.api.RetrofitClient
 import com.simats.focusflow.data.models.SavePreferencesRequest
 import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.service.NotificationHelper
+import com.simats.focusflow.service.ReminderScheduler
 import com.simats.focusflow.ui.components.bounceClick
 import com.simats.focusflow.ui.theme.FocusFlowTheme
 import kotlinx.coroutines.Dispatchers
@@ -87,7 +88,14 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
                 val customFormatted = String.format(Locale.US, "%02d:%02d %s", formattedHour, minute, amPm)
                 reminderTime = customFormatted
 
-                // Persist custom time immediately to session
+                // Schedule alarm immediately at the selected custom time
+                ReminderScheduler.scheduleDailyReminder(
+                    context,
+                    customFormatted,
+                    notificationsEnabled && dailyReminder
+                )
+
+                // Persist custom time immediately to session and backend
                 scope.launch(Dispatchers.IO) {
                     val sessionManager = SessionManager.getInstance(context)
                     sessionManager.saveNotificationPreferences(
@@ -98,6 +106,22 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
                         breakReminder = breakReminder,
                         aiReportReminder = aiReportReminder
                     )
+                    val uid = sessionManager.userSessionFlow.first().userId ?: 1
+                    try {
+                        RetrofitClient.authApiService.savePreferences(
+                            SavePreferencesRequest(
+                                userId = uid,
+                                primaryGoal = "Study",
+                                preferredFocusDuration = 45,
+                                dailyFocusGoalMinutes = 210,
+                                remindersEnabled = if (notificationsEnabled && dailyReminder) 1 else 0,
+                                reminderTime = customFormatted
+                            )
+                        )
+                    } catch (_: Exception) {}
+                }
+                scope.launch {
+                    snackbarHostState.showSnackbar("Daily reminder scheduled for $customFormatted")
                 }
             },
             initialHour,
@@ -116,6 +140,10 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
             deadlineReminder = sessionManager.deadlineReminderEnabledFlow.first()
             breakReminder = sessionManager.breakReminderEnabledFlow.first()
             aiReportReminder = sessionManager.aiReportReminderEnabledFlow.first()
+
+            if (notificationsEnabled && dailyReminder) {
+                ReminderScheduler.scheduleDailyReminder(context, reminderTime, true)
+            }
         } catch (_: Exception) {}
 
         TokenSyncHelper.syncForCurrentUser(context)
@@ -207,6 +235,11 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
                         checked = notificationsEnabled,
                         onCheckedChange = { isChecked ->
                             notificationsEnabled = isChecked
+                            ReminderScheduler.scheduleDailyReminder(
+                                context,
+                                reminderTime,
+                                isChecked && dailyReminder
+                            )
                             // Save master toggle immediately
                             scope.launch(Dispatchers.IO) {
                                 val sessionManager = SessionManager.getInstance(context)
@@ -226,7 +259,7 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
                                             primaryGoal = "Study",
                                             preferredFocusDuration = 45,
                                             dailyFocusGoalMinutes = 210,
-                                            remindersEnabled = if (isChecked) 1 else 0,
+                                            remindersEnabled = if (isChecked && dailyReminder) 1 else 0,
                                             reminderTime = reminderTime
                                         )
                                     )
@@ -283,7 +316,38 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Switch(
                                     checked = dailyReminder,
-                                    onCheckedChange = { dailyReminder = it },
+                                    onCheckedChange = { isDaily ->
+                                        dailyReminder = isDaily
+                                        ReminderScheduler.scheduleDailyReminder(
+                                            context,
+                                            reminderTime,
+                                            isDaily && notificationsEnabled
+                                        )
+                                        scope.launch(Dispatchers.IO) {
+                                            val sessionManager = SessionManager.getInstance(context)
+                                            sessionManager.saveNotificationPreferences(
+                                                notificationsEnabled = notificationsEnabled,
+                                                dailyReminder = isDaily,
+                                                reminderTime = reminderTime,
+                                                deadlineReminder = deadlineReminder,
+                                                breakReminder = breakReminder,
+                                                aiReportReminder = aiReportReminder
+                                            )
+                                            val uid = sessionManager.userSessionFlow.first().userId ?: 1
+                                            try {
+                                                RetrofitClient.authApiService.savePreferences(
+                                                    SavePreferencesRequest(
+                                                        userId = uid,
+                                                        primaryGoal = "Study",
+                                                        preferredFocusDuration = 45,
+                                                        dailyFocusGoalMinutes = 210,
+                                                        remindersEnabled = if (notificationsEnabled && isDaily) 1 else 0,
+                                                        reminderTime = reminderTime
+                                                    )
+                                                )
+                                            } catch (_: Exception) {}
+                                        }
+                                    },
                                     colors = SwitchDefaults.colors(
                                         checkedThumbColor = Color.White,
                                         checkedTrackColor = colors.primary,
@@ -412,7 +476,25 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
                                             ),
                                             modifier = Modifier
                                                 .bounceClick()
-                                                .clickable { reminderTime = quickTime }
+                                                .clickable {
+                                                    reminderTime = quickTime
+                                                    ReminderScheduler.scheduleDailyReminder(
+                                                        context,
+                                                        quickTime,
+                                                        notificationsEnabled && dailyReminder
+                                                    )
+                                                    scope.launch(Dispatchers.IO) {
+                                                        val sessionManager = SessionManager.getInstance(context)
+                                                        sessionManager.saveNotificationPreferences(
+                                                            notificationsEnabled = notificationsEnabled,
+                                                            dailyReminder = dailyReminder,
+                                                            reminderTime = quickTime,
+                                                            deadlineReminder = deadlineReminder,
+                                                            breakReminder = breakReminder,
+                                                            aiReportReminder = aiReportReminder
+                                                        )
+                                                    }
+                                                }
                                         ) {
                                             Text(
                                                 text = quickTime,
@@ -667,6 +749,11 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
                     // Save Preferences Button
                     Button(
                         onClick = {
+                            ReminderScheduler.scheduleDailyReminder(
+                                context,
+                                reminderTime,
+                                notificationsEnabled && dailyReminder
+                            )
                             scope.launch {
                                 val sessionManager = SessionManager.getInstance(context)
                                 sessionManager.saveNotificationPreferences(

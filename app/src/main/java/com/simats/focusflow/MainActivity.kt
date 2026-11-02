@@ -15,6 +15,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
 import com.simats.focusflow.data.TokenSyncHelper
 import com.simats.focusflow.service.NotificationHelper
+import com.simats.focusflow.service.ReminderScheduler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -108,6 +109,23 @@ class MainActivity : ComponentActivity() {
 
         // Create standard notification channels on app startup
         NotificationHelper.createNotificationChannels(applicationContext)
+
+        // Ensure persistent daily focus reminder is actively scheduled in AlarmManager
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val sessionManager = SessionManager.getInstance(applicationContext)
+                val notifEnabled = sessionManager.notificationsEnabledFlow.first()
+                val dailyEnabled = sessionManager.dailyReminderEnabledFlow.first()
+                val reminderTime = sessionManager.reminderTimeFlow.first()
+                ReminderScheduler.scheduleDailyReminder(
+                    applicationContext,
+                    reminderTime,
+                    notifEnabled && dailyEnabled
+                )
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Failed to schedule daily reminder on startup: ${e.message}")
+            }
+        }
 
         intent.getStringExtra("route")?.let { route ->
             pendingRoute.value = route
