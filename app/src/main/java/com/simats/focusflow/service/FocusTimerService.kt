@@ -8,9 +8,6 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Paint
 import android.os.Build
 import android.os.IBinder
 import android.os.SystemClock
@@ -19,7 +16,6 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import androidx.compose.runtime.Immutable
 import androidx.core.app.NotificationCompat
-import androidx.core.content.ContextCompat
 import com.simats.focusflow.MainActivity
 import com.simats.focusflow.R
 import com.simats.focusflow.data.repository.ProductivityRepository
@@ -501,16 +497,13 @@ class FocusTimerService : Service() {
         val builder = NotificationCompat.Builder(this, COMPLETE_CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(content)
-            .setSmallIcon(R.drawable.ic_notification_small)
+            .setSmallIcon(R.drawable.ic_notification_flow)
+            .setColor(0xFF8B5CF6.toInt())
             .setContentIntent(openAppIntent)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-
-        createProportionalNotificationIcon(this, R.drawable.app_logo)?.let { largeIconBitmap ->
-            builder.setLargeIcon(largeIconBitmap)
-        }
 
         return builder.build()
     }
@@ -543,16 +536,13 @@ class FocusTimerService : Service() {
         val builder = NotificationCompat.Builder(this, RUNNING_CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(contentText)
-            .setSmallIcon(R.drawable.ic_notification_small)
+            .setSmallIcon(R.drawable.ic_notification_flow)
+            .setColor(0xFF8B5CF6.toInt())
             .setContentIntent(openAppIntent)
             .setOngoing(state.isRunning)
             .setOnlyAlertOnce(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setPriority(NotificationCompat.PRIORITY_LOW)
-
-        createProportionalNotificationIcon(this, R.drawable.app_logo)?.let { largeIconBitmap ->
-            builder.setLargeIcon(largeIconBitmap)
-        }
 
         if (state.isRunning) {
             val pauseIntent = PendingIntent.getService(
@@ -561,7 +551,7 @@ class FocusTimerService : Service() {
                 Intent(this, FocusTimerService::class.java).apply { action = ACTION_PAUSE },
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            builder.addAction(android.R.drawable.ic_media_pause, "Pause", pauseIntent)
+            builder.addAction(0, "Pause", pauseIntent)
 
             val skipIntent = PendingIntent.getService(
                 this,
@@ -569,7 +559,7 @@ class FocusTimerService : Service() {
                 Intent(this, FocusTimerService::class.java).apply { action = ACTION_SKIP },
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            builder.addAction(android.R.drawable.ic_media_next, "Skip", skipIntent)
+            builder.addAction(0, "Skip", skipIntent)
         } else if (!isComplete) {
             val resumeIntent = PendingIntent.getService(
                 this,
@@ -577,7 +567,7 @@ class FocusTimerService : Service() {
                 Intent(this, FocusTimerService::class.java).apply { action = ACTION_RESUME },
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            builder.addAction(android.R.drawable.ic_media_play, "Resume", resumeIntent)
+            builder.addAction(0, "Resume", resumeIntent)
         }
 
         val resetIntent = PendingIntent.getService(
@@ -586,7 +576,7 @@ class FocusTimerService : Service() {
             Intent(this, FocusTimerService::class.java).apply { action = ACTION_RESET },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        builder.addAction(android.R.drawable.ic_menu_revert, "Reset", resetIntent)
+        builder.addAction(0, "Reset", resetIntent)
 
         return builder.build()
     }
@@ -609,41 +599,6 @@ class FocusTimerService : Service() {
         val notification = buildNotification(isComplete)
         val manager = getSystemService(NotificationManager::class.java)
         manager?.notify(NOTIFICATION_ID, notification)
-    }
-
-    private fun createProportionalNotificationIcon(context: Context, resId: Int): Bitmap? {
-        return try {
-            val drawable = ContextCompat.getDrawable(context, resId) ?: return null
-            val size = 96
-            val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-            val canvas = Canvas(bitmap)
-
-            val radius = size / 2f
-
-            // 1. Dark elevated circle background (#181722)
-            val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = android.graphics.Color.parseColor("#181722")
-                style = Paint.Style.FILL
-            }
-            canvas.drawCircle(radius, radius, radius - 1f, bgPaint)
-
-            // 2. Subtle violet stroke (#8B5CF6)
-            val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = android.graphics.Color.parseColor("#8B5CF6")
-                style = Paint.Style.STROKE
-                strokeWidth = 2f
-            }
-            canvas.drawCircle(radius, radius, radius - 1.5f, strokePaint)
-
-            // 3. Draw "F" drawable centered inside with 30% internal inset/padding (safe area, ~60% diameter)
-            val inset = (size * 0.30f).toInt()
-            drawable.setBounds(inset, inset, size - inset, size - inset)
-            drawable.draw(canvas)
-
-            bitmap
-        } catch (e: Exception) {
-            null
-        }
     }
 
     override fun onDestroy() {
