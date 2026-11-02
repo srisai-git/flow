@@ -496,6 +496,7 @@ fun ProfileScreen(
             ModalBottomSheet(
                 onDismissRequest = { showPreferencesSheet = false },
                 containerColor = colors.surface,
+                scrimColor = Color.Black.copy(alpha = 0.55f),
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
                 dragHandle = {
                     Box(
@@ -616,6 +617,7 @@ fun ProfileScreen(
             ModalBottomSheet(
                 onDismissRequest = { showFocusDetailSheet = false },
                 containerColor = colors.surface,
+                scrimColor = Color.Black.copy(alpha = 0.55f),
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
                 dragHandle = {
                     Box(
@@ -648,6 +650,7 @@ fun ProfileScreen(
             ModalBottomSheet(
                 onDismissRequest = { showTasksDetailSheet = false },
                 containerColor = colors.surface,
+                scrimColor = Color.Black.copy(alpha = 0.55f),
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
                 dragHandle = {
                     Box(
@@ -676,6 +679,7 @@ fun ProfileScreen(
             ModalBottomSheet(
                 onDismissRequest = { showStreakDetailSheet = false },
                 containerColor = colors.surface,
+                scrimColor = Color.Black.copy(alpha = 0.55f),
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
                 dragHandle = {
                     Box(
@@ -1001,7 +1005,7 @@ private fun FocusPreferencesSheetContent(
                 .height(52.dp)
                 .bounceClick(),
             shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6), contentColor = Color.White)
         ) {
             Icon(
                 imageVector = Icons.Default.Check,

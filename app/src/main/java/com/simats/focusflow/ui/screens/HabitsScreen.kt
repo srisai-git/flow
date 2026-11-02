@@ -395,6 +395,7 @@ fun HabitsScreen(
                     viewModel.selectHabitForStreak(null)
                 },
                 containerColor = colors.surface,
+                scrimColor = Color.Black.copy(alpha = 0.55f),
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
                 dragHandle = {
                     Box(
@@ -1509,7 +1510,7 @@ private fun AddHabitDialog(
                     }
                 },
                 enabled = title.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6), contentColor = Color.White),
                 shape = RoundedCornerShape(10.dp)
             ) {
                 Text("Add Habit", color = Color.White, fontWeight = FontWeight.Bold)

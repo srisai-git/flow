@@ -231,14 +231,18 @@ fun LoginScreen(
                             .fillMaxWidth()
                             .defaultMinSize(minHeight = 48.dp),
                         shape = RoundedCornerShape(12.dp),
-                        isError = (hasAttemptedSubmit && email.isBlank()) || !isEmailFormatValid,
+                        isError = hasAttemptedSubmit && (email.isBlank() || !isEmailFormatValid),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = DarkPrimary,
-                            unfocusedBorderColor = DarkBorder,
-                            focusedTextColor = DarkTextPrimary,
-                            unfocusedTextColor = DarkTextPrimary,
-                            focusedContainerColor = DarkBackground,
-                            unfocusedContainerColor = DarkBackground,
+                            focusedTextColor = Color(0xFFF1F1F5),
+                            unfocusedTextColor = Color(0xFFF1F1F5),
+                            errorTextColor = Color(0xFFF1F1F5),
+                            cursorColor = Color(0xFF8B5CF6),
+                            errorCursorColor = Color(0xFFEF4444),
+                            focusedContainerColor = Color(0xFF181722),
+                            unfocusedContainerColor = Color(0xFF181722),
+                            errorContainerColor = Color(0xFF181722),
+                            focusedBorderColor = Color(0xFF8B5CF6),
+                            unfocusedBorderColor = Color(0xFF262433),
                             errorBorderColor = Color(0xFFEF4444)
                         ),
                         singleLine = true,
@@ -264,7 +268,7 @@ fun LoginScreen(
                             fontSize = 12.sp,
                             color = Color(0xFFEF4444)
                         )
-                    } else if (!isEmailFormatValid) {
+                    } else if (hasAttemptedSubmit && !isEmailFormatValid) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Please enter a valid email address",
@@ -294,14 +298,18 @@ fun LoginScreen(
                             .fillMaxWidth()
                             .defaultMinSize(minHeight = 48.dp),
                         shape = RoundedCornerShape(12.dp),
-                        isError = (!isPasswordLengthValid) || (hasAttemptedSubmit && password.isBlank()),
+                        isError = hasAttemptedSubmit && (!isPasswordLengthValid || password.isBlank()),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = DarkPrimary,
-                            unfocusedBorderColor = DarkBorder,
-                            focusedTextColor = DarkTextPrimary,
-                            unfocusedTextColor = DarkTextPrimary,
-                            focusedContainerColor = DarkBackground,
-                            unfocusedContainerColor = DarkBackground,
+                            focusedTextColor = Color(0xFFF1F1F5),
+                            unfocusedTextColor = Color(0xFFF1F1F5),
+                            errorTextColor = Color(0xFFF1F1F5),
+                            cursorColor = Color(0xFF8B5CF6),
+                            errorCursorColor = Color(0xFFEF4444),
+                            focusedContainerColor = Color(0xFF181722),
+                            unfocusedContainerColor = Color(0xFF181722),
+                            errorContainerColor = Color(0xFF181722),
+                            focusedBorderColor = Color(0xFF8B5CF6),
+                            unfocusedBorderColor = Color(0xFF262433),
                             errorBorderColor = Color(0xFFEF4444)
                         ),
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),

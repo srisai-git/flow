@@ -463,6 +463,7 @@ fun EditProfileScreen(
                 onDismissRequest = { showAvatarPickerSheet = false },
                 sheetState = sheetState,
                 containerColor = colors.surface,
+                scrimColor = Color.Black.copy(alpha = 0.55f),
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
                 dragHandle = {
                     Box(

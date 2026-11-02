@@ -466,6 +466,7 @@ fun TimerScreen(
             ModalBottomSheet(
                 onDismissRequest = { viewModel.setSettingsOpen(false) },
                 containerColor = colors.surface,
+                scrimColor = Color.Black.copy(alpha = 0.55f),
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
                 dragHandle = {
                     Box(
@@ -495,6 +496,7 @@ fun TimerScreen(
             ModalBottomSheet(
                 onDismissRequest = { viewModel.setHistoryOpen(false) },
                 containerColor = colors.surface,
+                scrimColor = Color.Black.copy(alpha = 0.55f),
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
                 dragHandle = {
                     Box(
@@ -786,7 +788,7 @@ private fun CustomizeDurationsSheet(
                 .height(50.dp)
                 .bounceClick(),
             shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6), contentColor = Color.White)
         ) {
             Text(
                 text = "Apply Durations",

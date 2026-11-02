@@ -68,6 +68,7 @@ fun TasksScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = colors.background,
+        contentWindowInsets = WindowInsets.statusBars,
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { viewModel.setBottomSheetOpen(true) },
@@ -290,6 +291,7 @@ fun TasksScreen(
                 onDismissRequest = { viewModel.setBottomSheetOpen(false) },
                 sheetState = sheetState,
                 containerColor = colors.surface,
+                scrimColor = Color.Black.copy(alpha = 0.55f),
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
                 dragHandle = {
                     Box(
@@ -630,8 +632,10 @@ private fun AddTaskBottomSheetContent(
                 .bounceClick(),
             shape = RoundedCornerShape(14.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = colors.primary,
-                disabledContainerColor = colors.primary.copy(alpha = 0.4f)
+                containerColor = Color(0xFF8B5CF6),
+                contentColor = Color.White,
+                disabledContainerColor = Color(0xFF8B5CF6).copy(alpha = 0.4f),
+                disabledContentColor = Color.White.copy(alpha = 0.6f)
             )
         ) {
             Text(

@@ -640,6 +640,7 @@ fun DashboardScreen(
         ModalBottomSheet(
             onDismissRequest = { viewModel.setStreakModalOpen(false) },
             containerColor = colors.surface,
+            scrimColor = Color.Black.copy(alpha = 0.55f),
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
             dragHandle = {
                 Box(

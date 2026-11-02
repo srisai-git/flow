@@ -8,6 +8,9 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
 import android.os.Build
 import android.os.IBinder
 import android.os.SystemClock
@@ -16,6 +19,7 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import androidx.compose.runtime.Immutable
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.simats.focusflow.MainActivity
 import com.simats.focusflow.R
 import com.simats.focusflow.data.repository.ProductivityRepository
@@ -494,16 +498,21 @@ class FocusTimerService : Service() {
             "Break finished. Ready to begin your next focus session?"
         }
 
-        return NotificationCompat.Builder(this, COMPLETE_CHANNEL_ID)
+        val builder = NotificationCompat.Builder(this, COMPLETE_CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(content)
-            .setSmallIcon(R.drawable.app_logo)
+            .setSmallIcon(R.drawable.ic_notification_logo)
             .setContentIntent(openAppIntent)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .build()
+
+        getCircularPaddedBitmap(R.drawable.app_logo)?.let { largeIconBitmap ->
+            builder.setLargeIcon(largeIconBitmap)
+        }
+
+        return builder.build()
     }
 
     private fun buildNotification(isComplete: Boolean = false): Notification {
@@ -534,12 +543,16 @@ class FocusTimerService : Service() {
         val builder = NotificationCompat.Builder(this, RUNNING_CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(contentText)
-            .setSmallIcon(R.drawable.app_logo)
+            .setSmallIcon(R.drawable.ic_notification_logo)
             .setContentIntent(openAppIntent)
             .setOngoing(state.isRunning)
             .setOnlyAlertOnce(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setPriority(NotificationCompat.PRIORITY_LOW)
+
+        getCircularPaddedBitmap(R.drawable.app_logo)?.let { largeIconBitmap ->
+            builder.setLargeIcon(largeIconBitmap)
+        }
 
         if (state.isRunning) {
             val pauseIntent = PendingIntent.getService(
@@ -596,6 +609,31 @@ class FocusTimerService : Service() {
         val notification = buildNotification(isComplete)
         val manager = getSystemService(NotificationManager::class.java)
         manager?.notify(NOTIFICATION_ID, notification)
+    }
+
+    private fun getCircularPaddedBitmap(drawableResId: Int): Bitmap? {
+        return try {
+            val drawable = ContextCompat.getDrawable(this, drawableResId) ?: return null
+            val size = (64 * resources.displayMetrics.density).toInt().coerceAtLeast(128)
+            val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+
+            // Background circle with dark canvas matching FocusFlow palette (#181722)
+            val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = android.graphics.Color.parseColor("#181722")
+                style = Paint.Style.FILL
+            }
+            val radius = size / 2f
+            canvas.drawCircle(radius, radius, radius, bgPaint)
+
+            // Draw inner logo with safe 16% inner margin padding to prevent circular container clipping
+            val pad = (size * 0.16f).toInt()
+            drawable.setBounds(pad, pad, size - pad, size - pad)
+            drawable.draw(canvas)
+            bitmap
+        } catch (e: Exception) {
+            null
+        }
     }
 
     override fun onDestroy() {
