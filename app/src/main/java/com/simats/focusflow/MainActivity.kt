@@ -1,6 +1,7 @@
 package com.simats.focusflow
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -13,7 +14,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
 import com.simats.focusflow.data.TokenSyncHelper
+import com.simats.focusflow.service.NotificationHelper
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.WindowInsets
@@ -89,9 +92,26 @@ import com.simats.focusflow.ui.screens.WhyThisSuggestionScreen
 import com.simats.focusflow.ui.theme.FOCUSFLOWTheme
 
 class MainActivity : ComponentActivity() {
+    private val pendingRoute = MutableStateFlow<String?>(null)
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        intent.getStringExtra("route")?.let { route ->
+            pendingRoute.value = route
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Create standard notification channels on app startup
+        NotificationHelper.createNotificationChannels(applicationContext)
+
+        intent.getStringExtra("route")?.let { route ->
+            pendingRoute.value = route
+        }
 
         // Firebase Cloud Messaging Token Registration & Logging
         FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
@@ -141,6 +161,20 @@ class MainActivity : ComponentActivity() {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
                 val isMainScreen = Screen.isMainScreen(currentRoute)
+
+                val targetRoute by pendingRoute.collectAsState()
+                LaunchedEffect(targetRoute) {
+                    targetRoute?.let { route ->
+                        try {
+                            navController.navigate(route) {
+                                launchSingleTop = true
+                            }
+                        } catch (e: Exception) {
+                            Log.e("MainActivity", "Failed to navigate to route: $route", e)
+                        }
+                        pendingRoute.value = null
+                    }
+                }
 
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),

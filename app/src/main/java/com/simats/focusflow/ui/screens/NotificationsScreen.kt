@@ -20,11 +20,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.simats.focusflow.R
+import androidx.compose.ui.platform.LocalContext
+import com.simats.focusflow.service.NotificationHelper
 import com.simats.focusflow.ui.components.CustomTopBar
 import kotlinx.coroutines.launch
 
 @Composable
 fun NotificationsScreen(onBack: () -> Unit = {}) {
+    val context = LocalContext.current
     var notificationsEnabled by remember { mutableStateOf(true) }
     var dailyReminder by remember { mutableStateOf(true) }
     var reminderTime by remember { mutableStateOf("09:00 AM") }
@@ -279,6 +282,25 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
                 }
             }
             
+            if (notificationsEnabled) {
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = {
+                        NotificationHelper.sendTestNotification(context, "timer")
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Test notification dispatched to status bar.")
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF7158E2)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Send Test Notification", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+
             Spacer(modifier = Modifier.height(32.dp))
             
             Button(
