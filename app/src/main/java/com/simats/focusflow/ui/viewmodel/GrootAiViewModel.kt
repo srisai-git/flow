@@ -229,20 +229,7 @@ class GrootAiViewModel(
                     }
                 },
                 onFailure = {
-                    val fallbackText = when {
-                        textToSend.matches(Regex("(?i)^(good\\s*night|sweet\\s*dreams|night\\s*night).*")) ->
-                            "Good night. Rest well and recharge for tomorrow."
-                        textToSend.matches(Regex("(?i)^(how\\s*are\\s*you|how's\\s*it\\s*going).*")) ->
-                            "I am doing well, thank you. Ready to help you whenever you need."
-                        textToSend.matches(Regex("(?i)^(thank\\s*you|thanks|thx).*")) ->
-                            "You are welcome. Happy to help anytime."
-                        textToSend.matches(Regex("(?i)^(hi|hello|hey|greetings).*")) ->
-                            "Hello! I am Groot. How are you doing today?"
-                        textToSend.contains("who are you", ignoreCase = true) ->
-                            "I am Groot, your AI collaborator and focus coach inside FocusFlow."
-                        else ->
-                            "I am Groot, your AI collaborator. Feel free to ask anything about coding, focus, your tasks, or habits."
-                    }
+                    val fallbackText = "Unable to connect to Groot AI. Please check your network connection and verify the AI service is active."
                     val fallbackMessage = ChatMessage(
                         isFromUser = false,
                         text = fallbackText

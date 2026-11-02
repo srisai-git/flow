@@ -501,14 +501,14 @@ class FocusTimerService : Service() {
         val builder = NotificationCompat.Builder(this, COMPLETE_CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(content)
-            .setSmallIcon(R.drawable.ic_notification_logo)
+            .setSmallIcon(R.drawable.ic_notification_small)
             .setContentIntent(openAppIntent)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
 
-        getCircularPaddedBitmap(R.drawable.app_logo)?.let { largeIconBitmap ->
+        createProportionalNotificationIcon(this, R.drawable.app_logo)?.let { largeIconBitmap ->
             builder.setLargeIcon(largeIconBitmap)
         }
 
@@ -543,14 +543,14 @@ class FocusTimerService : Service() {
         val builder = NotificationCompat.Builder(this, RUNNING_CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(contentText)
-            .setSmallIcon(R.drawable.ic_notification_logo)
+            .setSmallIcon(R.drawable.ic_notification_small)
             .setContentIntent(openAppIntent)
             .setOngoing(state.isRunning)
             .setOnlyAlertOnce(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setPriority(NotificationCompat.PRIORITY_LOW)
 
-        getCircularPaddedBitmap(R.drawable.app_logo)?.let { largeIconBitmap ->
+        createProportionalNotificationIcon(this, R.drawable.app_logo)?.let { largeIconBitmap ->
             builder.setLargeIcon(largeIconBitmap)
         }
 
@@ -611,25 +611,35 @@ class FocusTimerService : Service() {
         manager?.notify(NOTIFICATION_ID, notification)
     }
 
-    private fun getCircularPaddedBitmap(drawableResId: Int): Bitmap? {
+    private fun createProportionalNotificationIcon(context: Context, resId: Int): Bitmap? {
         return try {
-            val drawable = ContextCompat.getDrawable(this, drawableResId) ?: return null
-            val size = (64 * resources.displayMetrics.density).toInt().coerceAtLeast(128)
+            val drawable = ContextCompat.getDrawable(context, resId) ?: return null
+            val size = 96
             val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(bitmap)
 
-            // Background circle with dark canvas matching FocusFlow palette (#181722)
+            val radius = size / 2f
+
+            // 1. Dark elevated circle background (#181722)
             val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = android.graphics.Color.parseColor("#181722")
                 style = Paint.Style.FILL
             }
-            val radius = size / 2f
-            canvas.drawCircle(radius, radius, radius, bgPaint)
+            canvas.drawCircle(radius, radius, radius - 1f, bgPaint)
 
-            // Draw inner logo with safe 16% inner margin padding to prevent circular container clipping
-            val pad = (size * 0.16f).toInt()
-            drawable.setBounds(pad, pad, size - pad, size - pad)
+            // 2. Subtle violet stroke (#8B5CF6)
+            val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = android.graphics.Color.parseColor("#8B5CF6")
+                style = Paint.Style.STROKE
+                strokeWidth = 2f
+            }
+            canvas.drawCircle(radius, radius, radius - 1.5f, strokePaint)
+
+            // 3. Draw "F" drawable centered inside with 30% internal inset/padding (safe area, ~60% diameter)
+            val inset = (size * 0.30f).toInt()
+            drawable.setBounds(inset, inset, size - inset, size - inset)
             drawable.draw(canvas)
+
             bitmap
         } catch (e: Exception) {
             null
