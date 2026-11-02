@@ -13,6 +13,12 @@ import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.simats.focusflow.MainActivity
 import com.simats.focusflow.R
+import com.simats.focusflow.data.TokenSyncHelper
+import com.simats.focusflow.data.session.SessionManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 class FlowFirebaseMessagingService : FirebaseMessagingService() {
 
@@ -25,6 +31,15 @@ class FlowFirebaseMessagingService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         Log.d(TAG, "New Token: $token")
+        CoroutineScope(Dispatchers.IO).launch {
+            val sessionManager = SessionManager.getInstance(applicationContext)
+            val userId = try {
+                sessionManager.userSessionFlow.first().userId ?: 1
+            } catch (e: Exception) {
+                1
+            }
+            TokenSyncHelper.syncFcmToken(token, userId)
+        }
     }
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
@@ -93,3 +108,4 @@ class FlowFirebaseMessagingService : FirebaseMessagingService() {
         return text.replace(Regex("[\\x{10000}-\\x{10FFFF}\\x{2600}-\\x{27BF}\\x{2300}-\\x{23FF}\\x{2B50}\\x{2B55}]"), "").trim()
     }
 }
+

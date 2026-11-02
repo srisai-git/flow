@@ -11,6 +11,11 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.lifecycleScope
+import com.simats.focusflow.data.TokenSyncHelper
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -82,7 +87,6 @@ import com.simats.focusflow.ui.screens.WeeklyReportDetailsScreen
 import com.simats.focusflow.ui.screens.WelcomeStartScreen
 import com.simats.focusflow.ui.screens.WhyThisSuggestionScreen
 import com.simats.focusflow.ui.theme.FOCUSFLOWTheme
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -97,6 +101,17 @@ class MainActivity : ComponentActivity() {
             }
             val token = task.result
             Log.d("FlowFCM", "Device Token: $token")
+            token?.let { fcmToken ->
+                lifecycleScope.launch(Dispatchers.IO) {
+                    val sessionManager = SessionManager.getInstance(applicationContext)
+                    val userId = try {
+                        sessionManager.userSessionFlow.first().userId ?: 1
+                    } catch (e: Exception) {
+                        1
+                    }
+                    TokenSyncHelper.syncFcmToken(fcmToken, userId)
+                }
+            }
         }
 
         setContent {
