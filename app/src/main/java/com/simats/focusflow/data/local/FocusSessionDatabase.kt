@@ -241,3 +241,4 @@ class FocusSessionDatabase private constructor(context: Context) :
         notifyTableChanged()
     }
 }
+
