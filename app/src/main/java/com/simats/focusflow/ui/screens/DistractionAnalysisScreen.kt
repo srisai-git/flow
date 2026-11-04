@@ -222,27 +222,27 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
             Spacer(modifier = Modifier.height(24.dp))
         }
 
-        // Digital Wellbeing Hero Section: Circular Ring with center total screen time today
+        // Digital Wellbeing Hero Section: Sleek Minimalist Indicator
         if (hasPermission) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 12.dp),
+                    .padding(vertical = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Box(
-                    modifier = Modifier.size(210.dp),
+                    modifier = Modifier.size(200.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Canvas(modifier = Modifier.size(190.dp)) {
-                        val strokeWidth = 16.dp.toPx()
+                    Canvas(modifier = Modifier.size(176.dp)) {
+                        val strokeWidth = 11.dp.toPx()
                         val diameter = size.minDimension - strokeWidth
                         val topLeftOffset = androidx.compose.ui.geometry.Offset(strokeWidth / 2, strokeWidth / 2)
                         val arcSize = androidx.compose.ui.geometry.Size(diameter, diameter)
 
-                        // Draw background track ring
+                        // 1. Sleek dark theme background track (#25203D)
                         drawArc(
-                            color = Color(0xFF262433),
+                            color = Color(0xFF25203D),
                             startAngle = 0f,
                             sweepAngle = 360f,
                             useCenter = false,
@@ -251,46 +251,58 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
                             style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
                         )
 
-                        // Draw segmented arcs for apps if usage exists
-                        if (totalMins > 0 && activeApps.isNotEmpty()) {
-                            var currentAngle = -90f
-                            val gapDegrees = if (activeApps.size > 1) 4f else 0f
-                            val availableSweep = 360f - (activeApps.size * gapDegrees)
-
-                            activeApps.forEachIndexed { index, app ->
-                                val segmentSweep = ((app.usageMinutes.toFloat() / totalMins.toFloat()) * availableSweep)
-                                    .coerceAtLeast(3f)
-                                val segmentColor = SegmentColors[index % SegmentColors.size]
-
+                        // 2. Accent arcs with rounded caps and clean spacing
+                        if (totalMins > 0) {
+                            if (activeApps.size <= 1) {
                                 drawArc(
-                                    color = segmentColor,
-                                    startAngle = currentAngle,
-                                    sweepAngle = segmentSweep,
+                                    color = Color(0xFF8B5CF6),
+                                    startAngle = -90f,
+                                    sweepAngle = 360f,
                                     useCenter = false,
                                     topLeft = topLeftOffset,
                                     size = arcSize,
                                     style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
                                 )
-                                currentAngle += segmentSweep + gapDegrees
+                            } else {
+                                var currentAngle = -90f
+                                val gapDegrees = 5f
+                                val availableSweep = 360f - (activeApps.size * gapDegrees)
+
+                                activeApps.forEachIndexed { index, app ->
+                                    val segmentSweep = ((app.usageMinutes.toFloat() / totalMins.toFloat()) * availableSweep)
+                                        .coerceAtLeast(4f)
+                                    val segmentColor = SegmentColors[index % SegmentColors.size]
+
+                                    drawArc(
+                                        color = segmentColor,
+                                        startAngle = currentAngle,
+                                        sweepAngle = segmentSweep,
+                                        useCenter = false,
+                                        topLeft = topLeftOffset,
+                                        size = arcSize,
+                                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                                    )
+                                    currentAngle += segmentSweep + gapDegrees
+                                }
                             }
                         }
                     }
 
-                    // Center stats
+                    // Center typography: large bold hours and minutes, clean muted subtitle
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
                             text = if (totalMins > 0) totalHoursStr else "0m",
-                            fontSize = 30.sp,
-                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Bold,
                             color = colors.textPrimary,
                             letterSpacing = (-0.5).sp
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "Screen time today",
+                            text = "Today's Screen Time",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
                             color = colors.textMuted
@@ -458,14 +470,6 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
                                             fontWeight = FontWeight.Bold,
                                             color = colors.textPrimary
                                         )
-                                        if (app.percent > 0) {
-                                            Text(
-                                                text = "${app.percent}%",
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Medium,
-                                                color = colors.textMuted
-                                            )
-                                        }
                                     }
                                 }
 
