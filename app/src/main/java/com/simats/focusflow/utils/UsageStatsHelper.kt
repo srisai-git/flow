@@ -126,11 +126,13 @@ object UsageStatsHelper {
 
     /**
      * Queries device usage statistics strictly for TODAY (from 00:00:00 midnight to now).
+     * Filters out non-launcher system processes and prevents interval double-counting.
      */
     fun queryTodayDistractionStats(context: Context): DistractionUsageSummary {
         val pm = context.packageManager
         val selfPkg = context.packageName
 
+        // 1. Resolve ONLY user-facing launcher applications (Play Store & user launcher apps)
         val launcherIntent = Intent(Intent.ACTION_MAIN).apply {
             addCategory(Intent.CATEGORY_LAUNCHER)
         }
@@ -149,6 +151,7 @@ object UsageStatsHelper {
         val launcherAppMap = mutableMapOf<String, Pair<String, Drawable?>>()
         for (resolveInfo in resolveInfos) {
             val pkg = resolveInfo.activityInfo?.packageName ?: continue
+            // Strictly exclude FocusFlow itself from distraction stats
             if (pkg == selfPkg || launcherAppMap.containsKey(pkg)) continue
 
             val label = try {
@@ -185,51 +188,63 @@ object UsageStatsHelper {
         val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
             ?: return DistractionUsageSummary()
 
-        // Today boundary: 00:00:00 midnight to System.currentTimeMillis()
+        // Today boundary: strictly 00:00:00 midnight to System.currentTimeMillis()
         val cal = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0)
             set(Calendar.MINUTE, 0)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
         }
-        val startTime = cal.timeInMillis
-        val endTime = System.currentTimeMillis()
+        val startOfDay = cal.timeInMillis
+        val currentTime = System.currentTimeMillis()
 
-        var usageStatsList: List<UsageStats> = try {
+        val usageStatsList: List<UsageStats> = try {
             usageStatsManager.queryUsageStats(
                 UsageStatsManager.INTERVAL_DAILY,
-                startTime,
-                endTime
+                startOfDay,
+                currentTime
             ) ?: emptyList()
         } catch (_: Exception) {
             emptyList()
         }
 
-        if (usageStatsList.isEmpty()) {
-            val aggregated = try {
-                usageStatsManager.queryAndAggregateUsageStats(startTime, endTime)
-            } catch (_: Exception) {
-                emptyMap()
-            }
-            usageStatsList = aggregated.values.toList()
-        }
-
+        // Aggregate totalTimeInForeground strictly for today without prior-day overlap or double counting
         val packageTimeMap = mutableMapOf<String, Long>()
         for (stats in usageStatsList) {
             val pkg = stats.packageName ?: continue
+            if (pkg == selfPkg || !launcherAppMap.containsKey(pkg)) continue
+            // Ensure app was actually active today
+            if (stats.lastTimeUsed < startOfDay) continue
+
             val time = stats.totalTimeInForeground
             if (time > 0L) {
-                packageTimeMap[pkg] = (packageTimeMap[pkg] ?: 0L) + time
+                // Avoid double-counting overlapping daily interval buckets
+                val existing = packageTimeMap[pkg] ?: 0L
+                packageTimeMap[pkg] = maxOf(existing, time)
             }
+        }
+
+        // Fallback to queryAndAggregateUsageStats if queryUsageStats was empty
+        if (packageTimeMap.isEmpty()) {
+            try {
+                val aggregated = usageStatsManager.queryAndAggregateUsageStats(startOfDay, currentTime)
+                for ((pkg, stats) in aggregated) {
+                    if (pkg == selfPkg || !launcherAppMap.containsKey(pkg)) continue
+                    if (stats.lastTimeUsed >= startOfDay && stats.totalTimeInForeground > 0L) {
+                        packageTimeMap[pkg] = stats.totalTimeInForeground
+                    }
+                }
+            } catch (_: Exception) {}
         }
 
         val appInfos = mutableListOf<AppUsageInfo>()
         var totalDistractionMillis = 0L
 
+        // Strictly include only launcher apps that had usage today
         for ((pkg, pair) in launcherAppMap) {
             val timeMs = packageTimeMap[pkg] ?: 0L
             val mins = (timeMs / 60_000L).toInt()
-            val displayMins = if (mins == 0 && timeMs >= 20_000L) 1 else mins
+            val displayMins = if (mins == 0 && timeMs >= 15_000L) 1 else mins
             val category = categorizePackage(pkg, pair.first)
 
             appInfos.add(
@@ -241,47 +256,7 @@ object UsageStatsHelper {
                     icon = pair.second
                 )
             )
-            totalDistractionMillis += timeMs
-        }
-
-        for ((pkg, timeMs) in packageTimeMap) {
-            if (pkg == selfPkg || launcherAppMap.containsKey(pkg)) continue
-            if (timeMs < 30_000L) continue
-
-            val appInfo = try {
-                pm.getApplicationInfo(pkg, 0)
-            } catch (_: Exception) {
-                null
-            } ?: continue
-
-            val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
-            if (isSystem && pm.getLaunchIntentForPackage(pkg) == null) continue
-
-            val label = try {
-                pm.getApplicationLabel(appInfo).toString()
-            } catch (_: Exception) {
-                pkg.substringAfterLast('.')
-            }
-
-            val icon = try {
-                pm.getApplicationIcon(appInfo)
-            } catch (_: Exception) {
-                null
-            }
-
-            val mins = (timeMs / 60_000L).toInt()
-            val displayMins = if (mins == 0 && timeMs >= 20_000L) 1 else mins
-
-            appInfos.add(
-                AppUsageInfo(
-                    packageName = pkg,
-                    appName = label,
-                    usageMinutes = displayMins,
-                    category = categorizePackage(pkg, label),
-                    icon = icon
-                )
-            )
-            totalDistractionMillis += timeMs
+            totalDistractionMillis += (displayMins * 60_000L)
         }
 
         val sortedApps = appInfos.sortedWith(
