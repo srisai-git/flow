@@ -3,22 +3,24 @@ package com.simats.focusflow.ui.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.simats.focusflow.service.FocusTimerService
 import com.simats.focusflow.ui.components.CustomTopBar
+import com.simats.focusflow.ui.components.bounceClick
+import com.simats.focusflow.ui.theme.FocusFlowTheme
+import com.simats.focusflow.ui.viewmodel.TimerMode
 
 @Composable
 fun ActiveSessionScreen(
@@ -27,10 +29,22 @@ fun ActiveSessionScreen(
     onLogDistraction: () -> Unit = {},
     onTakeBreak: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val colors = FocusFlowTheme.colors
+    val timerState by FocusTimerService.timerStateFlow.collectAsState()
+
+    val mins = timerState.remainingSeconds / 60
+    val secs = timerState.remainingSeconds % 60
+    val formattedTime = String.format("%02d:%02d", mins, secs)
+    val totalMins = timerState.totalSeconds / 60
+    val sweepFraction = if (timerState.totalSeconds > 0) {
+        timerState.remainingSeconds.toFloat() / timerState.totalSeconds.toFloat()
+    } else 0f
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(colors.background)
             .padding(top = 48.dp, bottom = 24.dp, start = 24.dp, end = 24.dp)
     ) {
         CustomTopBar("In your flow", "FOCUS SESSION", onBack)
@@ -40,130 +54,129 @@ fun ActiveSessionScreen(
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             Box(
                 modifier = Modifier
-                    .background(Color(0xFFF0EDFF), RoundedCornerShape(12.dp))
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                    .background(colors.primary.copy(alpha = 0.14f), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 14.dp, vertical = 6.dp)
             ) {
-                Text("Study · Session in progress", color = Color(0xFF7158E2), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                Text(
+                    text = "${timerState.currentMode.title} · Session in progress",
+                    color = colors.primaryLight,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         }
         
         Spacer(modifier = Modifier.height(24.dp))
         
         Text(
-            text = "Study machine learning",
+            text = if (timerState.currentMode == TimerMode.FOCUS) "Deep Focus Session" else "Rest & Recovery",
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFF1E1E24),
+            color = colors.textPrimary,
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
         
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(40.dp))
         
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(280.dp)) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(270.dp)) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     drawArc(
-                        color = Color(0xFFF3F4F6),
+                        color = colors.border,
                         startAngle = 0f,
                         sweepAngle = 360f,
                         useCenter = false,
                         style = Stroke(12.dp.toPx(), cap = StrokeCap.Round)
                     )
                     drawArc(
-                        color = Color(0xFF7158E2),
+                        color = colors.primary,
                         startAngle = -90f,
-                        sweepAngle = 360f * (24.3f / 25f),
+                        sweepAngle = 360f * sweepFraction,
                         useCenter = false,
                         style = Stroke(12.dp.toPx(), cap = StrokeCap.Round)
                     )
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("24:18", fontSize = 64.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
-                    Text("remaining of 25:00", fontSize = 14.sp, color = Color(0xFF6B7280))
+                    Text(
+                        text = formattedTime,
+                        fontSize = 58.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textPrimary
+                    )
+                    Text(
+                        text = "remaining of ${totalMins}:00",
+                        fontSize = 14.sp,
+                        color = colors.textMuted
+                    )
                 }
             }
         }
         
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(28.dp))
         
         Text(
-            text = "Understand precision vs. recall",
-            fontSize = 16.sp,
-            color = Color(0xFF6B7280),
+            text = "Keep your attention anchored to a single priority.",
+            fontSize = 14.sp,
+            color = colors.textMuted,
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
         
         Spacer(modifier = Modifier.weight(1f))
         
         Button(
-            onClick = { /* Pause logic */ },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7158E2)),
+            onClick = {
+                if (timerState.isRunning) {
+                    FocusTimerService.pauseTimer(context)
+                } else {
+                    FocusTimerService.startTimer(context, timerState.activeUserId)
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp)
+                .bounceClick(),
+            colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
             shape = RoundedCornerShape(16.dp)
         ) {
-            Text("Pause", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text(
+                text = if (timerState.isRunning) "Pause" else "Resume",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White
+            )
         }
         
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
         
         OutlinedButton(
-            onClick = onTakeBreak,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
+            onClick = {
+                FocusTimerService.selectMode(context, TimerMode.SHORT_BREAK)
+                onTakeBreak()
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp)
+                .bounceClick(),
+            border = BorderStroke(1.dp, colors.border),
             shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF1E1E24))
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.textPrimary)
         ) {
-            Text("Take a break", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text("Take a break", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         }
         
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
         
         OutlinedButton(
             onClick = onEndSession,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
-            shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF1E1E24))
-        ) {
-            Text("End Session", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-        }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { onLogDistraction() }
-                .padding(vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .height(52.dp)
+                .bounceClick(),
+            border = BorderStroke(1.dp, colors.border),
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.textMuted)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Canvas(modifier = Modifier.size(20.dp)) {
-                    val color = Color(0xFF6B7280)
-                    val stroke = 2.dp.toPx()
-                    drawLine(color, Offset(size.width * 0.2f, size.height), Offset(size.width * 0.2f, 0f), strokeWidth = stroke)
-                    val path = Path().apply {
-                        moveTo(size.width * 0.2f, 0f)
-                        lineTo(size.width, size.height * 0.2f)
-                        lineTo(size.width * 0.2f, size.height * 0.5f)
-                    }
-                    drawPath(path, color = color, style = Stroke(stroke))
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Text("Log Distraction", fontSize = 14.sp, color = Color(0xFF6B7280))
-            }
-            Canvas(modifier = Modifier.size(16.dp)) {
-                val color = Color(0xFF6B7280)
-                drawLine(color, Offset(size.width * 0.3f, size.height * 0.2f), Offset(size.width * 0.7f, size.height * 0.5f), strokeWidth = 2.dp.toPx())
-                drawLine(color, Offset(size.width * 0.7f, size.height * 0.5f), Offset(size.width * 0.3f, size.height * 0.8f), strokeWidth = 2.dp.toPx())
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Text("Leaving or ending asks for confirmation.", fontSize = 12.sp, color = Color(0xFF9CA3AF))
+            Text("End session", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         }
     }
 }

@@ -124,7 +124,15 @@ class TimerViewModel(
             withContext(Dispatchers.Main) {
                 result.fold(
                     onSuccess = { list ->
-                        _uiState.update { it.copy(recentSessions = list) }
+                        val distinct = list.distinctBy { session ->
+                            if (session.id > 0) session.id else "${session.startedAt}_${session.durationMinutes}"
+                        }
+                        _uiState.update { current ->
+                            current.copy(
+                                recentSessions = distinct,
+                                completedSessions = maxOf(current.completedSessions, distinct.size)
+                            )
+                        }
                     },
                     onFailure = { /* keep existing */ }
                 )

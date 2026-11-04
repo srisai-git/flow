@@ -21,6 +21,11 @@ class ProductivityRepository(
         private val _sessionLoggedEventFlow = MutableSharedFlow<Unit>(replay = 0, extraBufferCapacity = 5)
         val sessionLoggedEventFlow: SharedFlow<Unit> = _sessionLoggedEventFlow.asSharedFlow()
 
+        @Volatile
+        private var lastLogSessionTime = 0L
+        @Volatile
+        private var lastLogSessionParams = ""
+
         fun notifySessionLogged() {
             _sessionLoggedEventFlow.tryEmit(Unit)
         }
@@ -136,6 +141,14 @@ class ProductivityRepository(
         sessionType: String = "pomodoro",
         taskId: Int? = null
     ): Result<LogSessionResponse> = withContext(Dispatchers.IO) {
+        val now = System.currentTimeMillis()
+        val paramKey = "$userId-$durationMinutes-$sessionType-$taskId"
+        if (now - lastLogSessionTime < 4000L && lastLogSessionParams == paramKey) {
+            return@withContext Result.success(LogSessionResponse(true, "Session already recorded", null, durationMinutes))
+        }
+        lastLogSessionTime = now
+        lastLogSessionParams = paramKey
+
         val result = try {
             val request = LogSessionRequest(userId, durationMinutes, sessionType, taskId)
             val response = apiService.logSession(request)

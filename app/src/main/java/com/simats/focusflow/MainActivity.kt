@@ -48,6 +48,7 @@ import com.simats.focusflow.ui.theme.FOCUSFLOWTheme
 import com.simats.focusflow.ui.theme.FocusFlowTheme
 import com.simats.focusflow.ui.screens.AboutFlowScreen
 import com.simats.focusflow.ui.screens.AccountRecoveryScreen
+import com.simats.focusflow.ui.screens.ActivitiesScreen
 import com.simats.focusflow.ui.screens.ActiveSessionScreen
 import com.simats.focusflow.ui.screens.AiReportScreen
 import com.simats.focusflow.ui.screens.AvatarSelectionScreen
@@ -351,8 +352,9 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToProgressConsistency = { navController.navigate("progress_consistency") }
                             )
                         }
-                        composable(Screen.Tasks.route) {
-                            TasksScreen(
+                        composable("activities") {
+                            ActivitiesScreen(
+                                initialTab = "Tasks",
                                 onNavigateToHome = {
                                     navController.navigate(Screen.Dashboard.route) {
                                         popUpTo(Screen.Dashboard.route) {
@@ -366,7 +368,28 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToInsights = { navController.navigate("insights") },
                                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                                 onNavigateToProgressConsistency = { navController.navigate("progress_consistency") },
-                                onNavigateToEditTask = { navController.navigate("edit_task") }
+                                onNavigateToEditTask = { navController.navigate("edit_task") },
+                                onNavigateToGrootAi = { navController.navigate("groot_ai") }
+                            )
+                        }
+                        composable(Screen.Tasks.route) {
+                            ActivitiesScreen(
+                                initialTab = "Tasks",
+                                onNavigateToHome = {
+                                    navController.navigate(Screen.Dashboard.route) {
+                                        popUpTo(Screen.Dashboard.route) {
+                                            inclusive = false
+                                            saveState = false
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = false
+                                    }
+                                },
+                                onNavigateToInsights = { navController.navigate("insights") },
+                                onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
+                                onNavigateToProgressConsistency = { navController.navigate("progress_consistency") },
+                                onNavigateToEditTask = { navController.navigate("edit_task") },
+                                onNavigateToGrootAi = { navController.navigate("groot_ai") }
                             )
                         }
                         composable(Screen.Timer.route) {
@@ -375,8 +398,22 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable(Screen.Habits.route) {
-                            HabitsScreen(
-                                onNavigateBack = { navController.popBackStack() },
+                            ActivitiesScreen(
+                                initialTab = "Habits",
+                                onNavigateToHome = {
+                                    navController.navigate(Screen.Dashboard.route) {
+                                        popUpTo(Screen.Dashboard.route) {
+                                            inclusive = false
+                                            saveState = false
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = false
+                                    }
+                                },
+                                onNavigateToInsights = { navController.navigate("insights") },
+                                onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
+                                onNavigateToProgressConsistency = { navController.navigate("progress_consistency") },
+                                onNavigateToEditTask = { navController.navigate("edit_task") },
                                 onNavigateToGrootAi = { navController.navigate("groot_ai") }
                             )
                         }

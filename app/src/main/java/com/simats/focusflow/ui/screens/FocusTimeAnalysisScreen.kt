@@ -1,5 +1,6 @@
 package com.simats.focusflow.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -105,12 +106,42 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        // Bar Chart Card
         val defaultHours = listOf("08", "09", "10", "13", "16", "19")
         val hourlyMap = insightsData.hourlyFocusData.associate { it.hour to it.minutes }
         val displayData = defaultHours.map { h -> HourlyFocusItem(hour = h, minutes = hourlyMap[h] ?: 0) }
         val maxVal = maxOf(60f, displayData.maxOfOrNull { it.minutes.toFloat() } ?: 60f)
         val totalRecordedMinutes = if (insightsData.weekFocusMinutes > 0) insightsData.weekFocusMinutes else displayData.sumOf { it.minutes }
+
+        if (totalRecordedMinutes == 0) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                color = colors.surface,
+                border = BorderStroke(1.dp, colors.border)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.HourglassBottom,
+                        contentDescription = null,
+                        tint = colors.primaryLight,
+                        modifier = Modifier.size(36.dp)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "No records found yet. Complete a focus session to see your stats.",
+                        fontSize = 14.sp,
+                        color = colors.textMuted,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        // Bar Chart Card
 
         Box(
             modifier = Modifier

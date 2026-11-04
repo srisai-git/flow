@@ -115,6 +115,36 @@ fun AiReportScreen(
         
         Spacer(modifier = Modifier.height(24.dp))
         
+        if (totalSessions == 0 && insightsData.weekFocusMinutes == 0) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                color = colors.surface,
+                border = BorderStroke(1.dp, colors.border)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Insights,
+                        contentDescription = null,
+                        tint = colors.primaryLight,
+                        modifier = Modifier.size(36.dp)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "Not enough focus data yet. Complete more sessions this week to unlock AI recommendations.",
+                        fontSize = 14.sp,
+                        color = colors.textMuted,
+                        fontWeight = FontWeight.Medium,
+                        lineHeight = 20.sp
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
         // Key Findings
         Box(
             modifier = Modifier

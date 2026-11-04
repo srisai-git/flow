@@ -75,6 +75,8 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 fun resolveHabitIcon(iconKey: String): ImageVector = when (iconKey.lowercase()) {
+    "star", "default", "general" -> Icons.Default.Star
+    "check", "checkcircle" -> Icons.Rounded.CheckCircle
     "bolt", "flash" -> Icons.Default.FlashOn
     "book", "read" -> Icons.Default.MenuBook
     "code", "laptop" -> Icons.Default.Code
@@ -83,8 +85,7 @@ fun resolveHabitIcon(iconKey: String): ImageVector = when (iconKey.lowercase()) 
     "edit", "write" -> Icons.Default.Edit
     "target", "focus" -> Icons.Default.TrackChanges
     "night", "sleep" -> Icons.Default.Bedtime
-    "star" -> Icons.Default.Star
-    else -> Icons.Default.Repeat
+    else -> Icons.Default.Star
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -681,17 +682,6 @@ private fun HabitsInsightsView(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-
-        // Habit Performance List
-        Text(
-            text = "TAP HABIT FOR STREAK & MATRIX",
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            color = colors.primaryLight,
-            letterSpacing = 1.sp
-        )
-
-        Spacer(modifier = Modifier.height(10.dp))
 
         LazyColumn(
             modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
@@ -1396,10 +1386,10 @@ private fun AddHabitDialog(
 ) {
     val colors = FocusFlowTheme.colors
     var title by remember { mutableStateOf("") }
-    var selectedIcon by remember { mutableStateOf("bolt") }
+    var selectedIcon by remember { mutableStateOf("star") }
     var selectedFrequency by remember { mutableStateOf("daily") }
 
-    val iconOptions = listOf("bolt", "book", "code", "water", "fitness", "star", "edit", "target", "night", "repeat")
+    val iconOptions = listOf("star", "check", "bolt", "book", "code", "water", "fitness", "edit", "target", "night", "repeat")
     val frequencyOptions = listOf("daily", "weekdays", "weekly")
 
     AlertDialog(

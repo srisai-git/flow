@@ -293,7 +293,10 @@ fun DashboardScreen(
 
         // 2. CENTRAL HERO CARD: ABSTRACT GEOMETRIC TIME-FLOW CLOCK & TARGET
         Surface(
-            modifier = Modifier.fillMaxWidth(),
+            onClick = onNavigateToTimer,
+            modifier = Modifier
+                .fillMaxWidth()
+                .bounceClick(),
             shape = RoundedCornerShape(22.dp),
             color = colors.surface,
             border = BorderStroke(1.dp, colors.border)
@@ -444,10 +447,10 @@ fun DashboardScreen(
                     }
                     Spacer(modifier = Modifier.height(3.dp))
                     Text(
-                        text = uiState.aiSnippet.ifBlank { "Ask me anything or let me run timers, tasks, and habits for you." },
+                        text = "Hi, I am Groot, your AI productivity companion. Tap to chat, analyze your habits, or optimize your daily focus rhythm.",
                         fontSize = 12.5.sp,
                         color = colors.textPrimary,
-                        maxLines = 2,
+                        maxLines = 3,
                         overflow = TextOverflow.Ellipsis,
                         lineHeight = 17.sp
                     )

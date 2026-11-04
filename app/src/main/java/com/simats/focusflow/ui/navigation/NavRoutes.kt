@@ -3,6 +3,7 @@ package com.simats.focusflow.ui.navigation
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.Timer
@@ -10,6 +11,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
  * Sealed class representing application screens and main bottom navigation items.
+ * Configured with exactly 4 primary root tabs (Requirement 11):
+ * 1. Home (Dashboard)
+ * 2. Activities (Tasks + Habits)
+ * 3. Insights
+ * 4. Profile
  */
 sealed class Screen(
     val route: String,
@@ -17,16 +23,20 @@ sealed class Screen(
     val icon: ImageVector
 ) {
     object Dashboard : Screen("dashboard", "Home", Icons.Outlined.Home)
+    object Activities : Screen("activities", "Activities", Icons.Outlined.Checklist)
+    object Insights : Screen("insights", "Insights", Icons.Outlined.Insights)
+    object Profile : Screen("profile", "Profile", Icons.Outlined.Person)
+
+    // Legacy screen objects maintained for direct deep-link and programmatic routing
     object Tasks : Screen("tasks", "Tasks", Icons.Outlined.Checklist)
     object Timer : Screen("timer", "Timer", Icons.Outlined.Timer)
     object Habits : Screen("habits", "Habits", Icons.Outlined.Repeat)
-    object Profile : Screen("profile", "Profile", Icons.Outlined.Person)
 
     companion object {
-        val bottomNavScreens = listOf(Dashboard, Tasks, Timer, Habits, Profile)
+        val bottomNavScreens = listOf(Dashboard, Activities, Insights, Profile)
 
         fun isMainScreen(route: String?): Boolean {
-            return bottomNavScreens.any { it.route == route }
+            return bottomNavScreens.any { it.route == route } || route == "tasks" || route == "habits"
         }
     }
 }
