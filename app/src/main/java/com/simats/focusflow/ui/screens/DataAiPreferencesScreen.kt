@@ -19,84 +19,167 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.simats.focusflow.ui.components.CustomTopBar
+import com.simats.focusflow.ui.components.bounceClick
+import com.simats.focusflow.ui.theme.FocusFlowTheme
 
 @Composable
 fun DataAiPreferencesScreen(onBack: () -> Unit = {}, onNavigateToExport: () -> Unit = {}) {
+    val colors = FocusFlowTheme.colors
     var personalizedAnalysis by remember { mutableStateOf(true) }
 
     Column(
-        modifier = Modifier.fillMaxSize().background(Color(0xFFF9FAFB)).padding(top = 48.dp, bottom = 24.dp, start = 24.dp, end = 24.dp).verticalScroll(rememberScrollState())
+        modifier = Modifier
+            .fillMaxSize()
+            .background(colors.background)
+            .statusBarsPadding()
+            .padding(top = 16.dp, bottom = 24.dp, start = 20.dp, end = 20.dp)
+            .verticalScroll(rememberScrollState())
     ) {
         CustomTopBar("Data & Groot AI preferences", null, onBack)
-        Spacer(modifier = Modifier.height(24.dp))
+
+        Spacer(modifier = Modifier.height(20.dp))
+
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Security, contentDescription = null, tint = Color(0xFF4FD1C5), modifier = Modifier.size(18.dp))
-            Spacer(modifier = Modifier.width(12.dp))
-            Text("Privacy first. You choose what to keep.", fontSize = 14.sp, color = Color(0xFF6B7280))
+            Icon(
+                Icons.Default.Security,
+                contentDescription = null,
+                tint = colors.primaryLight,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                "Privacy first. You choose what to keep.",
+                fontSize = 13.sp,
+                color = colors.textMuted
+            )
         }
-        Spacer(modifier = Modifier.height(24.dp))
-        Box(modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(16.dp)).border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(16.dp)).padding(24.dp)) {
-            Column {
-                Text("Your actual records", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
-                Spacer(modifier = Modifier.height(12.dp))
-                Text("Focus sessions · tasks · interruption logs · ratings", fontSize = 14.sp, color = Color(0xFF6B7280))
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = colors.surface,
+            border = BorderStroke(1.dp, colors.border)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    "Your actual records",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.textPrimary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Focus sessions · tasks · interruption logs · streaks",
+                    fontSize = 13.sp,
+                    color = colors.textMuted
+                )
             }
         }
+
         Spacer(modifier = Modifier.height(16.dp))
-        Box(modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(16.dp)).border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(16.dp)).padding(24.dp)) {
-            Column {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = colors.surface,
+            border = BorderStroke(1.dp, colors.border)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Personalized analysis", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
+                        Text(
+                            "Personalized analysis",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textPrimary
+                        )
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("Groot AI · uses your recorded history", fontSize = 14.sp, color = Color(0xFF6B7280))
+                        Text(
+                            "Groot AI · uses your recorded history",
+                            fontSize = 13.sp,
+                            color = colors.textMuted
+                        )
                     }
-                    Switch(checked = personalizedAnalysis, onCheckedChange = { personalizedAnalysis = it }, colors = SwitchDefaults.colors(checkedTrackColor = Color(0xFF7158E2)))
+                    Switch(
+                        checked = personalizedAnalysis,
+                        onCheckedChange = { personalizedAnalysis = it },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = colors.primary,
+                            uncheckedThumbColor = colors.textMuted,
+                            uncheckedTrackColor = colors.surface
+                        )
+                    )
                 }
-                Spacer(modifier = Modifier.height(12.dp))
-                Text("Groot AI insights enabled. Disable anytime.", fontSize = 14.sp, color = Color(0xFF9CA3AF))
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    "Groot AI insights enabled. Disable anytime.",
+                    fontSize = 12.sp,
+                    color = colors.textMuted
+                )
             }
         }
+
         Spacer(modifier = Modifier.height(16.dp))
-        Box(modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(16.dp)).border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(16.dp)).padding(24.dp)) {
-            Column {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Row {
-                        Icon(Icons.Default.Psychology, contentDescription = null, tint = Color(0xFF7158E2), modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text("Groot AI Analysis status", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
-                    }
+
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = colors.surface,
+            border = BorderStroke(1.dp, colors.border)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Psychology,
+                        contentDescription = null,
+                        tint = colors.primaryLight,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        "Groot AI status",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textPrimary
+                    )
                 }
-                Spacer(modifier = Modifier.height(16.dp))
-                Text("Groot AI Assistant is active and analyzing your focus routines.", fontSize = 16.sp, color = Color(0xFF1E1E24))
-            }
-        }
-        Spacer(modifier = Modifier.height(24.dp))
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedButton(onClick = onNavigateToExport, modifier = Modifier.weight(1f).height(48.dp), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, Color(0xFFE5E7EB)), colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF1E1E24))) {
-                Text("Export CSV", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-            }
-            OutlinedButton(onClick = {}, modifier = Modifier.weight(1.3f).height(48.dp), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, Color(0xFFFCA5A5)), colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFFEF2F2), contentColor = Color(0xFFB91C1C))) {
-                Text("Delete recorded history", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-            }
-        }
-        Spacer(modifier = Modifier.height(24.dp))
-        Box(modifier = Modifier.fillMaxWidth().background(Color(0xFFF9FAFB), RoundedCornerShape(16.dp)).border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(16.dp)).padding(24.dp)) {
-            Column {
-                Text("CONFIRMATION STATE", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB45309))
-                Spacer(modifier = Modifier.height(16.dp))
-                Text("Delete recorded history?", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
                 Spacer(modifier = Modifier.height(12.dp))
-                Text("Delete all four record types permanently? This cannot be undone. Sample data stays.", fontSize = 14.sp, color = Color(0xFF6B7280))
-                Spacer(modifier = Modifier.height(24.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedButton(onClick = {}, modifier = Modifier.weight(1f).height(48.dp), shape = RoundedCornerShape(12.dp), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE5E7EB)), colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF1E1E24))) {
-                        Text("Cancel", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                    }
-                    Button(onClick = {}, modifier = Modifier.weight(1f).height(48.dp), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFCA5A5), contentColor = Color(0xFFB91C1C))) {
-                        Text("Delete history", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                    }
-                }
+                Text(
+                    "Groot AI Assistant is active and analyzing your focus routines.",
+                    fontSize = 14.sp,
+                    color = colors.textMuted
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Button(
+                onClick = onNavigateToExport,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp)
+                    .bounceClick(),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
+            ) {
+                Text(
+                    "Export Data",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
             }
         }
     }

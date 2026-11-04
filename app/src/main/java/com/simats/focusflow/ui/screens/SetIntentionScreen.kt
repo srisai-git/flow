@@ -3,7 +3,6 @@ package com.simats.focusflow.ui.screens
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,11 +16,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.simats.focusflow.ui.components.CustomTopBar
 import com.simats.focusflow.ui.components.SegmentedControl
+import com.simats.focusflow.ui.components.bounceClick
+import com.simats.focusflow.ui.theme.FocusFlowTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,26 +29,31 @@ fun SetIntentionScreen(
     onBack: () -> Unit = {},
     onBeginFocus: () -> Unit = {}
 ) {
+    val colors = FocusFlowTheme.colors
     var mode by remember { mutableStateOf("Selected task") }
     var duration by remember { mutableStateOf("25 min") }
-    var sessionGoal by remember { mutableStateOf("Understand precision vs. recall") }
+    var sessionGoal by remember { mutableStateOf("Deep Focus Block") }
     var trackInterruptions by remember { mutableStateOf(true) }
+
+    val durationNum = remember(duration) {
+        duration.substringBefore(" ").toIntOrNull() ?: 25
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
-            .padding(top = 48.dp, bottom = 24.dp, start = 24.dp, end = 24.dp)
+            .background(colors.background)
+            .statusBarsPadding()
+            .padding(top = 16.dp, bottom = 24.dp, start = 20.dp, end = 20.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        // Top Bar
         CustomTopBar(
             title = "Set your intention",
             subtitle = "ONE TASK. A LITTLE SPACE TO THINK.",
             onBack = onBack
         )
         
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         
         SegmentedControl(
             options = listOf("Selected task", "Free focus"),
@@ -58,39 +63,30 @@ fun SetIntentionScreen(
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        // Focus On Dropdown
-        Text(text = "Focus on", fontSize = 14.sp, color = Color(0xFF6B7280), fontWeight = FontWeight.Medium)
+        Text(
+            text = "Focus on",
+            fontSize = 13.sp,
+            color = colors.textMuted,
+            fontWeight = FontWeight.Medium
+        )
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
-            value = "Study machine learning",
+            value = if (mode == "Selected task") "Priority Focus Session" else "Freeform Deep Work",
             onValueChange = { },
             readOnly = true,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = Color(0xFFE5E7EB),
-                focusedBorderColor = Color(0xFF7158E2)
-            ),
-            trailingIcon = {
-                Canvas(modifier = Modifier.size(24.dp).padding(end = 12.dp)) {
-                    val stroke = 2.dp.toPx()
-                    drawLine(
-                        color = Color(0xFF6B7280),
-                        start = Offset(0f, size.height * 0.4f),
-                        end = Offset(size.width / 2, size.height * 0.6f),
-                        strokeWidth = stroke
-                    )
-                    drawLine(
-                        color = Color(0xFF6B7280),
-                        start = Offset(size.width / 2, size.height * 0.6f),
-                        end = Offset(size.width, size.height * 0.4f),
-                        strokeWidth = stroke
-                    )
-                }
-            }
+                unfocusedBorderColor = colors.border,
+                focusedBorderColor = colors.primary,
+                unfocusedContainerColor = colors.surface,
+                focusedContainerColor = colors.surface,
+                focusedTextColor = colors.textPrimary,
+                unfocusedTextColor = colors.textPrimary
+            )
         )
         
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(36.dp))
         
         // Circular Duration Indicator
         Box(
@@ -103,28 +99,37 @@ fun SetIntentionScreen(
             ) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     drawArc(
-                        color = Color(0xFFF3F4F6),
+                        color = Color(0xFF262433),
                         startAngle = 0f,
                         sweepAngle = 360f,
                         useCenter = false,
                         style = Stroke(width = 12.dp.toPx(), cap = StrokeCap.Round)
                     )
                     drawArc(
-                        color = Color(0xFF7158E2),
+                        color = colors.primary,
                         startAngle = -90f,
-                        sweepAngle = 360f * (25f / 60f), // visually representing 25 min out of 60
+                        sweepAngle = 360f * (durationNum.toFloat() / 60f),
                         useCenter = false,
                         style = Stroke(width = 12.dp.toPx(), cap = StrokeCap.Round)
                     )
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = "25", fontSize = 48.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
-                    Text(text = "minutes of focus", fontSize = 14.sp, color = Color(0xFF6B7280))
+                    Text(
+                        text = "$durationNum",
+                        fontSize = 48.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = colors.textPrimary
+                    )
+                    Text(
+                        text = "minutes of focus",
+                        fontSize = 13.sp,
+                        color = colors.textMuted
+                    )
                 }
             }
         }
         
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(36.dp))
         
         SegmentedControl(
             options = listOf("25 min", "45 min", "60 min"),
@@ -132,10 +137,14 @@ fun SetIntentionScreen(
             onOptionSelected = { duration = it }
         )
         
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(28.dp))
         
-        // Session Goal
-        Text(text = "Session goal · optional", fontSize = 14.sp, color = Color(0xFF6B7280), fontWeight = FontWeight.Medium)
+        Text(
+            text = "Session goal · optional",
+            fontSize = 13.sp,
+            color = colors.textMuted,
+            fontWeight = FontWeight.Medium
+        )
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
             value = sessionGoal,
@@ -143,49 +152,63 @@ fun SetIntentionScreen(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = Color(0xFFE5E7EB),
-                focusedBorderColor = Color(0xFF7158E2)
+                unfocusedBorderColor = colors.border,
+                focusedBorderColor = colors.primary,
+                unfocusedContainerColor = colors.surface,
+                focusedContainerColor = colors.surface,
+                focusedTextColor = colors.textPrimary,
+                unfocusedTextColor = colors.textPrimary
             ),
             singleLine = true
         )
         
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         
-        // Track Interruptions Toggle
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(16.dp))
-                .padding(16.dp)
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = colors.surface,
+            border = androidx.compose.foundation.BorderStroke(1.dp, colors.border)
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.padding(16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Track interruptions", fontSize = 16.sp, fontWeight = FontWeight.Medium, color = Color(0xFF1E1E24))
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("Log distractions without losing your place.", fontSize = 12.sp, color = Color(0xFF6B7280))
+                    Text(
+                        "Track interruptions",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.textPrimary
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        "Log distractions without losing your place.",
+                        fontSize = 12.sp,
+                        color = colors.textMuted
+                    )
                 }
                 Switch(
                     checked = trackInterruptions,
                     onCheckedChange = { trackInterruptions = it },
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = Color.White,
-                        checkedTrackColor = Color(0xFF7158E2)
+                        checkedTrackColor = colors.primary,
+                        uncheckedThumbColor = colors.textMuted,
+                        uncheckedTrackColor = colors.surface
                     )
                 )
             }
         }
         
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             Text(
-                text = "You don't need a perfect session. Just a beginning.",
+                text = "You do not need a perfect session. Just a beginning.",
                 fontSize = 12.sp,
-                color = Color(0xFF6B7280)
+                color = colors.textMuted
             )
         }
         
@@ -195,17 +218,12 @@ fun SetIntentionScreen(
             onClick = onBeginFocus,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7158E2)),
-            shape = RoundedCornerShape(16.dp)
+                .height(52.dp)
+                .bounceClick(),
+            colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
+            shape = RoundedCornerShape(14.dp)
         ) {
-            Text("Begin Focus", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+            Text("Begin Focus", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun SetIntentionScreenPreview() {
-    SetIntentionScreen()
 }

@@ -1,7 +1,9 @@
 package com.simats.focusflow.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,126 +17,110 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.simats.focusflow.ui.components.CustomTopBar
+import com.simats.focusflow.ui.components.bounceClick
+import com.simats.focusflow.ui.theme.FocusFlowTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchFiltersScreen(onBack: () -> Unit = {}, onApply: () -> Unit = {}) {
-    var searchQuery by remember { mutableStateOf("machine learning") }
+    val colors = FocusFlowTheme.colors
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf("All Categories") }
+    var selectedPriority by remember { mutableStateOf("All") }
 
     Column(
-        modifier = Modifier.fillMaxSize().background(Color(0xFFF9FAFB)).padding(top = 48.dp, bottom = 24.dp, start = 24.dp, end = 24.dp).verticalScroll(rememberScrollState())
+        modifier = Modifier
+            .fillMaxSize()
+            .background(colors.background)
+            .statusBarsPadding()
+            .padding(top = 16.dp, bottom = 24.dp, start = 20.dp, end = 20.dp)
+            .verticalScroll(rememberScrollState())
     ) {
         CustomTopBar("Search and filters", "TASKS & SESSION HISTORY", onBack)
         
-        Spacer(modifier = Modifier.height(24.dp))
-        Text("Search tasks and sessions", fontSize = 14.sp, color = Color(0xFF6B7280))
+        Spacer(modifier = Modifier.height(20.dp))
+        Text("Search tasks and sessions", fontSize = 13.sp, color = colors.textMuted)
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
+            placeholder = { Text("Enter keywords...", color = colors.textMuted) },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Color(0xFF7158E2), focusedBorderColor = Color(0xFF7158E2), unfocusedContainerColor = Color.White, focusedContainerColor = Color.White)
+            colors = OutlinedTextFieldDefaults.colors(
+                unfocusedBorderColor = colors.border,
+                focusedBorderColor = colors.primary,
+                unfocusedContainerColor = colors.surface,
+                focusedContainerColor = colors.surface,
+                focusedTextColor = colors.textPrimary,
+                unfocusedTextColor = colors.textPrimary
+            )
         )
         
-        Spacer(modifier = Modifier.height(24.dp))
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Spacer(modifier = Modifier.height(20.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Category", fontSize = 14.sp, color = Color(0xFF6B7280))
+                Text("Category", fontSize = 13.sp, color = colors.textMuted)
                 Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = "Study", onValueChange = {}, readOnly = true,
-                    shape = RoundedCornerShape(12.dp), trailingIcon = { Text("v", color = Color(0xFF6B7280), modifier = Modifier.padding(end=8.dp)) },
-                    colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Color(0xFFE5E7EB), unfocusedContainerColor = Color.White)
-                )
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Task status", fontSize = 14.sp, color = Color(0xFF6B7280))
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = "Not started", onValueChange = {}, readOnly = true,
-                    shape = RoundedCornerShape(12.dp), trailingIcon = { Text("v", color = Color(0xFF6B7280), modifier = Modifier.padding(end=8.dp)) },
-                    colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Color(0xFFE5E7EB), unfocusedContainerColor = Color.White)
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Priority", fontSize = 14.sp, color = Color(0xFF6B7280))
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = "High", onValueChange = {}, readOnly = true,
-                    shape = RoundedCornerShape(12.dp), trailingIcon = { Text("v", color = Color(0xFF6B7280), modifier = Modifier.padding(end=8.dp)) },
-                    colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Color(0xFFE5E7EB), unfocusedContainerColor = Color.White)
-                )
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Date range", fontSize = 14.sp, color = Color(0xFF6B7280))
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = "05-12 Oct", onValueChange = {}, readOnly = true,
-                    shape = RoundedCornerShape(12.dp), trailingIcon = { Text("v", color = Color(0xFF6B7280), modifier = Modifier.padding(end=8.dp)) },
-                    colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Color(0xFFE5E7EB), unfocusedContainerColor = Color.White)
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        Text("Status and priority apply to tasks only.", fontSize = 12.sp, color = Color(0xFF9CA3AF))
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("Matching results · 2", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
-            Box(modifier = Modifier.background(Color(0xFFE1FAF9), RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 4.dp)) {
-                Text("Sample data", color = Color(0xFF0D9488), fontSize = 12.sp, fontWeight = FontWeight.Medium)
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        Box(modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(16.dp)).border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(16.dp)).padding(16.dp)) {
-            Column {
-                Text("TASK", fontSize = 12.sp, color = Color(0xFF9CA3AF))
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(20.dp).border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(4.dp)))
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Study machine learning", fontSize = 16.sp, fontWeight = FontWeight.Medium, color = Color(0xFF1E1E24))
-                        Text("Study · 45 min · 12 Oct 10:00", fontSize = 14.sp, color = Color(0xFF6B7280))
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = colors.surface,
+                    border = BorderStroke(1.dp, colors.border)
+                ) {
+                    Box(modifier = Modifier.fillMaxSize().padding(horizontal = 14.dp), contentAlignment = Alignment.CenterStart) {
+                        Text(selectedCategory, color = colors.textPrimary, fontSize = 14.sp)
                     }
-                    Box(modifier = Modifier.background(Color(0xFFFEF2F2), RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 4.dp)) {
-                        Text("High", color = Color(0xFFB91C1C), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                }
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Priority", fontSize = 13.sp, color = colors.textMuted)
+                Spacer(modifier = Modifier.height(8.dp))
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = colors.surface,
+                    border = BorderStroke(1.dp, colors.border)
+                ) {
+                    Box(modifier = Modifier.fillMaxSize().padding(horizontal = 14.dp), contentAlignment = Alignment.CenterStart) {
+                        Text(selectedPriority, color = colors.textPrimary, fontSize = 14.sp)
                     }
                 }
             }
         }
         
-        Spacer(modifier = Modifier.height(12.dp))
-        Box(modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(16.dp)).border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(16.dp)).padding(16.dp)) {
-            Column {
-                Text("SESSION PREVIEW · NOT COUNTED", fontSize = 12.sp, color = Color(0xFF9CA3AF))
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("Study machine learning", fontSize = 16.sp, fontWeight = FontWeight.Medium, color = Color(0xFF1E1E24))
-                Spacer(modifier = Modifier.height(4.dp))
-                Text("12 Oct 2026 · 25 min · Focus 4/5", fontSize = 14.sp, color = Color(0xFF6B7280))
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("View details →", fontSize = 14.sp, color = Color(0xFF7158E2))
-            }
-        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("Filters will match your saved tasks and logged focus sessions.", fontSize = 12.sp, color = colors.textMuted)
         
         Spacer(modifier = Modifier.height(32.dp))
         Button(
             onClick = onApply,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7158E2)),
-            shape = RoundedCornerShape(16.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp)
+                .bounceClick(),
+            colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
+            shape = RoundedCornerShape(14.dp)
         ) {
-            Text("Apply filters", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text("Apply filters", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
         }
         Spacer(modifier = Modifier.height(16.dp))
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Text("Clear selections", color = Color(0xFF7158E2), fontSize = 14.sp)
+            Text(
+                "Clear selections",
+                color = colors.primaryLight,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clickable {
+                    searchQuery = ""
+                    selectedCategory = "All Categories"
+                    selectedPriority = "All"
+                }
+            )
         }
     }
 }

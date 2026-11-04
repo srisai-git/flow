@@ -8,7 +8,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.HourglassEmpty
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,13 +19,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.simats.focusflow.data.models.InsightsData
 import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.ui.components.CustomTopBar
-import com.simats.focusflow.ui.components.bounceClick
 import com.simats.focusflow.ui.theme.FocusFlowTheme
 import kotlinx.coroutines.flow.first
 import java.text.SimpleDateFormat
@@ -63,24 +66,37 @@ fun WeeklyReportDetailsScreen(
         "$startStr – $endStr $yearStr"
     }
 
-    val totalSessions = insightsData.totalSessions
     val totalMins = insightsData.weekFocusMinutes
-    val hasEnoughData = totalSessions > 0 || totalMins > 0
+    val totalSessions = insightsData.totalSessions
+    val hasData = totalMins > 0 || totalSessions > 0
 
-    val dailyData = insightsData.dailyChartData
-    val maxVal = maxOf(60f, dailyData.maxOfOrNull { it.focusMinutes.toFloat() } ?: 60f)
+    val totalHours = totalMins / 60
+    val remainingMins = totalMins % 60
+    val peakDay = insightsData.dailyChartData.maxByOrNull { it.focusMinutes }?.let {
+        if (it.focusMinutes > 0) it.day else "Weekday"
+    } ?: "Weekday"
+    val bestWindow = if (insightsData.bestWindow.isNotBlank()) insightsData.bestWindow else "Morning (09:00 – 11:00)"
+
+    val singleActionableTip = remember(totalMins, bestWindow) {
+        when {
+            totalMins >= 180 -> "Your focus consistency is strong. Schedule your most complex tasks during your peak window ($bestWindow) to maximize deep work."
+            totalMins >= 60 -> "You have established good momentum. Practice habit-stacking a 5-minute breather right after each focus block."
+            else -> "Initiate one uninterrupted 25-minute Pomodoro session early in the day to lock in your daily rhythm."
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.background)
-            .padding(top = 48.dp, bottom = 24.dp, start = 24.dp, end = 24.dp)
+            .statusBarsPadding()
+            .padding(top = 16.dp, bottom = 24.dp, start = 20.dp, end = 20.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        CustomTopBar("Weekly report details", null, onBack)
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
+        CustomTopBar("Weekly AI report", null, onBack)
+
+        Spacer(modifier = Modifier.height(20.dp))
+
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
@@ -88,196 +104,195 @@ fun WeeklyReportDetailsScreen(
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
                 Text(
-                    text = if (hasEnoughData) "Live Report" else "No Data Yet",
+                    text = if (hasData) "Live AI Analysis" else "Summary",
                     color = colors.primaryLight,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold
                 )
             }
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(currentDateRange, fontSize = 14.sp, color = colors.textMuted)
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(currentDateRange, fontSize = 13.sp, color = colors.textMuted)
         }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "Detailed aggregate metrics compiled directly from your focus records and completed tasks.",
-            fontSize = 14.sp,
-            color = colors.textMuted
-        )
-        
-        Spacer(modifier = Modifier.height(24.dp))
 
-        if (!hasEnoughData) {
-            // Clean Empty-State UI (Requirement 1 & 2)
+        Spacer(modifier = Modifier.height(20.dp))
+
+        if (!hasData) {
             Surface(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 24.dp),
                 shape = RoundedCornerShape(16.dp),
                 color = colors.surface,
                 border = BorderStroke(1.dp, colors.border)
             ) {
                 Column(
-                    modifier = Modifier.padding(24.dp),
+                    modifier = Modifier.padding(32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Info,
+                        imageVector = Icons.Default.HourglassEmpty,
                         contentDescription = null,
                         tint = colors.primaryLight,
                         modifier = Modifier.size(36.dp)
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "Not enough focus data yet. Complete more sessions this week to unlock AI recommendations.",
-                        fontSize = 14.sp,
+                        text = "No data logged for this period.",
+                        fontSize = 15.sp,
                         color = colors.textMuted,
                         fontWeight = FontWeight.Medium,
-                        lineHeight = 20.sp
+                        textAlign = TextAlign.Center
                     )
                 }
             }
         } else {
-            // Focused Minutes Per Day Card
+            // Card (a): Total Focus Time
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(colors.surface, RoundedCornerShape(16.dp))
                     .border(1.dp, colors.border, RoundedCornerShape(16.dp))
-                    .padding(24.dp)
-            ) {
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Focused minutes / day", fontSize = 15.sp, color = colors.textMuted)
-                        Text(
-                            text = "${totalMins / 60}h ${totalMins % 60}m",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.textPrimary
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(24.dp))
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth().height(110.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Bottom
-                    ) {
-                        dailyData.forEach { item ->
-                            val heightRatio = if (maxVal > 0f) (item.focusMinutes / maxVal).coerceIn(0.04f, 1f) else 0.04f
-                            val dayLetter = if (item.day.isNotEmpty()) item.day.take(1) else "D"
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Bottom,
-                                modifier = Modifier.fillMaxHeight()
-                            ) {
-                                Text("${item.focusMinutes}", fontSize = 10.sp, color = colors.textMuted)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .width(22.dp)
-                                        .fillMaxHeight(heightRatio)
-                                        .background(
-                                            if (item.focusMinutes > 0) Color(0xFF4FD1C5) else colors.border,
-                                            RoundedCornerShape(4.dp)
-                                        )
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(dayLetter, fontSize = 12.sp, color = colors.textMuted)
-                            }
-                        }
-                    }
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Weekly Summary Breakdown Card
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(colors.surface, RoundedCornerShape(16.dp))
-                    .border(1.dp, colors.border, RoundedCornerShape(16.dp))
-                    .padding(24.dp)
-            ) {
-                Column {
-                    Text("Weekly Summary Metrics", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
-                    Spacer(modifier = Modifier.height(20.dp))
-                    
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Column {
-                            Text("Focus time", fontSize = 13.sp, color = colors.textMuted)
-                            Text("Total", fontSize = 13.sp, color = colors.primaryLight)
-                        }
-                        Text("${totalMins / 60}h ${totalMins % 60}m", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
-                    }
-                    HorizontalDivider(color = colors.border.copy(alpha = 0.5f), thickness = 1.dp, modifier = Modifier.padding(vertical = 12.dp))
-                    
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Column {
-                            Text("Focus sessions", fontSize = 13.sp, color = colors.textMuted)
-                            Text("Completed", fontSize = 13.sp, color = colors.primaryLight)
-                        }
-                        Text("$totalSessions sessions", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
-                    }
-                    HorizontalDivider(color = colors.border.copy(alpha = 0.5f), thickness = 1.dp, modifier = Modifier.padding(vertical = 12.dp))
-                    
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Column {
-                            Text("Tasks completed", fontSize = 13.sp, color = colors.textMuted)
-                            Text("${insightsData.tasksSummary.completionRatePercent.toInt()}% rate", fontSize = 13.sp, color = colors.primaryLight)
-                        }
-                        Text("${insightsData.tasksSummary.completedTasks} / ${insightsData.tasksSummary.totalTasks}", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
-                    }
-                    HorizontalDivider(color = colors.border.copy(alpha = 0.5f), thickness = 1.dp, modifier = Modifier.padding(vertical = 12.dp))
-                    
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Column {
-                            Text("Interruptions", fontSize = 13.sp, color = colors.textMuted)
-                            Text("Recorded events", fontSize = 13.sp, color = colors.primaryLight)
-                        }
-                        Text("${insightsData.distractionsSummary.totalEvents} events", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
-                    }
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Peak Efficiency Box
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(colors.primary.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
-                    .border(1.dp, colors.primary.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
                     .padding(20.dp)
             ) {
                 Column {
-                    Text("Peak Efficiency Window", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(colors.primary.copy(alpha = 0.15f), RoundedCornerShape(8.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Timer,
+                                contentDescription = null,
+                                tint = colors.primaryLight,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "TOTAL FOCUS TIME",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.primaryLight,
+                            letterSpacing = 1.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
                     Text(
-                        text = "Your observed peak focus interval occurred during ${insightsData.bestWindow}. Schedule critical tasks here for maximum cognitive momentum.",
+                        text = if (totalHours > 0) "${totalHours}h ${remainingMins}m" else "${remainingMins}m",
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textPrimary
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "$totalSessions completed focus sessions logged this week",
                         fontSize = 13.sp,
-                        color = colors.textPrimary,
-                        lineHeight = 18.sp
+                        color = colors.textMuted
                     )
                 }
             }
-        }
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        Button(
-            onClick = onViewRecommendations,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp)
-                .bounceClick(),
-            colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Text("View Recommendations", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Card (b): Most Productive Day/Time
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(colors.surface, RoundedCornerShape(16.dp))
+                    .border(1.dp, colors.border, RoundedCornerShape(16.dp))
+                    .padding(20.dp)
+            ) {
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(Color(0xFF10B981).copy(alpha = 0.15f), RoundedCornerShape(8.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Schedule,
+                                contentDescription = null,
+                                tint = Color(0xFF10B981),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "MOST PRODUCTIVE WINDOW",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF10B981),
+                            letterSpacing = 1.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Text(
+                        text = "$peakDay · $bestWindow",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textPrimary
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Highest rate of uninterrupted focus recorded during this interval",
+                        fontSize = 13.sp,
+                        color = colors.textMuted
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Card (c): Single Actionable Tip
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(colors.surface, RoundedCornerShape(16.dp))
+                    .border(1.dp, colors.primary.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+                    .padding(20.dp)
+            ) {
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(colors.primary.copy(alpha = 0.15f), RoundedCornerShape(8.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Lightbulb,
+                                contentDescription = null,
+                                tint = colors.primaryLight,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "ACTIONABLE RECOMMENDATION",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.primaryLight,
+                            letterSpacing = 1.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = singleActionableTip,
+                        fontSize = 14.sp,
+                        color = colors.textPrimary,
+                        lineHeight = 20.sp
+                    )
+                }
+            }
         }
     }
 }

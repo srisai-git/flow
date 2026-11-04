@@ -125,6 +125,7 @@ fun HabitsScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = colors.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
             if (state.selectedTab == HabitTab.ROUTINE) {
                 FloatingActionButton(
@@ -152,7 +153,7 @@ fun HabitsScreen(
                 .background(colors.background)
                 .padding(horizontal = 20.dp)
         ) {
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // 1. TOP HEADER
             Row(

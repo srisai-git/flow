@@ -1,450 +1,543 @@
 package com.simats.focusflow.ui.screens
 
+import android.graphics.drawable.Drawable
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.HourglassEmpty
+import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.simats.focusflow.data.models.DistractionCategoryItem
-import com.simats.focusflow.data.models.InsightsData
-import com.simats.focusflow.data.repository.ProductivityRepository
-import com.simats.focusflow.data.session.SessionManager
+import androidx.core.graphics.drawable.toBitmap
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.simats.focusflow.ui.components.CustomTopBar
 import com.simats.focusflow.ui.components.bounceClick
 import com.simats.focusflow.ui.theme.FocusFlowTheme
+import com.simats.focusflow.utils.AppUsageInfo
 import com.simats.focusflow.utils.DistractionUsageSummary
 import com.simats.focusflow.utils.UsageStatsHelper
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
+
+private val SegmentColors = listOf(
+    Color(0xFF8B5CF6), // Primary Violet
+    Color(0xFF10B981), // Emerald
+    Color(0xFFF59E0B), // Amber
+    Color(0xFFEC4899), // Pink
+    Color(0xFF06B6D4), // Cyan
+    Color(0xFF6366F1), // Indigo
+    Color(0xFF84CC16)  // Lime
+)
 
 @Composable
 fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
     val context = LocalContext.current
     val colors = FocusFlowTheme.colors
-    var insightsData by remember { mutableStateOf(InsightsData()) }
+    val coroutineScope = rememberCoroutineScope()
     var usageSummary by remember { mutableStateOf(DistractionUsageSummary()) }
     var hasPermission by remember { mutableStateOf(UsageStatsHelper.hasUsageStatsPermission(context)) }
     var isLoading by remember { mutableStateOf(true) }
 
-    LaunchedEffect(Unit) {
-        hasPermission = UsageStatsHelper.hasUsageStatsPermission(context)
-        try {
-            val sessionManager = SessionManager.getInstance(context)
-            val session = sessionManager.userSessionFlow.first()
-            val userId = session.userId ?: 1
-            val repo = ProductivityRepository()
-            val result = repo.getInsights(userId)
-            result.onSuccess { data ->
-                insightsData = data
-            }
-        } catch (_: Exception) {}
-
-        if (hasPermission) {
-            withContext(Dispatchers.IO) {
-                val stats = UsageStatsHelper.queryWeeklyDistractionStats(context)
+    fun refreshTodayUsageStats() {
+        val perm = UsageStatsHelper.hasUsageStatsPermission(context)
+        hasPermission = perm
+        if (perm) {
+            coroutineScope.launch(Dispatchers.IO) {
+                val stats = UsageStatsHelper.queryTodayDistractionStats(context)
                 withContext(Dispatchers.Main) {
                     usageSummary = stats
+                    isLoading = false
                 }
             }
-        }
-        isLoading = false
-    }
-
-    val currentDateRange = remember {
-        val sdf = SimpleDateFormat("dd MMM", Locale.getDefault())
-        val yearFormat = SimpleDateFormat("yyyy", Locale.getDefault())
-        val cal = Calendar.getInstance()
-        val endStr = sdf.format(cal.time)
-        val yearStr = yearFormat.format(cal.time)
-        cal.add(Calendar.DAY_OF_YEAR, -6)
-        val startStr = sdf.format(cal.time)
-        "$startStr – $endStr $yearStr"
-    }
-
-    val palette = listOf(
-        Color(0xFF8B5CF6),
-        Color(0xFF4FD1C5),
-        Color(0xFFF59E0B),
-        Color(0xFF10B981),
-        Color(0xFF6B7280)
-    )
-
-    // Determine category data: prioritize real automated usage stats if available
-    val categoryItems = remember(usageSummary, insightsData) {
-        if (usageSummary.categoryBreakdown.isNotEmpty()) {
-            val totalMins = maxOf(1, usageSummary.totalDistractionMinutes)
-            usageSummary.categoryBreakdown.entries.map { (cat, mins) ->
-                val pct = ((mins.toFloat() / totalMins.toFloat()) * 100).toInt()
-                DistractionCategoryItem(category = cat, count = mins, percent = pct)
-            }.sortedByDescending { it.count }
-        } else if (insightsData.distractionsSummary.categories.isNotEmpty()) {
-            insightsData.distractionsSummary.categories
         } else {
-            emptyList()
+            isLoading = false
         }
     }
 
-    val totalDistractionMins = if (usageSummary.totalDistractionMinutes > 0) {
-        usageSummary.totalDistractionMinutes
-    } else {
-        insightsData.distractionsSummary.totalEvents * 5
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                refreshTodayUsageStats()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
-    val topCategoryName = if (usageSummary.topCategory.isNotBlank()) {
-        usageSummary.topCategory
+    LaunchedEffect(Unit) {
+        refreshTodayUsageStats()
+    }
+
+    val todayDateFormatted = remember {
+        val sdf = SimpleDateFormat("EEE, dd MMM", Locale.getDefault())
+        sdf.format(Date())
+    }
+
+    // Filter apps that actually have recorded foreground usage today
+    val activeApps = remember(usageSummary) {
+        usageSummary.apps.filter { it.usageMinutes > 0 }
+    }
+
+    val totalMins = usageSummary.totalScreenMinutes
+    val totalHoursStr = if (totalMins >= 60) {
+        val h = totalMins / 60
+        val m = totalMins % 60
+        if (m > 0) "${h}h ${m}m" else "${h}h"
     } else {
-        insightsData.distractionsSummary.topCategory
+        "${totalMins}m"
+    }
+
+    val grootInsight = remember(usageSummary) {
+        UsageStatsHelper.generateGrootDistractionInsight(usageSummary)
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.background)
-            .padding(top = 48.dp, bottom = 24.dp, start = 24.dp, end = 24.dp)
+            .statusBarsPadding()
+            .padding(top = 16.dp, bottom = 24.dp, start = 20.dp, end = 20.dp)
             .verticalScroll(rememberScrollState())
     ) {
         CustomTopBar("Distraction analysis", null, onBack)
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        Row(verticalAlignment = Alignment.CenterVertically) {
+
+        Spacer(modifier = Modifier.height(18.dp))
+
+        // Header date pill
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Box(
                 modifier = Modifier
-                    .background(colors.primary.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .background(colors.primary.copy(alpha = 0.14f), RoundedCornerShape(10.dp))
+                    .border(1.dp, colors.primary.copy(alpha = 0.25f), RoundedCornerShape(10.dp))
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
             ) {
                 Text(
-                    text = if (hasPermission) "Automated Activity" else "Manual Records",
+                    text = "Today's Usage · $todayDateFormatted",
                     color = colors.primaryLight,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold
                 )
             }
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(currentDateRange, fontSize = 14.sp, color = colors.textMuted)
         }
-        
-        Spacer(modifier = Modifier.height(16.dp))
 
-        // UsageStats Permission Banner if not enabled
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Permission request card if access has not been granted
         if (!hasPermission) {
             Surface(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(20.dp),
                 color = colors.surface,
                 border = BorderStroke(1.dp, colors.primary.copy(alpha = 0.35f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(20.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Security,
-                            contentDescription = null,
-                            tint = colors.primaryLight,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(colors.primary.copy(alpha = 0.15f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Security,
+                                contentDescription = null,
+                                tint = colors.primaryLight,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "Automated Distraction Tracking",
-                            fontSize = 14.sp,
+                            text = "Usage Access Required",
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textPrimary
                         )
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Enable Usage Access so FocusFlow can automatically detect phone screen time, app interruptions, and digital distractions during your focus routines.",
-                        fontSize = 12.sp,
-                        color = colors.textMuted,
-                        lineHeight = 16.sp
-                    )
+
                     Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "Allow FocusFlow to read today's app usage time so you can track digital distractions and protect your deep focus intervals.",
+                        fontSize = 13.sp,
+                        color = colors.textMuted,
+                        lineHeight = 19.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
                     Button(
                         onClick = {
                             UsageStatsHelper.openUsageAccessSettings(context)
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.bounceClick()
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp)
+                            .bounceClick()
                     ) {
                         Text(
-                            text = "Enable Automated Tracking",
-                            fontSize = 12.sp,
+                            text = "Enable Usage Access",
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
-        
-        // Overview Card
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(colors.surface, RoundedCornerShape(16.dp))
-                .border(1.dp, colors.border, RoundedCornerShape(16.dp))
-                .padding(24.dp)
-        ) {
-            Row(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = if (totalDistractionMins >= 60) "${totalDistractionMins / 60}h ${totalDistractionMins % 60}m" else "${totalDistractionMins}m",
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.textPrimary
-                    )
-                    Text("screen distraction", fontSize = 14.sp, color = colors.textMuted)
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = if (categoryItems.isNotEmpty()) "${categoryItems.size}" else "0",
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.textPrimary
-                    )
-                    Text("active app categories", fontSize = 14.sp, color = colors.textMuted)
-                }
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Donut Chart Card / Empty State
-        if (categoryItems.isEmpty() && totalDistractionMins == 0) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                color = colors.surface,
-                border = BorderStroke(1.dp, colors.border)
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Info,
-                        contentDescription = null,
-                        tint = colors.primaryLight,
-                        modifier = Modifier.size(36.dp)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "No records found yet. Complete a focus session to see your stats.",
-                        fontSize = 14.sp,
-                        color = colors.textMuted,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-        } else {
+
+        // Digital Wellbeing Hero Section: Circular Ring with center total screen time today
+        if (hasPermission) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(colors.surface, RoundedCornerShape(16.dp))
-                    .border(1.dp, colors.border, RoundedCornerShape(16.dp))
-                    .padding(24.dp)
+                    .padding(vertical = 12.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(120.dp)) {
-                        Canvas(modifier = Modifier.fillMaxSize()) {
-                            val stroke = Stroke(16.dp.toPx())
+                Box(
+                    modifier = Modifier.size(210.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Canvas(modifier = Modifier.size(190.dp)) {
+                        val strokeWidth = 16.dp.toPx()
+                        val diameter = size.minDimension - strokeWidth
+                        val topLeftOffset = androidx.compose.ui.geometry.Offset(strokeWidth / 2, strokeWidth / 2)
+                        val arcSize = androidx.compose.ui.geometry.Size(diameter, diameter)
+
+                        // Draw background track ring
+                        drawArc(
+                            color = Color(0xFF262433),
+                            startAngle = 0f,
+                            sweepAngle = 360f,
+                            useCenter = false,
+                            topLeft = topLeftOffset,
+                            size = arcSize,
+                            style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                        )
+
+                        // Draw segmented arcs for apps if usage exists
+                        if (totalMins > 0 && activeApps.isNotEmpty()) {
                             var currentAngle = -90f
-                            categoryItems.forEachIndexed { index, cat ->
-                                val sweep = (cat.percent / 100f) * 360f
-                                if (sweep > 0f) {
-                                    drawArc(
-                                        color = palette[index % palette.size],
-                                        startAngle = currentAngle,
-                                        sweepAngle = sweep,
-                                        useCenter = false,
-                                        style = stroke
-                                    )
-                                    currentAngle += sweep
-                                }
+                            val gapDegrees = if (activeApps.size > 1) 4f else 0f
+                            val availableSweep = 360f - (activeApps.size * gapDegrees)
+
+                            activeApps.forEachIndexed { index, app ->
+                                val segmentSweep = ((app.usageMinutes.toFloat() / totalMins.toFloat()) * availableSweep)
+                                    .coerceAtLeast(3f)
+                                val segmentColor = SegmentColors[index % SegmentColors.size]
+
+                                drawArc(
+                                    color = segmentColor,
+                                    startAngle = currentAngle,
+                                    sweepAngle = segmentSweep,
+                                    useCenter = false,
+                                    topLeft = topLeftOffset,
+                                    size = arcSize,
+                                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                                )
+                                currentAngle += segmentSweep + gapDegrees
                             }
-                            if (categoryItems.isEmpty()) {
-                                drawCircle(colors.border, style = stroke)
-                            }
-                        }
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = if (totalDistractionMins >= 60) "${totalDistractionMins / 60}h" else "${totalDistractionMins}m",
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.textPrimary
-                            )
-                            Text("logged", fontSize = 10.sp, color = colors.textMuted)
                         }
                     }
-                    Spacer(modifier = Modifier.width(20.dp))
-                    Column {
-                        Text("Category Pattern", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
-                        Spacer(modifier = Modifier.height(6.dp))
+
+                    // Center stats
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
                         Text(
-                            text = "$topCategoryName is the leading category across your phone screen time.",
-                            fontSize = 13.sp,
-                            color = colors.textMuted,
-                            lineHeight = 17.sp
+                            text = if (totalMins > 0) totalHoursStr else "0m",
+                            fontSize = 30.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = colors.textPrimary,
+                            letterSpacing = (-0.5).sp
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Screen time today",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = colors.textMuted
                         )
                     }
                 }
             }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
 
-        // Actual Apps List Card (From UsageStatsManager)
-        if (usageSummary.apps.isNotEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(colors.surface, RoundedCornerShape(16.dp))
-                    .border(1.dp, colors.border, RoundedCornerShape(16.dp))
-                    .padding(20.dp)
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Groot AI Distraction Insight Card
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = colors.surface,
+                border = BorderStroke(1.dp, colors.primary.copy(alpha = 0.35f)),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Column {
-                    Text(
-                        text = "TOP APPS USED",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.primaryLight,
-                        letterSpacing = 1.sp
-                    )
-                    Spacer(modifier = Modifier.height(14.dp))
-                    usageSummary.apps.forEachIndexed { index, app ->
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(colors.primary.copy(alpha = 0.15f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Psychology,
+                            contentDescription = null,
+                            tint = colors.primaryLight,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "GROOT AI INSIGHT",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.primaryLight,
+                            letterSpacing = 1.sp
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = grootInsight,
+                            fontSize = 13.sp,
+                            color = colors.textPrimary,
+                            lineHeight = 19.sp,
+                            fontWeight = FontWeight.Normal
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // App Breakdown List / Empty State
+            if (activeApps.isEmpty()) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    color = colors.surface,
+                    border = BorderStroke(1.dp, colors.border)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.HourglassEmpty,
+                            contentDescription = null,
+                            tint = colors.primaryLight,
+                            modifier = Modifier.size(36.dp)
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = "No data logged for this period.",
+                            fontSize = 15.sp,
+                            color = colors.textMuted,
+                            fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            } else {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    color = colors.surface,
+                    border = BorderStroke(1.dp, colors.border)
+                ) {
+                    Column(modifier = Modifier.padding(20.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = app.appName,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = colors.textPrimary
-                                )
-                                Text(
-                                    text = app.category,
-                                    fontSize = 11.sp,
-                                    color = colors.textMuted
-                                )
-                            }
                             Text(
-                                text = "${app.usageMinutes}m · ${app.percent}%",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium,
+                                text = "TODAY'S APP BREAKDOWN",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.primaryLight,
+                                letterSpacing = 1.sp
+                            )
+                            Text(
+                                text = "$totalHoursStr total",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
                                 color = colors.textMuted
                             )
                         }
-                        if (index < usageSummary.apps.size - 1) {
-                            HorizontalDivider(
-                                color = colors.border.copy(alpha = 0.5f),
-                                thickness = 1.dp,
-                                modifier = Modifier.padding(vertical = 10.dp)
-                            )
+
+                        Spacer(modifier = Modifier.height(18.dp))
+
+                        activeApps.forEachIndexed { index, app ->
+                            val segmentColor = SegmentColors[index % SegmentColors.size]
+                            val durationText = if (app.usageMinutes >= 60) {
+                                "${app.usageMinutes / 60}h ${app.usageMinutes % 60}m"
+                            } else {
+                                "${app.usageMinutes}m"
+                            }
+
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 6.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    AppIconImage(
+                                        drawable = app.icon,
+                                        modifier = Modifier
+                                            .size(42.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                    )
+
+                                    Spacer(modifier = Modifier.width(14.dp))
+
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = app.appName,
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = colors.textPrimary
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = app.category,
+                                            fontSize = 12.sp,
+                                            color = colors.textMuted
+                                        )
+                                    }
+
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text(
+                                            text = durationText,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = colors.textPrimary
+                                        )
+                                        if (app.percent > 0) {
+                                            Text(
+                                                text = "${app.percent}%",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = colors.textMuted
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                // Proportional progress bar
+                                val progressFraction = if (totalMins > 0) {
+                                    (app.usageMinutes.toFloat() / totalMins.toFloat()).coerceIn(0.03f, 1f)
+                                } else 0f
+
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(5.dp)
+                                        .background(colors.border.copy(alpha = 0.5f), RoundedCornerShape(3.dp))
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth(fraction = progressFraction)
+                                            .height(5.dp)
+                                            .background(segmentColor, RoundedCornerShape(3.dp))
+                                    )
+                                }
+                            }
+
+                            if (index < activeApps.size - 1) {
+                                HorizontalDivider(
+                                    color = colors.border.copy(alpha = 0.4f),
+                                    thickness = 1.dp,
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                )
+                            }
                         }
                     }
                 }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-        
-        // Category Breakdown Card
-        if (categoryItems.isNotEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(colors.surface, RoundedCornerShape(16.dp))
-                    .border(1.dp, colors.border, RoundedCornerShape(16.dp))
-                    .padding(20.dp)
-            ) {
-                Column {
-                    categoryItems.forEachIndexed { index, cat ->
-                        LegendRow(
-                            color = palette[index % palette.size],
-                            title = cat.category,
-                            value = "${cat.count}m · ${cat.percent}%",
-                            textColor = colors.textPrimary,
-                            mutedColor = colors.textMuted
-                        )
-                        if (index < categoryItems.size - 1) {
-                            Spacer(modifier = Modifier.height(12.dp))
-                        }
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-        
-        // Advice Card
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(colors.primary.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
-                .border(1.dp, colors.primary.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
-                .padding(16.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Canvas(modifier = Modifier.size(20.dp).padding(top = 4.dp)) {
-                    drawRoundRect(colors.primaryLight, size = Size(size.width * 0.6f, size.height * 0.8f), style = Stroke(2.dp.toPx()))
-                    drawCircle(colors.primaryLight, radius = 1.dp.toPx(), center = Offset(size.width * 0.3f, size.height * 0.7f))
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = if (totalDistractionMins > 0) {
-                        "Most frequent: $topCategoryName. Try silencing notifications for $topCategoryName before your next focus interval."
-                    } else {
-                        "No distraction app usage recorded. Solid digital wellbeing discipline!"
-                    },
-                    fontSize = 14.sp,
-                    color = colors.textPrimary
-                )
             }
         }
     }
 }
 
 @Composable
-fun LegendRow(
-    color: Color,
-    title: String,
-    value: String,
-    textColor: Color = FocusFlowTheme.colors.textPrimary,
-    mutedColor: Color = FocusFlowTheme.colors.textMuted
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.size(8.dp).background(color, RoundedCornerShape(2.dp)))
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(title, fontSize = 14.sp, color = textColor)
+private fun AppIconImage(drawable: Drawable?, modifier: Modifier = Modifier) {
+    val bitmap = remember(drawable) {
+        if (drawable != null) {
+            try {
+                drawable.toBitmap(width = 96, height = 96).asImageBitmap()
+            } catch (_: Exception) {
+                null
+            }
+        } else null
+    }
+
+    if (bitmap != null) {
+        Image(
+            bitmap = bitmap,
+            contentDescription = null,
+            modifier = modifier
+        )
+    } else {
+        Box(
+            modifier = modifier.background(
+                FocusFlowTheme.colors.primary.copy(alpha = 0.15f),
+                RoundedCornerShape(12.dp)
+            ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Apps,
+                contentDescription = null,
+                tint = FocusFlowTheme.colors.primaryLight,
+                modifier = Modifier.size(22.dp)
+            )
         }
-        Text(value, fontSize = 14.sp, color = mutedColor)
     }
 }

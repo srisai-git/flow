@@ -55,6 +55,7 @@ class SessionManager private constructor(
         val KEY_DEADLINE_REMINDER_ENABLED = booleanPreferencesKey("key_deadline_reminder_enabled")
         val KEY_BREAK_REMINDER_ENABLED = booleanPreferencesKey("key_break_reminder_enabled")
         val KEY_AI_REPORT_REMINDER_ENABLED = booleanPreferencesKey("key_ai_report_reminder_enabled")
+        val KEY_IS_FIRST_LOGIN_FLOW = booleanPreferencesKey("is_first_login_flow")
 
         fun keyAvatarForUser(userId: Int) = stringPreferencesKey("key_avatar_for_user_$userId")
 
@@ -335,6 +336,20 @@ class SessionManager private constructor(
         }
     }
 
+    val isFirstLoginFlow: Flow<Boolean> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
+        }
+        .map { preferences ->
+            preferences[KEY_IS_FIRST_LOGIN_FLOW] ?: false
+        }
+
+    suspend fun setFirstLoginFlow(isFirst: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[KEY_IS_FIRST_LOGIN_FLOW] = isFirst
+        }
+    }
+
     /**
      * Clears active session keys upon logout while retaining user-keyed avatar paths.
      */
@@ -354,6 +369,7 @@ class SessionManager private constructor(
             preferences.remove(KEY_USER_AVATAR_PATH)
             preferences.remove(KEY_USER_BIO)
             preferences.remove(KEY_ONBOARDING_COMPLETED)
+            preferences[KEY_IS_FIRST_LOGIN_FLOW] = false
             preferences[KEY_THEME_MODE] = "light"
         }
     }

@@ -20,8 +20,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import com.simats.focusflow.data.session.SessionManager
+import kotlinx.coroutines.launch
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -55,6 +60,9 @@ fun WelcomeStartScreen(
     onCreateAccount: () -> Unit = {},
     onLogin: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val sessionManager = remember { SessionManager.getInstance(context) }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -232,7 +240,12 @@ fun WelcomeStartScreen(
 
         // Action Buttons
         Button(
-            onClick = onCreateAccount,
+            onClick = {
+                coroutineScope.launch {
+                    sessionManager.setFirstLoginFlow(true)
+                    onCreateAccount()
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(54.dp),
@@ -250,7 +263,12 @@ fun WelcomeStartScreen(
         Spacer(modifier = Modifier.height(14.dp))
 
         OutlinedButton(
-            onClick = onLogin,
+            onClick = {
+                coroutineScope.launch {
+                    sessionManager.setFirstLoginFlow(false)
+                    onLogin()
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(54.dp),

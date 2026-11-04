@@ -68,7 +68,7 @@ fun TasksScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = colors.background,
-        contentWindowInsets = WindowInsets.statusBars,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { viewModel.setBottomSheetOpen(true) },
@@ -94,7 +94,7 @@ fun TasksScreen(
                 .background(colors.background)
                 .padding(horizontal = 20.dp)
         ) {
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // 1. HEADER ROW & REFRESH ACTION
             Row(

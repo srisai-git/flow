@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import com.simats.focusflow.ui.components.CustomTopBar
 import com.simats.focusflow.ui.components.SmartTextField
 import com.simats.focusflow.ui.components.bounceClick
+import com.simats.focusflow.ui.theme.FocusFlowTheme
 import com.simats.focusflow.ui.viewmodel.AuthViewModel
 
 @Composable
@@ -30,7 +31,8 @@ fun ForgotPasswordScreen(
     onResetSuccess: (String) -> Unit = {},
     authViewModel: AuthViewModel = remember { AuthViewModel() }
 ) {
-    var email by remember { mutableStateOf("sri.sai@example.com") }
+    val colors = FocusFlowTheme.colors
+    var email by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
 
@@ -56,31 +58,32 @@ fun ForgotPasswordScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = Color.White
+        containerColor = colors.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color.White)
-                .padding(top = 48.dp, bottom = 24.dp, start = 24.dp, end = 24.dp)
+                .background(colors.background)
+                .statusBarsPadding()
+                .padding(top = 16.dp, bottom = 24.dp, start = 20.dp, end = 20.dp)
                 .verticalScroll(rememberScrollState())
         ) {
             CustomTopBar("Reset Password", null, onBack)
 
-            Spacer(modifier = Modifier.height(24.dp))
-            Icon(Icons.Default.LockReset, contentDescription = null, tint = Color(0xFF7158E2), modifier = Modifier.size(40.dp))
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("Create a new password", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(20.dp))
+            Icon(Icons.Default.LockReset, contentDescription = null, tint = colors.primaryLight, modifier = Modifier.size(36.dp))
+            Spacer(modifier = Modifier.height(14.dp))
+            Text("Create a new password", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
                 "Enter your registered email address and choose a strong new password to regain access.",
-                fontSize = 15.sp,
-                color = Color(0xFF6B7280),
-                lineHeight = 22.sp
+                fontSize = 14.sp,
+                color = colors.textMuted,
+                lineHeight = 20.sp
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
             // Email Input
             SmartTextField(
@@ -94,7 +97,7 @@ fun ForgotPasswordScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             // New Password Input
-            Text("New Password", fontSize = 14.sp, color = Color(0xFF6B7280), fontWeight = FontWeight.Medium)
+            Text("New Password", fontSize = 13.sp, color = colors.textMuted, fontWeight = FontWeight.Medium)
             Spacer(modifier = Modifier.height(6.dp))
             OutlinedTextField(
                 value = newPassword,
@@ -103,16 +106,20 @@ fun ForgotPasswordScreen(
                 shape = RoundedCornerShape(12.dp),
                 isError = !isPasswordValid,
                 colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = if (newPassword.length >= 6) Color(0xFF10B981) else Color(0xFFE5E7EB),
-                    focusedBorderColor = Color(0xFF7158E2),
-                    errorBorderColor = Color(0xFFDC2626)
+                    unfocusedBorderColor = if (newPassword.length >= 6) Color(0xFF10B981) else colors.border,
+                    focusedBorderColor = colors.primary,
+                    errorBorderColor = Color(0xFFEF4444),
+                    unfocusedContainerColor = colors.surface,
+                    focusedContainerColor = colors.surface,
+                    focusedTextColor = colors.textPrimary,
+                    unfocusedTextColor = colors.textPrimary
                 ),
                 visualTransformation = if (newPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 singleLine = true,
                 trailingIcon = {
                     Text(
                         text = if (newPasswordVisible) "Hide" else "Show",
-                        color = Color(0xFF7158E2),
+                        color = colors.primaryLight,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable { newPasswordVisible = !newPasswordVisible }.padding(end = 12.dp)
@@ -121,13 +128,13 @@ fun ForgotPasswordScreen(
             )
             if (!isPasswordValid) {
                 Spacer(modifier = Modifier.height(4.dp))
-                Text("Password must be at least 6 characters", fontSize = 12.sp, color = Color(0xFFDC2626))
+                Text("Password must be at least 6 characters", fontSize = 12.sp, color = Color(0xFFEF4444))
             }
 
             Spacer(modifier = Modifier.height(20.dp))
 
             // Confirm Password Input
-            Text("Confirm New Password", fontSize = 14.sp, color = Color(0xFF6B7280), fontWeight = FontWeight.Medium)
+            Text("Confirm New Password", fontSize = 13.sp, color = colors.textMuted, fontWeight = FontWeight.Medium)
             Spacer(modifier = Modifier.height(6.dp))
             OutlinedTextField(
                 value = confirmPassword,
@@ -136,16 +143,20 @@ fun ForgotPasswordScreen(
                 shape = RoundedCornerShape(12.dp),
                 isError = !passwordsMatch,
                 colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = if (confirmPassword.isNotBlank() && passwordsMatch) Color(0xFF10B981) else Color(0xFFE5E7EB),
-                    focusedBorderColor = Color(0xFF7158E2),
-                    errorBorderColor = Color(0xFFDC2626)
+                    unfocusedBorderColor = if (confirmPassword.isNotBlank() && passwordsMatch) Color(0xFF10B981) else colors.border,
+                    focusedBorderColor = colors.primary,
+                    errorBorderColor = Color(0xFFEF4444),
+                    unfocusedContainerColor = colors.surface,
+                    focusedContainerColor = colors.surface,
+                    focusedTextColor = colors.textPrimary,
+                    unfocusedTextColor = colors.textPrimary
                 ),
                 visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 singleLine = true,
                 trailingIcon = {
                     Text(
                         text = if (confirmPasswordVisible) "Hide" else "Show",
-                        color = Color(0xFF7158E2),
+                        color = colors.primaryLight,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable { confirmPasswordVisible = !confirmPasswordVisible }.padding(end = 12.dp)
@@ -154,7 +165,7 @@ fun ForgotPasswordScreen(
             )
             if (!passwordsMatch) {
                 Spacer(modifier = Modifier.height(4.dp))
-                Text("Passwords do not match", fontSize = 12.sp, color = Color(0xFFDC2626))
+                Text("Passwords do not match", fontSize = 12.sp, color = Color(0xFFEF4444))
             } else if (confirmPassword.isNotBlank() && confirmPassword == newPassword) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text("Passwords match", fontSize = 12.sp, color = Color(0xFF10B981))
@@ -176,25 +187,25 @@ fun ForgotPasswordScreen(
                 enabled = !uiState.isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp)
+                    .height(52.dp)
                     .bounceClick(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7158E2)),
-                shape = RoundedCornerShape(16.dp)
+                colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
+                shape = RoundedCornerShape(14.dp)
             ) {
                 if (uiState.isLoading) {
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                 } else {
-                    Text("Reset Password", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                    Text("Reset Password", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
             }
 
             Spacer(modifier = Modifier.weight(1f))
 
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.fillMaxWidth().padding(top = 16.dp), contentAlignment = Alignment.Center) {
                 Text(
                     text = "Back to Login",
-                    color = Color(0xFF7158E2),
-                    fontSize = 16.sp,
+                    color = colors.primaryLight,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.clickable { onBack() }
                 )

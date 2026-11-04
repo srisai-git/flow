@@ -43,6 +43,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -96,7 +100,7 @@ fun GrootAiScreen(
             QuickPrompt("Add task Finish ML Report with high priority", "Action"),
             QuickPrompt("Create habit Read 20 pages daily", "Action"),
             QuickPrompt("My stats today", "Insights"),
-            QuickPrompt("Explain quicksort vs mergesort", "Coding"),
+            QuickPrompt("How to use the Pomodoro technique?", "Productivity"),
             QuickPrompt("How do streaks work in FocusFlow?", "App Guide"),
             QuickPrompt("Export my productivity data", "Action")
         )
@@ -432,12 +436,10 @@ private fun ChatBubble(
                     Spacer(modifier = Modifier.height(6.dp))
                 }
 
-                Text(
+                MarkdownChatMessage(
                     text = message.text,
-                    fontSize = 13.5.sp,
-                    lineHeight = 20.sp,
-                    color = if (message.isFromUser) Color.White else colors.textPrimary,
-                    fontWeight = FontWeight.Normal
+                    isFromUser = message.isFromUser,
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 // Render Action Confirmation Card if Groot performed an in-app action!
@@ -637,3 +639,151 @@ private fun AiThinkingBubble() {
         }
     }
 }
+
+@Composable
+fun MarkdownChatMessage(
+    text: String,
+    isFromUser: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val colors = FocusFlowTheme.colors
+    val textColor = if (isFromUser) Color.White else colors.textPrimary
+
+    val parts = remember(text) { parseMarkdownBlocks(text) }
+
+    Column(modifier = modifier) {
+        parts.forEach { part ->
+            when (part) {
+                is MarkdownBlock.Code -> {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFF0D0B18),
+                        border = BorderStroke(1.dp, colors.border.copy(alpha = 0.6f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            if (part.language.isNotBlank()) {
+                                Text(
+                                    text = part.language.uppercase(),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.primaryLight,
+                                    fontFamily = FontFamily.Monospace,
+                                    letterSpacing = 1.sp
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                            }
+                            Text(
+                                text = part.code,
+                                fontSize = 12.5.sp,
+                                color = Color(0xFFE2E8F0),
+                                fontFamily = FontFamily.Monospace,
+                                lineHeight = 18.sp
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                }
+                is MarkdownBlock.Paragraph -> {
+                    val annotated = remember(part.content, textColor) {
+                        formatInlineMarkdown(part.content, textColor, colors.primaryLight)
+                    }
+                    Text(
+                        text = annotated,
+                        fontSize = 13.5.sp,
+                        lineHeight = 20.sp,
+                        color = textColor,
+                        fontWeight = FontWeight.Normal
+                    )
+                }
+            }
+        }
+    }
+}
+
+sealed class MarkdownBlock {
+    data class Paragraph(val content: String) : MarkdownBlock()
+    data class Code(val language: String, val code: String) : MarkdownBlock()
+}
+
+fun parseMarkdownBlocks(text: String): List<MarkdownBlock> {
+    val blocks = mutableListOf<MarkdownBlock>()
+    val codeBlockRegex = Regex("```([a-zA-Z0-9_-]*)\n?([\\s\\S]*?)```")
+    var lastIndex = 0
+
+    codeBlockRegex.findAll(text).forEach { match ->
+        val range = match.range
+        if (range.first > lastIndex) {
+            val textBefore = text.substring(lastIndex, range.first).trim()
+            if (textBefore.isNotEmpty()) {
+                blocks.add(MarkdownBlock.Paragraph(textBefore))
+            }
+        }
+        val lang = match.groupValues[1].trim()
+        val code = match.groupValues[2].trimEnd()
+        blocks.add(MarkdownBlock.Code(lang, code))
+        lastIndex = range.last + 1
+    }
+
+    if (lastIndex < text.length) {
+        val remaining = text.substring(lastIndex).trim()
+        if (remaining.isNotEmpty()) {
+            blocks.add(MarkdownBlock.Paragraph(remaining))
+        }
+    }
+
+    if (blocks.isEmpty() && text.isNotBlank()) {
+        blocks.add(MarkdownBlock.Paragraph(text))
+    }
+
+    return blocks
+}
+
+fun formatInlineMarkdown(text: String, defaultColor: Color, accentColor: Color): androidx.compose.ui.text.AnnotatedString {
+    return buildAnnotatedString {
+        val lines = text.split("\n")
+        lines.forEachIndexed { lineIdx, line ->
+            var currentLine = line
+            if (currentLine.startsWith("* ") || currentLine.startsWith("- ")) {
+                currentLine = "• " + currentLine.substring(2)
+            }
+
+            var i = 0
+            while (i < currentLine.length) {
+                if (currentLine.startsWith("**", i)) {
+                    val endBold = currentLine.indexOf("**", i + 2)
+                    if (endBold != -1) {
+                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                            append(currentLine.substring(i + 2, endBold))
+                        }
+                        i = endBold + 2
+                        continue
+                    }
+                }
+                if (currentLine[i] == '`') {
+                    val endCode = currentLine.indexOf('`', i + 1)
+                    if (endCode != -1) {
+                        withStyle(
+                            SpanStyle(
+                                fontFamily = FontFamily.Monospace,
+                                color = accentColor
+                            )
+                        ) {
+                            append(currentLine.substring(i + 1, endCode))
+                        }
+                        i = endCode + 1
+                        continue
+                    }
+                }
+                append(currentLine[i])
+                i++
+            }
+
+            if (lineIdx < lines.size - 1) {
+                append("\n")
+            }
+        }
+    }
+}
+

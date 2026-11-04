@@ -43,7 +43,7 @@ data class GrootAiUiState(
     val messages: List<ChatMessage> = listOf(
         ChatMessage(
             isFromUser = false,
-            text = "I am Groot, your autonomous FocusFlow AI collaborator. You can ask me anything across coding, math, general topics, or command me to perform in-app actions like starting focus timers, scheduling tasks, building habits, and analyzing your consistency."
+            text = "I am Groot, your AI productivity companion inside FocusFlow. I can help optimize your focus timer, track habits, analyze distractions, and guide your daily workflow."
         )
     ),
     val isAiThinking: Boolean = false,
@@ -150,7 +150,7 @@ class GrootAiViewModel(
         val defaultList = listOf(
             ChatMessage(
                 isFromUser = false,
-                text = "I am Groot, your autonomous FocusFlow AI collaborator. You can ask me anything across coding, math, general topics, or command me to perform in-app actions like starting focus timers, scheduling tasks, building habits, and analyzing your consistency."
+                text = "I am Groot, your AI productivity companion inside FocusFlow. I can help optimize your focus timer, track habits, analyze distractions, and guide your daily workflow."
             )
         )
         _uiState.update {
@@ -201,6 +201,7 @@ class GrootAiViewModel(
                     } else {
                         rawAiText
                     }
+                    val safeAiText = if (aiText.isNotBlank()) aiText else "I am Groot, ready to assist. How can I guide your focus or workflow today?"
 
                     val action = response.action
                     var actionExecuted = false
@@ -212,7 +213,7 @@ class GrootAiViewModel(
 
                     val aiMessage = ChatMessage(
                         isFromUser = false,
-                        text = aiText,
+                        text = safeAiText,
                         action = action,
                         actionExecuted = actionExecuted
                     )

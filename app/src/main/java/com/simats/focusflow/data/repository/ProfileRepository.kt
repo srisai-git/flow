@@ -128,18 +128,18 @@ class ProfileRepository(
     private fun fallbackProfile(userId: Int): ProfileData {
         return ProfileData(
             id = userId,
-            name = "Sri Sai",
-            email = "sri.sai@example.com",
+            name = "Focus User",
+            email = "",
             avatar = "",
-            bio = "Deep work enthusiast & Computer Science researcher",
+            bio = "",
             createdAt = "",
-            memberSince = "Member since October 2026",
-            totalFocusHours = 12.5f,
-            totalFocusMinutes = 750,
-            completedTasksCount = 14,
-            currentStreak = 4,
+            memberSince = "",
+            totalFocusHours = 0f,
+            totalFocusMinutes = 0,
+            completedTasksCount = 0,
+            currentStreak = 0,
             dailyFocusGoalMinutes = 240,
-            preferredFocusDuration = 45,
+            preferredFocusDuration = 25,
             remindersEnabled = true
         )
     }

@@ -251,8 +251,7 @@ class MainActivity : ComponentActivity() {
                                 onBack = { navController.popBackStack() },
                                 onLoginSuccess = {
                                     navController.navigate("dashboard") {
-                                        popUpTo("welcome_start") { inclusive = true }
-                                        popUpTo("login") { inclusive = true }
+                                        popUpTo(0) { inclusive = true }
                                     }
                                 },
                                 onForgotPassword = {
@@ -297,8 +296,7 @@ class MainActivity : ComponentActivity() {
                                 userId = 1,
                                 onEnterDashboard = {
                                     navController.navigate("dashboard") {
-                                        popUpTo("welcome_start") { inclusive = true }
-                                        popUpTo("make_it_yours") { inclusive = true }
+                                        popUpTo(0) { inclusive = true }
                                     }
                                 }
                             )
@@ -317,8 +315,7 @@ class MainActivity : ComponentActivity() {
                                 userId = userId,
                                 onEnterDashboard = {
                                     navController.navigate("dashboard") {
-                                        popUpTo("welcome_start") { inclusive = true }
-                                        popUpTo("make_it_yours") { inclusive = true }
+                                        popUpTo(0) { inclusive = true }
                                     }
                                 }
                             )

@@ -65,8 +65,11 @@ fun LoginScreen(
     viewModel: AuthViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val sessionManager = remember { SessionManager.getInstance(context) }
+    val isFirstLoginFlow by sessionManager.isFirstLoginFlow.collectAsState(initial = false)
+
     LaunchedEffect(Unit) {
-        viewModel.initSessionManager(context, SessionManager.getInstance(context))
+        viewModel.initSessionManager(context, sessionManager)
     }
 
     var email by remember { mutableStateOf("") }
@@ -110,7 +113,8 @@ fun LoginScreen(
 
             CustomTopBar(
                 title = "Welcome back",
-                onBack = onBack,
+                onBack = if (isFirstLoginFlow) onBack else null,
+                showBackIcon = isFirstLoginFlow,
                 titleColor = DarkTextPrimary
             )
 

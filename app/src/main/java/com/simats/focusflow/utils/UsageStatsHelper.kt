@@ -5,7 +5,10 @@ import android.app.usage.UsageStats
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.content.pm.ResolveInfo
+import android.graphics.drawable.Drawable
 import android.os.Build
 import android.os.Process
 import android.provider.Settings
@@ -16,7 +19,8 @@ data class AppUsageInfo(
     val appName: String,
     val usageMinutes: Int,
     val category: String,
-    val percent: Int = 0
+    val percent: Int = 0,
+    val icon: Drawable? = null
 )
 
 data class DistractionUsageSummary(
@@ -62,9 +66,330 @@ object UsageStatsHelper {
         }
     }
 
-    fun queryWeeklyDistractionStats(context: Context): DistractionUsageSummary {
+    /**
+     * Resolves all user-facing launcher applications (including user-installed Play Store apps)
+     * using PackageManager.queryIntentActivities(MAIN / LAUNCHER).
+     */
+    fun queryAllInstalledLauncherApps(context: Context): List<AppUsageInfo> {
+        val pm = context.packageManager
+        val selfPkg = context.packageName
+
+        val launcherIntent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_LAUNCHER)
+        }
+
+        val resolveInfos: List<ResolveInfo> = try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                pm.queryIntentActivities(launcherIntent, PackageManager.ResolveInfoFlags.of(0L))
+            } else {
+                @Suppress("DEPRECATION")
+                pm.queryIntentActivities(launcherIntent, 0)
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+
+        val seenPackages = mutableSetOf<String>()
+        val appList = mutableListOf<AppUsageInfo>()
+
+        for (resolveInfo in resolveInfos) {
+            val pkg = resolveInfo.activityInfo?.packageName ?: continue
+            if (pkg == selfPkg || seenPackages.contains(pkg)) continue
+            seenPackages.add(pkg)
+
+            val appName = try {
+                resolveInfo.loadLabel(pm).toString()
+            } catch (_: Exception) {
+                pkg.substringAfterLast('.')
+            }
+
+            val appIcon: Drawable? = try {
+                resolveInfo.loadIcon(pm)
+            } catch (_: Exception) {
+                null
+            }
+
+            val category = categorizePackage(pkg, appName)
+            appList.add(
+                AppUsageInfo(
+                    packageName = pkg,
+                    appName = appName,
+                    usageMinutes = 0,
+                    category = category,
+                    icon = appIcon
+                )
+            )
+        }
+
+        return appList.sortedBy { it.appName.lowercase() }
+    }
+
+    /**
+     * Queries device usage statistics strictly for TODAY (from 00:00:00 midnight to now).
+     */
+    fun queryTodayDistractionStats(context: Context): DistractionUsageSummary {
+        val pm = context.packageManager
+        val selfPkg = context.packageName
+
+        val launcherIntent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_LAUNCHER)
+        }
+
+        val resolveInfos: List<ResolveInfo> = try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                pm.queryIntentActivities(launcherIntent, PackageManager.ResolveInfoFlags.of(0L))
+            } else {
+                @Suppress("DEPRECATION")
+                pm.queryIntentActivities(launcherIntent, 0)
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+
+        val launcherAppMap = mutableMapOf<String, Pair<String, Drawable?>>()
+        for (resolveInfo in resolveInfos) {
+            val pkg = resolveInfo.activityInfo?.packageName ?: continue
+            if (pkg == selfPkg || launcherAppMap.containsKey(pkg)) continue
+
+            val label = try {
+                resolveInfo.loadLabel(pm).toString()
+            } catch (_: Exception) {
+                pkg.substringAfterLast('.')
+            }
+
+            val icon = try {
+                resolveInfo.loadIcon(pm)
+            } catch (_: Exception) {
+                null
+            }
+
+            launcherAppMap[pkg] = Pair(label, icon)
+        }
+
         if (!hasUsageStatsPermission(context)) {
-            return DistractionUsageSummary()
+            val unmeasuredApps = launcherAppMap.entries.map { (pkg, pair) ->
+                AppUsageInfo(
+                    packageName = pkg,
+                    appName = pair.first,
+                    usageMinutes = 0,
+                    category = categorizePackage(pkg, pair.first),
+                    icon = pair.second
+                )
+            }.sortedBy { it.appName.lowercase() }
+
+            return DistractionUsageSummary(
+                apps = unmeasuredApps
+            )
+        }
+
+        val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
+            ?: return DistractionUsageSummary()
+
+        // Today boundary: 00:00:00 midnight to System.currentTimeMillis()
+        val cal = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val startTime = cal.timeInMillis
+        val endTime = System.currentTimeMillis()
+
+        var usageStatsList: List<UsageStats> = try {
+            usageStatsManager.queryUsageStats(
+                UsageStatsManager.INTERVAL_DAILY,
+                startTime,
+                endTime
+            ) ?: emptyList()
+        } catch (_: Exception) {
+            emptyList()
+        }
+
+        if (usageStatsList.isEmpty()) {
+            val aggregated = try {
+                usageStatsManager.queryAndAggregateUsageStats(startTime, endTime)
+            } catch (_: Exception) {
+                emptyMap()
+            }
+            usageStatsList = aggregated.values.toList()
+        }
+
+        val packageTimeMap = mutableMapOf<String, Long>()
+        for (stats in usageStatsList) {
+            val pkg = stats.packageName ?: continue
+            val time = stats.totalTimeInForeground
+            if (time > 0L) {
+                packageTimeMap[pkg] = (packageTimeMap[pkg] ?: 0L) + time
+            }
+        }
+
+        val appInfos = mutableListOf<AppUsageInfo>()
+        var totalDistractionMillis = 0L
+
+        for ((pkg, pair) in launcherAppMap) {
+            val timeMs = packageTimeMap[pkg] ?: 0L
+            val mins = (timeMs / 60_000L).toInt()
+            val displayMins = if (mins == 0 && timeMs >= 20_000L) 1 else mins
+            val category = categorizePackage(pkg, pair.first)
+
+            appInfos.add(
+                AppUsageInfo(
+                    packageName = pkg,
+                    appName = pair.first,
+                    usageMinutes = displayMins,
+                    category = category,
+                    icon = pair.second
+                )
+            )
+            totalDistractionMillis += timeMs
+        }
+
+        for ((pkg, timeMs) in packageTimeMap) {
+            if (pkg == selfPkg || launcherAppMap.containsKey(pkg)) continue
+            if (timeMs < 30_000L) continue
+
+            val appInfo = try {
+                pm.getApplicationInfo(pkg, 0)
+            } catch (_: Exception) {
+                null
+            } ?: continue
+
+            val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+            if (isSystem && pm.getLaunchIntentForPackage(pkg) == null) continue
+
+            val label = try {
+                pm.getApplicationLabel(appInfo).toString()
+            } catch (_: Exception) {
+                pkg.substringAfterLast('.')
+            }
+
+            val icon = try {
+                pm.getApplicationIcon(appInfo)
+            } catch (_: Exception) {
+                null
+            }
+
+            val mins = (timeMs / 60_000L).toInt()
+            val displayMins = if (mins == 0 && timeMs >= 20_000L) 1 else mins
+
+            appInfos.add(
+                AppUsageInfo(
+                    packageName = pkg,
+                    appName = label,
+                    usageMinutes = displayMins,
+                    category = categorizePackage(pkg, label),
+                    icon = icon
+                )
+            )
+            totalDistractionMillis += timeMs
+        }
+
+        val sortedApps = appInfos.sortedWith(
+            compareByDescending<AppUsageInfo> { it.usageMinutes }
+                .thenBy { it.appName.lowercase() }
+        )
+
+        val totalDistractionMins = (totalDistractionMillis / 60_000L).toInt()
+
+        val appsWithPercent = sortedApps.map {
+            val pct = if (totalDistractionMins > 0 && it.usageMinutes > 0) {
+                ((it.usageMinutes.toFloat() / totalDistractionMins.toFloat()) * 100).toInt()
+            } else 0
+            it.copy(percent = pct)
+        }
+
+        val categoryBreakdown = mutableMapOf<String, Int>()
+        for (app in appsWithPercent.filter { it.usageMinutes > 0 }) {
+            categoryBreakdown[app.category] = (categoryBreakdown[app.category] ?: 0) + app.usageMinutes
+        }
+
+        val topCategory = categoryBreakdown.maxByOrNull { it.value }?.key ?: "Social Media"
+
+        return DistractionUsageSummary(
+            totalScreenMinutes = totalDistractionMins,
+            totalDistractionMinutes = totalDistractionMins,
+            topCategory = topCategory,
+            apps = appsWithPercent,
+            categoryBreakdown = categoryBreakdown
+        )
+    }
+
+    fun generateGrootDistractionInsight(summary: DistractionUsageSummary): String {
+        val topApp = summary.apps.firstOrNull { it.usageMinutes > 0 }
+        return when {
+            topApp != null && topApp.usageMinutes >= 60 -> {
+                val hours = topApp.usageMinutes / 60
+                val mins = topApp.usageMinutes % 60
+                val durationStr = if (mins > 0) "${hours}h ${mins}m" else "${hours}h"
+                "Groot Insight: ${topApp.appName} took up ${topApp.percent}% of your screen time today ($durationStr). Consider setting a daily app limit before your next focus block."
+            }
+            topApp != null && topApp.usageMinutes > 0 -> {
+                "Groot Insight: ${topApp.appName} took up ${topApp.percent}% of your screen time today (${topApp.usageMinutes}m). Keep your focus momentum going by scheduling distraction-free intervals."
+            }
+            summary.totalScreenMinutes > 0 -> {
+                "Groot Insight: You have logged ${summary.totalScreenMinutes}m of screen time across apps today. Take mindful breaks to protect your energy."
+            }
+            else -> {
+                "Groot Insight: Zero app distractions logged today. Exceptional focus discipline! Keep up the great work."
+            }
+        }
+    }
+
+    fun queryWeeklyDistractionStats(context: Context): DistractionUsageSummary {
+        val pm = context.packageManager
+        val selfPkg = context.packageName
+
+        // 1. Discover all user-facing launcher applications (guarantees Play Store apps are included)
+        val launcherIntent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_LAUNCHER)
+        }
+
+        val resolveInfos: List<ResolveInfo> = try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                pm.queryIntentActivities(launcherIntent, PackageManager.ResolveInfoFlags.of(0L))
+            } else {
+                @Suppress("DEPRECATION")
+                pm.queryIntentActivities(launcherIntent, 0)
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+
+        // Map packageName -> Pair(appName, appIcon)
+        val launcherAppMap = mutableMapOf<String, Pair<String, Drawable?>>()
+        for (resolveInfo in resolveInfos) {
+            val pkg = resolveInfo.activityInfo?.packageName ?: continue
+            if (pkg == selfPkg || launcherAppMap.containsKey(pkg)) continue
+
+            val label = try {
+                resolveInfo.loadLabel(pm).toString()
+            } catch (_: Exception) {
+                pkg.substringAfterLast('.')
+            }
+
+            val icon = try {
+                resolveInfo.loadIcon(pm)
+            } catch (_: Exception) {
+                null
+            }
+
+            launcherAppMap[pkg] = Pair(label, icon)
+        }
+
+        if (!hasUsageStatsPermission(context)) {
+            val unmeasuredApps = launcherAppMap.entries.map { (pkg, pair) ->
+                AppUsageInfo(
+                    packageName = pkg,
+                    appName = pair.first,
+                    usageMinutes = 0,
+                    category = categorizePackage(pkg, pair.first),
+                    icon = pair.second
+                )
+            }.sortedBy { it.appName.lowercase() }
+
+            return DistractionUsageSummary(
+                apps = unmeasuredApps
+            )
         }
 
         val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
@@ -75,9 +400,9 @@ object UsageStatsHelper {
         cal.add(Calendar.DAY_OF_YEAR, -7)
         val startTime = cal.timeInMillis
 
-        val usageStatsList: List<UsageStats> = try {
+        var usageStatsList: List<UsageStats> = try {
             usageStatsManager.queryUsageStats(
-                UsageStatsManager.INTERVAL_WEEKLY,
+                UsageStatsManager.INTERVAL_DAILY,
                 startTime,
                 endTime
             ) ?: emptyList()
@@ -85,15 +410,21 @@ object UsageStatsHelper {
             emptyList()
         }
 
-        val pm = context.packageManager
-        val selfPkg = context.packageName
+        if (usageStatsList.isEmpty()) {
+            val aggregated = try {
+                usageStatsManager.queryAndAggregateUsageStats(startTime, endTime)
+            } catch (_: Exception) {
+                emptyMap()
+            }
+            usageStatsList = aggregated.values.toList()
+        }
 
-        // Aggregate by package
+        // Aggregate totalTimeInForeground by package
         val packageTimeMap = mutableMapOf<String, Long>()
         for (stats in usageStatsList) {
-            val pkg = stats.packageName
+            val pkg = stats.packageName ?: continue
             val time = stats.totalTimeInForeground
-            if (time > 60_000L && pkg != selfPkg && !isSystemPackage(pkg)) {
+            if (time > 0L) {
                 packageTimeMap[pkg] = (packageTimeMap[pkg] ?: 0L) + time
             }
         }
@@ -101,42 +432,83 @@ object UsageStatsHelper {
         val appInfos = mutableListOf<AppUsageInfo>()
         var totalDistractionMillis = 0L
 
-        for ((pkg, timeMs) in packageTimeMap.entries.sortedByDescending { it.value }) {
-            val appName = try {
-                val appInfo = pm.getApplicationInfo(pkg, 0)
+        // Cross-reference all discovered launcher apps against UsageStats
+        for ((pkg, pair) in launcherAppMap) {
+            val timeMs = packageTimeMap[pkg] ?: 0L
+            val mins = (timeMs / 60_000L).toInt()
+            val displayMins = if (mins == 0 && timeMs >= 20_000L) 1 else mins
+            val category = categorizePackage(pkg, pair.first)
+
+            appInfos.add(
+                AppUsageInfo(
+                    packageName = pkg,
+                    appName = pair.first,
+                    usageMinutes = displayMins,
+                    category = category,
+                    icon = pair.second
+                )
+            )
+            totalDistractionMillis += timeMs
+        }
+
+        // Include any remaining package that had usage and is a launchable user app
+        for ((pkg, timeMs) in packageTimeMap) {
+            if (pkg == selfPkg || launcherAppMap.containsKey(pkg)) continue
+            if (timeMs < 30_000L) continue
+
+            val appInfo = try {
+                pm.getApplicationInfo(pkg, 0)
+            } catch (_: Exception) {
+                null
+            } ?: continue
+
+            val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+            if (isSystem && pm.getLaunchIntentForPackage(pkg) == null) continue
+
+            val label = try {
                 pm.getApplicationLabel(appInfo).toString()
-            } catch (_: PackageManager.NameNotFoundException) {
-                pkg.substringAfterLast('.').replaceFirstChar { it.uppercase() }
+            } catch (_: Exception) {
+                pkg.substringAfterLast('.')
             }
 
-            val category = categorizePackage(pkg, appName)
-            val mins = (timeMs / 60_000L).toInt()
-            if (mins > 0) {
-                appInfos.add(
-                    AppUsageInfo(
-                        packageName = pkg,
-                        appName = appName,
-                        usageMinutes = mins,
-                        category = category
-                    )
-                )
-                totalDistractionMillis += timeMs
+            val icon = try {
+                pm.getApplicationIcon(appInfo)
+            } catch (_: Exception) {
+                null
             }
+
+            val mins = (timeMs / 60_000L).toInt()
+            val displayMins = if (mins == 0 && timeMs >= 20_000L) 1 else mins
+
+            appInfos.add(
+                AppUsageInfo(
+                    packageName = pkg,
+                    appName = label,
+                    usageMinutes = displayMins,
+                    category = categorizePackage(pkg, label),
+                    icon = icon
+                )
+            )
+            totalDistractionMillis += timeMs
         }
+
+        // Sort: Apps with recorded usage time first descending, then alphabetical
+        val sortedApps = appInfos.sortedWith(
+            compareByDescending<AppUsageInfo> { it.usageMinutes }
+                .thenBy { it.appName.lowercase() }
+        )
 
         val totalDistractionMins = (totalDistractionMillis / 60_000L).toInt()
 
-        // Calculate percentages
-        val appsWithPercent = appInfos.map {
-            val pct = if (totalDistractionMins > 0) {
+        val appsWithPercent = sortedApps.map {
+            val pct = if (totalDistractionMins > 0 && it.usageMinutes > 0) {
                 ((it.usageMinutes.toFloat() / totalDistractionMins.toFloat()) * 100).toInt()
             } else 0
             it.copy(percent = pct)
         }
 
-        // Category breakdown
         val categoryBreakdown = mutableMapOf<String, Int>()
-        for (app in appsWithPercent) {
+        for (app in appsWithPercent.filter { it.usageMinutes > 0 }) {
             categoryBreakdown[app.category] = (categoryBreakdown[app.category] ?: 0) + app.usageMinutes
         }
 
@@ -146,19 +518,9 @@ object UsageStatsHelper {
             totalScreenMinutes = totalDistractionMins,
             totalDistractionMinutes = totalDistractionMins,
             topCategory = topCategory,
-            apps = appsWithPercent.take(10),
+            apps = appsWithPercent,
             categoryBreakdown = categoryBreakdown
         )
-    }
-
-    private fun isSystemPackage(pkg: String): Boolean {
-        val lower = pkg.lowercase()
-        return lower.startsWith("com.android.") ||
-                lower.startsWith("com.google.android.inputmethod") ||
-                lower.startsWith("com.google.android.gms") ||
-                lower.contains("launcher") ||
-                lower.contains("systemui") ||
-                lower == "android"
     }
 
     private fun categorizePackage(pkg: String, name: String): String {

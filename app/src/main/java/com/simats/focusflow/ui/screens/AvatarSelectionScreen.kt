@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.simats.focusflow.ui.components.CustomTopBar
 import com.simats.focusflow.ui.components.bounceClick
+import com.simats.focusflow.ui.theme.FocusFlowTheme
 import com.simats.focusflow.ui.viewmodel.AvatarSelectionUiState
 import com.simats.focusflow.ui.viewmodel.AvatarSelectionViewModel
 
@@ -44,6 +45,7 @@ fun AvatarSelectionScreen(
     onSkip: () -> Unit = {},
     avatarViewModel: AvatarSelectionViewModel? = null
 ) {
+    val colors = FocusFlowTheme.colors
     var localSelectedAvatar by remember { mutableStateOf("avatar:person") }
     var isLoading by remember { mutableStateOf(false) }
 
@@ -59,22 +61,23 @@ fun AvatarSelectionScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF9FAFB))
-            .padding(top = 48.dp, bottom = 24.dp, start = 24.dp, end = 24.dp)
+            .background(colors.background)
+            .statusBarsPadding()
+            .padding(top = 16.dp, bottom = 24.dp, start = 20.dp, end = 20.dp)
             .verticalScroll(rememberScrollState())
     ) {
         CustomTopBar("Choose Your Avatar", null, onBack)
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         Text(
             text = "Pick an avatar or upload a picture for your workspace profile.",
-            fontSize = 16.sp,
-            color = Color(0xFF6B7280),
-            lineHeight = 24.sp
+            fontSize = 14.sp,
+            color = colors.textMuted,
+            lineHeight = 20.sp
         )
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(28.dp))
 
         // Large Circular Preview
         Box(
@@ -83,16 +86,21 @@ fun AvatarSelectionScreen(
         ) {
             Box(
                 modifier = Modifier
-                    .size(120.dp)
-                    .background(Color(0xFFF0EDFF), CircleShape)
-                    .border(3.dp, Color(0xFF7158E2), CircleShape),
+                    .size(110.dp)
+                    .background(colors.primary.copy(alpha = 0.15f), CircleShape)
+                    .border(3.dp, colors.primary, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(resolveAvatarIcon(localSelectedAvatar), contentDescription = null, tint = Color(0xFF7158E2), modifier = Modifier.size(60.dp))
+                Icon(
+                    resolveAvatarIcon(localSelectedAvatar),
+                    contentDescription = null,
+                    tint = colors.primaryLight,
+                    modifier = Modifier.size(54.dp)
+                )
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(28.dp))
 
         // Two Action Buttons: Take Photo & Choose Gallery
         Row(
@@ -106,13 +114,17 @@ fun AvatarSelectionScreen(
                 },
                 modifier = Modifier
                     .weight(1f)
-                    .height(50.dp)
+                    .height(48.dp)
                     .bounceClick(),
                 shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF7158E2))
+                border = BorderStroke(1.dp, colors.border),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.primaryLight)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.PhotoCamera, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Take Photo", fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.PhotoCamera, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Take Photo", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                }
             }
 
             OutlinedButton(
@@ -122,36 +134,42 @@ fun AvatarSelectionScreen(
                 },
                 modifier = Modifier
                     .weight(1f)
-                    .height(50.dp)
+                    .height(48.dp)
                     .bounceClick(),
                 shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF7158E2))
+                border = BorderStroke(1.dp, colors.border),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.primaryLight)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Image, null, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Choose Gallery", fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Image, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Choose Gallery", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(28.dp))
 
         Text(
             text = "Or choose a preset avatar:",
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
-            color = Color(0xFF1E1E24)
+            color = colors.textPrimary
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
-        // Grid/Row of Preset Avatar Icons
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.White, RoundedCornerShape(16.dp))
-                .border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(16.dp))
-                .padding(20.dp)
+        // Grid of Preset Avatar Icons
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = colors.surface,
+            border = BorderStroke(1.dp, colors.border)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -162,8 +180,11 @@ fun AvatarSelectionScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .aspectRatio(1f)
-                                .background(if (isSelected) Color(0xFFF0EDFF) else Color(0xFFF3F4F6), CircleShape)
-                                .border(2.dp, if (isSelected) Color(0xFF7158E2) else Color.Transparent, CircleShape)
+                                .background(
+                                    if (isSelected) colors.primary.copy(alpha = 0.25f) else colors.background,
+                                    CircleShape
+                                )
+                                .border(2.dp, if (isSelected) colors.primary else Color.Transparent, CircleShape)
                                 .clickable {
                                     localSelectedAvatar = avatar
                                     avatarViewModel?.selectAvatar(avatar)
@@ -171,7 +192,12 @@ fun AvatarSelectionScreen(
                                 .bounceClick(),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(resolveAvatarIcon(avatar), null, tint = if (isSelected) Color(0xFF7158E2) else Color(0xFF6B7280), modifier = Modifier.size(28.dp))
+                            Icon(
+                                resolveAvatarIcon(avatar),
+                                null,
+                                tint = if (isSelected) colors.primaryLight else colors.textMuted,
+                                modifier = Modifier.size(26.dp)
+                            )
                         }
                     }
                 }
@@ -186,8 +212,11 @@ fun AvatarSelectionScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .aspectRatio(1f)
-                                .background(if (isSelected) Color(0xFFF0EDFF) else Color(0xFFF3F4F6), CircleShape)
-                                .border(2.dp, if (isSelected) Color(0xFF7158E2) else Color.Transparent, CircleShape)
+                                .background(
+                                    if (isSelected) colors.primary.copy(alpha = 0.25f) else colors.background,
+                                    CircleShape
+                                )
+                                .border(2.dp, if (isSelected) colors.primary else Color.Transparent, CircleShape)
                                 .clickable {
                                     localSelectedAvatar = avatar
                                     avatarViewModel?.selectAvatar(avatar)
@@ -195,14 +224,18 @@ fun AvatarSelectionScreen(
                                 .bounceClick(),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(resolveAvatarIcon(avatar), null, tint = if (isSelected) Color(0xFF7158E2) else Color(0xFF6B7280), modifier = Modifier.size(28.dp))
+                            Icon(
+                                resolveAvatarIcon(avatar),
+                                null,
+                                tint = if (isSelected) colors.primaryLight else colors.textMuted,
+                                modifier = Modifier.size(26.dp)
+                            )
                         }
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
         Spacer(modifier = Modifier.height(32.dp))
 
         // Save & Continue Action Button
@@ -217,19 +250,19 @@ fun AvatarSelectionScreen(
             enabled = !isLoading,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp)
+                .height(52.dp)
                 .bounceClick(),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7158E2)),
-            shape = RoundedCornerShape(16.dp)
+            colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
+            shape = RoundedCornerShape(14.dp)
         ) {
             if (isLoading) {
                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
             } else {
-                Text("Save & Continue", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                Text("Save & Continue", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         // Skip for now Text Button
         Box(
@@ -238,8 +271,8 @@ fun AvatarSelectionScreen(
         ) {
             Text(
                 text = "Skip for now",
-                color = Color(0xFF7158E2),
-                fontSize = 15.sp,
+                color = colors.primaryLight,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 textAlign = TextAlign.Center,
                 modifier = Modifier

@@ -44,7 +44,7 @@ class ProductivityRepository(
             // Clean initial state for offline
             Result.success(
                 DashboardData(
-                    userName = "Sri Sai",
+                    userName = "Focus User",
                     focusMinutesToday = 0,
                     focusGoalMinutes = 240,
                     pendingTaskCount = 0,

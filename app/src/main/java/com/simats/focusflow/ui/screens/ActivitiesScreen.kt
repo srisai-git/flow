@@ -33,7 +33,8 @@ fun ActivitiesScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 10.dp)
+                .statusBarsPadding()
+                .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 8.dp)
         ) {
             SegmentedControl(
                 options = listOf("Tasks", "Habits"),
@@ -60,3 +61,4 @@ fun ActivitiesScreen(
         }
     }
 }
+

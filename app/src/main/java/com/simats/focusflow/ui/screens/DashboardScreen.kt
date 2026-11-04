@@ -1,7 +1,9 @@
 package com.simats.focusflow.ui.screens
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -101,8 +103,15 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val activity = context as? Activity
+    BackHandler {
+        activity?.moveTaskToBack(true)
+    }
+
     LaunchedEffect(Unit) {
-        viewModel.initSessionManager(context, SessionManager.getInstance(context))
+        val sessionMgr = SessionManager.getInstance(context)
+        sessionMgr.setFirstLoginFlow(false)
+        viewModel.initSessionManager(context, sessionMgr)
     }
 
     val colors = FocusFlowTheme.colors
@@ -428,7 +437,10 @@ fun DashboardScreen(
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.Center
+                ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = "GROOT AI ASSISTANT",
@@ -447,12 +459,12 @@ fun DashboardScreen(
                     }
                     Spacer(modifier = Modifier.height(3.dp))
                     Text(
-                        text = "Hi, I am Groot, your AI productivity companion. Tap to chat, analyze your habits, or optimize your daily focus rhythm.",
+                        text = "Ask Groot to analyze your habits and guide your focus.",
                         fontSize = 12.5.sp,
                         color = colors.textPrimary,
-                        maxLines = 3,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
-                        lineHeight = 17.sp
+                        lineHeight = 16.sp
                     )
                 }
 

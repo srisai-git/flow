@@ -17,18 +17,26 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.simats.focusflow.ui.components.CustomTopBar
+import com.simats.focusflow.ui.components.bounceClick
+import com.simats.focusflow.ui.theme.FocusFlowTheme
 
 @Composable
 fun AccountRecoveryScreen(onBack: () -> Unit = {}, onBackToLogin: () -> Unit = {}) {
+    val colors = FocusFlowTheme.colors
+
     Column(
-        modifier = Modifier.fillMaxSize().background(Color.White).padding(top = 48.dp, bottom = 24.dp, start = 24.dp, end = 24.dp)
+        modifier = Modifier
+            .fillMaxSize()
+            .background(colors.background)
+            .statusBarsPadding()
+            .padding(top = 16.dp, bottom = 24.dp, start = 20.dp, end = 20.dp)
     ) {
         CustomTopBar("Account recovery", onBack = onBack)
         
         Spacer(modifier = Modifier.weight(1f))
         
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Canvas(modifier = Modifier.size(100.dp)) {
+            Canvas(modifier = Modifier.size(90.dp)) {
                 drawCircle(Color(0xFF10B981), style = Stroke(4.dp.toPx()))
                 val path = Path().apply {
                     moveTo(size.width * 0.3f, size.height * 0.5f)
@@ -39,16 +47,19 @@ fun AccountRecoveryScreen(onBack: () -> Unit = {}, onBackToLogin: () -> Unit = {
             }
         }
         
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(28.dp))
         Text(
             "Account recovery complete", 
-            fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24),
+            fontSize = 26.sp,
+            fontWeight = FontWeight.Bold,
+            color = colors.textPrimary,
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         Text(
             "Check your email for instructions to reset your password.", 
-            fontSize = 16.sp, color = Color(0xFF6B7280),
+            fontSize = 14.sp,
+            color = colors.textMuted,
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
         
@@ -56,11 +67,14 @@ fun AccountRecoveryScreen(onBack: () -> Unit = {}, onBackToLogin: () -> Unit = {
         
         Button(
             onClick = onBackToLogin,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7158E2)),
-            shape = RoundedCornerShape(16.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp)
+                .bounceClick(),
+            colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
+            shape = RoundedCornerShape(14.dp)
         ) {
-            Text("Back to Login", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text("Back to Login", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
         }
     }
 }
