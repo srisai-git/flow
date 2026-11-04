@@ -23,15 +23,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.HourglassBottom
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.rounded.LocalFireDepartment
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -91,6 +94,10 @@ fun DashboardScreen(
     onNavigateToSearchFilters: () -> Unit = {},
     onNavigateToDataAi: () -> Unit = {},
     onNavigateToGrootAi: () -> Unit = {},
+    onNavigateToFocusAnalysis: () -> Unit = {},
+    onNavigateToDistraction: () -> Unit = {},
+    onNavigateToAiReport: () -> Unit = {},
+    onNavigateToProgressConsistency: () -> Unit = {},
     viewModel: DashboardViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -659,6 +666,80 @@ fun DashboardScreen(
             }
         }
 
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // 7. INSIGHTS & ANALYTICS (Interactive Quick-Access Shortcuts)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "INSIGHTS & ANALYTICS",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = colors.primaryLight,
+                letterSpacing = 1.sp
+            )
+            Text(
+                text = "View All",
+                fontSize = 12.sp,
+                color = colors.primaryLight,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .clickable { onNavigateToInsights() }
+                    .bounceClick()
+            )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            InsightShortcutCard(
+                title = "Focus Time Analysis",
+                subtitle = "Hourly patterns & best window",
+                icon = Icons.Default.HourglassBottom,
+                tint = Color(0xFF4FD1C5),
+                modifier = Modifier.weight(1f),
+                onClick = onNavigateToFocusAnalysis
+            )
+            InsightShortcutCard(
+                title = "Distraction Analysis",
+                subtitle = "Interruption breakdown & triggers",
+                icon = Icons.Default.PieChart,
+                tint = Color(0xFFF59E0B),
+                modifier = Modifier.weight(1f),
+                onClick = onNavigateToDistraction
+            )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            InsightShortcutCard(
+                title = "AI Productivity Report",
+                subtitle = "Weekly synthesis & recommendations",
+                icon = Icons.Default.AutoAwesome,
+                tint = Color(0xFF8B5CF6),
+                modifier = Modifier.weight(1f),
+                onClick = onNavigateToAiReport
+            )
+            InsightShortcutCard(
+                title = "Progress & Consistency",
+                subtitle = "Streaks, weekly rhythm & totals",
+                icon = Icons.Default.TrendingUp,
+                tint = Color(0xFF10B981),
+                modifier = Modifier.weight(1f),
+                onClick = onNavigateToProgressConsistency
+            )
+        }
+
         Spacer(modifier = Modifier.height(96.dp)) // Space for bottom navigation bar
     }
 
@@ -1112,6 +1193,63 @@ private fun HabitSnapshotChip(
                     color = if (habit.isCompletedToday) colors.primaryLight else colors.textMuted
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun InsightShortcutCard(
+    title: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    tint: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val colors = FocusFlowTheme.colors
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = colors.surface,
+        border = BorderStroke(1.dp, colors.border),
+        modifier = modifier.bounceClick()
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(14.dp)
+                .fillMaxWidth()
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(tint.copy(alpha = 0.14f), RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    tint = tint,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = title,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = colors.textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(3.dp))
+            Text(
+                text = subtitle,
+                fontSize = 11.sp,
+                color = colors.textMuted,
+                lineHeight = 15.sp,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }

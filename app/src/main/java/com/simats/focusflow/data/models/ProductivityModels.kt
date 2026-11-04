@@ -467,14 +467,55 @@ data class TasksSummary(
 )
 
 @Immutable
+data class HourlyFocusItem(
+    @SerializedName("hour") val hour: String = "",
+    @SerializedName("minutes") val minutes: Int = 0
+)
+
+@Immutable
+data class DistractionCategoryItem(
+    @SerializedName("category") val category: String = "",
+    @SerializedName("count") val count: Int = 0,
+    @SerializedName("percent") val percent: Int = 0
+)
+
+@Immutable
+data class DistractionsSummary(
+    @SerializedName("total_events") val totalEvents: Int = 0,
+    @SerializedName("per_session_rate") val perSessionRate: Float = 0f,
+    @SerializedName("top_category") val topCategory: String = "Social Media",
+    @SerializedName("categories") val categories: List<DistractionCategoryItem> = emptyList()
+)
+
+@Immutable
+data class WeeklyActiveDayItem(
+    @SerializedName("week_label") val weekLabel: String = "",
+    @SerializedName("active_days") val activeDays: Int = 0
+)
+
+@Immutable
+data class MonthlySummary(
+    @SerializedName("four_week_focus_hours") val fourWeekFocusHours: Float = 0f,
+    @SerializedName("four_week_tasks_done") val fourWeekTasksDone: Int = 0,
+    @SerializedName("active_days_count") val activeDaysCount: Int = 0,
+    @SerializedName("weekly_active_days") val weeklyActiveDays: List<WeeklyActiveDayItem> = emptyList()
+)
+
+@Immutable
 data class InsightsData(
     @SerializedName("today_focus_minutes") val todayFocusMinutes: Int = 0,
     @SerializedName("week_focus_minutes") val weekFocusMinutes: Int = 0,
     @SerializedName("daily_focus_goal_minutes") val dailyFocusGoalMinutes: Int = 210,
     @SerializedName("daily_goal_progress_percent") val dailyGoalProgressPercent: Float = 0f,
     @SerializedName("current_streak_days") val currentStreakDays: Int = 0,
+    @SerializedName("longest_streak_days") val longestStreakDays: Int = 1,
+    @SerializedName("total_sessions") val totalSessions: Int = 0,
+    @SerializedName("best_window") val bestWindow: String = "09:00–11:00",
     @SerializedName("tasks_summary") val tasksSummary: TasksSummary = TasksSummary(),
-    @SerializedName("daily_chart_data") val dailyChartData: List<DailyChartItem> = emptyList()
+    @SerializedName("daily_chart_data") val dailyChartData: List<DailyChartItem> = emptyList(),
+    @SerializedName("hourly_focus_data") val hourlyFocusData: List<HourlyFocusItem> = emptyList(),
+    @SerializedName("distractions_summary") val distractionsSummary: DistractionsSummary = DistractionsSummary(),
+    @SerializedName("monthly_summary") val monthlySummary: MonthlySummary = MonthlySummary()
 )
 
 data class InsightsResponse(

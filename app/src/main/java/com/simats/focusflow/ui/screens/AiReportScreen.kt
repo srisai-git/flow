@@ -7,30 +7,81 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.TrendingUp
-import androidx.compose.material3.Icon
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.simats.focusflow.data.models.InsightsData
+import com.simats.focusflow.data.repository.ProductivityRepository
+import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.ui.components.CustomTopBar
+import com.simats.focusflow.ui.components.bounceClick
+import com.simats.focusflow.ui.theme.FocusFlowTheme
+import kotlinx.coroutines.flow.first
+import java.text.SimpleDateFormat
+import java.util.*
 
 @Composable
-fun AiReportScreen(onBack: () -> Unit = {}, onViewRecommendations: () -> Unit = {}, onViewReportDetails: () -> Unit = {}) {
+fun AiReportScreen(
+    onBack: () -> Unit = {},
+    onViewRecommendations: () -> Unit = {},
+    onViewReportDetails: () -> Unit = {}
+) {
+    val context = LocalContext.current
+    val colors = FocusFlowTheme.colors
+    var insightsData by remember { mutableStateOf(InsightsData()) }
+    var isLoading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        try {
+            val sessionManager = SessionManager.getInstance(context)
+            val session = sessionManager.userSessionFlow.first()
+            val userId = session.userId ?: 1
+            val repo = ProductivityRepository()
+            val result = repo.getInsights(userId)
+            result.onSuccess { data ->
+                insightsData = data
+                isLoading = false
+            }
+            result.onFailure {
+                isLoading = false
+            }
+        } catch (_: Exception) {
+            isLoading = false
+        }
+    }
+
+    val currentDateRange = remember {
+        val sdf = SimpleDateFormat("dd MMM", Locale.getDefault())
+        val yearFormat = SimpleDateFormat("yyyy", Locale.getDefault())
+        val cal = Calendar.getInstance()
+        val endStr = sdf.format(cal.time)
+        val yearStr = yearFormat.format(cal.time)
+        cal.add(Calendar.DAY_OF_YEAR, -6)
+        val startStr = sdf.format(cal.time)
+        "$startStr – $endStr $yearStr"
+    }
+
+    val weekHours = insightsData.weekFocusMinutes / 60
+    val weekMins = insightsData.weekFocusMinutes % 60
+    val totalSessions = insightsData.totalSessions
+    val tasks = insightsData.tasksSummary
+    val dist = insightsData.distractionsSummary
+    val peakDay = insightsData.dailyChartData.maxByOrNull { it.focusMinutes }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(colors.background)
             .padding(top = 48.dp, bottom = 24.dp, start = 24.dp, end = 24.dp)
             .verticalScroll(rememberScrollState())
     ) {
@@ -39,41 +90,81 @@ fun AiReportScreen(onBack: () -> Unit = {}, onViewRecommendations: () -> Unit = 
         Spacer(modifier = Modifier.height(24.dp))
         
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.background(Color(0xFFE1FAF9), RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 4.dp)) {
-                Text("Sample data", color = Color(0xFF0D9488), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+            Box(
+                modifier = Modifier
+                    .background(colors.primary.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    text = if (isLoading) "Generating..." else "AI Analysis",
+                    color = colors.primaryLight,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
             Spacer(modifier = Modifier.width(12.dp))
-            Text("05–11 Oct 2026", fontSize = 14.sp, color = Color(0xFF6B7280))
+            Text(currentDateRange, fontSize = 14.sp, color = colors.textMuted)
         }
         
-        Spacer(modifier = Modifier.height(16.dp))
-        Text("Illustrative analysis of fictional records, not live AI.", fontSize = 12.sp, color = Color(0xFF9CA3AF))
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            "Synthesized from your active focus sessions, task tracking, and distraction records.",
+            fontSize = 12.sp,
+            color = colors.textMuted
+        )
         
         Spacer(modifier = Modifier.height(24.dp))
         
         // Key Findings
         Box(
-            modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(16.dp)).border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(16.dp)).padding(16.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colors.surface, RoundedCornerShape(16.dp))
+                .border(1.dp, colors.border, RoundedCornerShape(16.dp))
+                .padding(16.dp)
         ) {
             Column {
-                Row {
-                    Icon(Icons.Default.Insights, contentDescription = null, tint = Color(0xFF7158E2), modifier = Modifier.padding(end = 8.dp).size(18.dp))
-                    Text("Key findings", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Insights,
+                        contentDescription = null,
+                        tint = colors.primaryLight,
+                        modifier = Modifier.padding(end = 8.dp).size(18.dp)
+                    )
+                    Text("Key findings", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
                 }
                 Spacer(modifier = Modifier.height(12.dp))
-                Text("Your recorded morning sessions had a higher completion rate than your evening sessions.", fontSize = 16.sp, color = Color(0xFF1E1E24))
+                Text(
+                    text = "Peak productivity was observed around ${insightsData.bestWindow}. Your task completion rate reached ${tasks.completionRatePercent.toInt()}% this week.",
+                    fontSize = 15.sp,
+                    color = colors.textPrimary
+                )
                 Spacer(modifier = Modifier.height(12.dp))
                 Row {
                     Box(modifier = Modifier.background(Color(0xFFE1FAF9), RoundedCornerShape(16.dp)).padding(horizontal = 12.dp, vertical = 4.dp)) {
-                        Text("Morning 85%", color = Color(0xFF0D9488), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        Text(
+                            text = "Peak window: ${insightsData.bestWindow}",
+                            color = Color(0xFF0D9488),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Box(modifier = Modifier.background(Color(0xFFF3F4F6), RoundedCornerShape(16.dp)).padding(horizontal = 12.dp, vertical = 4.dp)) {
-                        Text("Evening 60%", color = Color(0xFF4B5563), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                    Box(modifier = Modifier.background(colors.surfaceVariant, RoundedCornerShape(16.dp)).padding(horizontal = 12.dp, vertical = 4.dp)) {
+                        Text(
+                            text = "Tasks: ${tasks.completionRatePercent.toInt()}%",
+                            color = colors.textMuted,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("Completion = focused minutes ÷ planned minutes, by time window. Not a task completion rate.", fontSize = 12.sp, color = Color(0xFF9CA3AF))
+                Text(
+                    "Calculated from session intervals, completed tasks, and interval focus depth.",
+                    fontSize = 12.sp,
+                    color = colors.textMuted
+                )
             }
         }
         
@@ -81,15 +172,34 @@ fun AiReportScreen(onBack: () -> Unit = {}, onViewRecommendations: () -> Unit = 
         
         // Strengths
         Box(
-            modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(16.dp)).border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(16.dp)).padding(16.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colors.surface, RoundedCornerShape(16.dp))
+                .border(1.dp, colors.border, RoundedCornerShape(16.dp))
+                .padding(16.dp)
         ) {
             Column {
-                Row {
-                    Icon(Icons.Default.TrendingUp, contentDescription = null, tint = Color(0xFF10B981), modifier = Modifier.padding(end = 8.dp).size(18.dp))
-                    Text("Strengths", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.TrendingUp,
+                        contentDescription = null,
+                        tint = Color(0xFF10B981),
+                        modifier = Modifier.padding(end = 8.dp).size(18.dp)
+                    )
+                    Text("Strengths", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
                 }
                 Spacer(modifier = Modifier.height(12.dp))
-                Text("12h 30m across 20 sessions. You completed 18 of 24 tasks (75%). Thursday led with 150 focused minutes.", fontSize = 14.sp, color = Color(0xFF6B7280))
+                Text(
+                    text = buildString {
+                        append("${weekHours}h ${weekMins}m across $totalSessions sessions. ")
+                        append("You completed ${tasks.completedTasks} of ${tasks.totalTasks} tasks (${tasks.completionRatePercent.toInt()}%). ")
+                        if (peakDay != null && peakDay.focusMinutes > 0) {
+                            append("${peakDay.day} led with ${peakDay.focusMinutes} focused minutes.")
+                        }
+                    },
+                    fontSize = 14.sp,
+                    color = colors.textMuted
+                )
             }
         }
         
@@ -97,15 +207,32 @@ fun AiReportScreen(onBack: () -> Unit = {}, onViewRecommendations: () -> Unit = 
         
         // Challenges
         Box(
-            modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(16.dp)).border(1.dp, Color(0xFFE5E7EB), RoundedCornerShape(16.dp)).padding(16.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colors.surface, RoundedCornerShape(16.dp))
+                .border(1.dp, colors.border, RoundedCornerShape(16.dp))
+                .padding(16.dp)
         ) {
             Column {
-                Row {
-                    Icon(Icons.Default.Flag, contentDescription = null, tint = Color(0xFFB45309), modifier = Modifier.padding(end = 8.dp).size(18.dp))
-                    Text("Challenges", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Flag,
+                        contentDescription = null,
+                        tint = Color(0xFFB45309),
+                        modifier = Modifier.padding(end = 8.dp).size(18.dp)
+                    )
+                    Text("Challenges", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
                 }
                 Spacer(modifier = Modifier.height(12.dp))
-                Text("12 interruptions this week; Social Media led with 5. Evening planned-minute completion was 60%.", fontSize = 14.sp, color = Color(0xFF6B7280))
+                Text(
+                    text = if (dist.totalEvents > 0) {
+                        "${dist.totalEvents} interruptions recorded this week; ${dist.topCategory} was the leading factor with ${String.format(Locale.getDefault(), "%.1f", dist.perSessionRate)} events per session."
+                    } else {
+                        "Zero logged interruptions this week. Watch out for late evening session fatigue."
+                    },
+                    fontSize = 14.sp,
+                    color = colors.textMuted
+                )
             }
         }
         
@@ -113,14 +240,26 @@ fun AiReportScreen(onBack: () -> Unit = {}, onViewRecommendations: () -> Unit = 
         
         // Recommendations
         Box(
-            modifier = Modifier.fillMaxWidth().background(Color(0xFFF3E8FF), RoundedCornerShape(16.dp)).padding(16.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colors.primary.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
+                .border(1.dp, colors.primary.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
+                .padding(16.dp)
         ) {
             Column {
-                Text("Recommended changes", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E1E24))
+                Text("Recommended changes", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
                 Spacer(modifier = Modifier.height(12.dp))
-                Text("Try demanding work at 09:00–11:00, your best observed focus window. Silence social alerts before starting.", fontSize = 16.sp, color = Color(0xFF1E1E24))
+                Text(
+                    text = "Schedule demanding deep work at ${insightsData.bestWindow}, your best observed focus window. Silence ${dist.topCategory.lowercase()} alerts before starting.",
+                    fontSize = 15.sp,
+                    color = colors.textPrimary
+                )
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("An inferred pattern, not a causal or validated finding.", fontSize = 12.sp, color = Color(0xFF9CA3AF))
+                Text(
+                    "Adaptive pattern generated by Groot AI based on historical session consistency.",
+                    fontSize = 12.sp,
+                    color = colors.textMuted
+                )
             }
         }
         
@@ -129,18 +268,24 @@ fun AiReportScreen(onBack: () -> Unit = {}, onViewRecommendations: () -> Unit = 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Button(
                 onClick = onViewRecommendations,
-                modifier = Modifier.weight(1f).height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7158E2)),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(56.dp)
+                    .bounceClick(),
+                colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Text("View Recommendations", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text("View Recommendations", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
             }
             OutlinedButton(
                 onClick = onViewReportDetails,
-                modifier = Modifier.weight(1f).height(56.dp),
-                border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(56.dp)
+                    .bounceClick(),
+                border = BorderStroke(1.dp, colors.border),
                 shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF1E1E24))
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.textPrimary)
             ) {
                 Text("View report details", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
             }

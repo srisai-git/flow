@@ -155,7 +155,7 @@ fun ProfileScreen(
 
             // 1. TOP HEADER & TITLE
             Text(
-                text = "PROFILE & ACCOUNT",
+                text = "PROFILE & SETTINGS",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color = colors.primaryLight,
@@ -367,54 +367,6 @@ fun ProfileScreen(
                         subtitle = "Alert schedules, gentleness prompts & test alerts",
                         onClick = onNavigateToNotifications
                     )
-                    HorizontalDivider(color = colors.border, thickness = 1.dp)
-
-                    // Daily Focus Reminders Toggle Switch
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Notifications,
-                                contentDescription = null,
-                                tint = colors.primaryLight,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(14.dp))
-                            Column {
-                                Text(
-                                    text = "Daily Focus Reminders",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = colors.textPrimary
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = if (profile.remindersEnabled) "Alerts scheduled for morning focus" else "Reminders muted",
-                                    fontSize = 12.sp,
-                                    color = colors.textMuted
-                                )
-                            }
-                        }
-                        Switch(
-                            checked = profile.remindersEnabled,
-                            onCheckedChange = { viewModel.toggleReminders() },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
-                                checkedTrackColor = colors.primary,
-                                uncheckedThumbColor = colors.textMuted,
-                                uncheckedTrackColor = colors.surfaceVariant,
-                                uncheckedBorderColor = colors.border
-                            )
-                        )
-                    }
                 }
             }
 

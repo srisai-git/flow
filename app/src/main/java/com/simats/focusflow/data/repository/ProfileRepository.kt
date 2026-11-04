@@ -4,6 +4,7 @@ import com.simats.focusflow.data.api.FlowApiService
 import com.simats.focusflow.data.api.RetrofitClient
 import com.simats.focusflow.data.models.ProfileData
 import com.simats.focusflow.data.models.ResetStatsRequest
+import com.simats.focusflow.data.models.SavePreferencesRequest
 import com.simats.focusflow.data.models.UpdateProfileRequest
 import com.simats.focusflow.data.session.SessionManager
 import kotlinx.coroutines.Dispatchers
@@ -93,11 +94,22 @@ class ProfileRepository(
             val request = UpdateProfileRequest(
                 userId = userId,
                 name = "",
-                email = "user@focusflow.app",
+                email = "",
                 dailyFocusGoalMinutes = dailyFocusGoalMinutes,
                 preferredFocusDuration = preferredFocusDuration
             )
             val response = apiService.updateProfile(request)
+            try {
+                RetrofitClient.authApiService.savePreferences(
+                    SavePreferencesRequest(
+                        userId = userId,
+                        primaryGoal = "Study",
+                        preferredFocusDuration = preferredFocusDuration,
+                        dailyFocusGoalMinutes = dailyFocusGoalMinutes,
+                        remindersEnabled = 1
+                    )
+                )
+            } catch (_: Exception) {}
             Result.success(response.isSuccessful)
         } catch (e: Exception) {
             Result.success(true)

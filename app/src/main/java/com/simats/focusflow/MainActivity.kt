@@ -344,7 +344,11 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToSessionHistory = { navController.navigate("session_history") },
                                 onNavigateToSearchFilters = { navController.navigate("search_filters") },
                                 onNavigateToDataAi = { navController.navigate("data_ai_preferences") },
-                                onNavigateToGrootAi = { navController.navigate("groot_ai") }
+                                onNavigateToGrootAi = { navController.navigate("groot_ai") },
+                                onNavigateToFocusAnalysis = { navController.navigate("focus_time_analysis") },
+                                onNavigateToDistraction = { navController.navigate("distraction_analysis") },
+                                onNavigateToAiReport = { navController.navigate("ai_report") },
+                                onNavigateToProgressConsistency = { navController.navigate("progress_consistency") }
                             )
                         }
                         composable(Screen.Tasks.route) {
