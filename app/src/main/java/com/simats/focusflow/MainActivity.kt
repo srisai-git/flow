@@ -108,6 +108,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        com.simats.focusflow.data.repository.ProductivityRepository.init(applicationContext)
+
         // Create standard notification channels on app startup
         NotificationHelper.createNotificationChannels(applicationContext)
 

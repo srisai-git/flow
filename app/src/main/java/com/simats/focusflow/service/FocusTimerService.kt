@@ -27,6 +27,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 import kotlin.math.max
 
 @Immutable
@@ -167,6 +171,7 @@ class FocusTimerService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        ProductivityRepository.init(applicationContext)
         createNotificationChannels()
         serviceScope.launch(Dispatchers.IO) {
             try {
@@ -375,6 +380,14 @@ class FocusTimerService : Service() {
             val nextMode = if (newCompletedCount % 4 == 0) TimerMode.LONG_BREAK else TimerMode.SHORT_BREAK
             val nextSecs = current.getDurationMinutes(nextMode) * 60
 
+            val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            val now = Date()
+            val endTime = sdf.format(now)
+            val cal = Calendar.getInstance()
+            cal.time = now
+            cal.add(Calendar.MINUTE, -sessionDuration)
+            val startTime = sdf.format(cal.time)
+
             _timerStateFlow.update {
                 it.copy(
                     isRunning = false,
@@ -391,7 +404,10 @@ class FocusTimerService : Service() {
                 repository.logSession(
                     userId = current.activeUserId,
                     durationMinutes = sessionDuration,
-                    sessionType = "pomodoro"
+                    sessionType = "pomodoro",
+                    durationSeconds = sessionDuration * 60,
+                    startTime = startTime,
+                    endTime = endTime
                 )
             }
         } else {

@@ -1,7 +1,9 @@
 package com.simats.focusflow.data.repository
 
+import android.content.Context
 import com.simats.focusflow.data.api.FlowApiService
 import com.simats.focusflow.data.api.RetrofitClient
+import com.simats.focusflow.data.local.FocusSessionDatabase
 import com.simats.focusflow.data.models.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -18,7 +20,7 @@ class ProductivityRepository(
 ) {
 
     companion object {
-        private val _sessionLoggedEventFlow = MutableSharedFlow<Unit>(replay = 0, extraBufferCapacity = 5)
+        private val _sessionLoggedEventFlow = MutableSharedFlow<Unit>(replay = 1, extraBufferCapacity = 10)
         val sessionLoggedEventFlow: SharedFlow<Unit> = _sessionLoggedEventFlow.asSharedFlow()
 
         @Volatile
@@ -26,8 +28,16 @@ class ProductivityRepository(
         @Volatile
         private var lastLogSessionParams = ""
 
+        @Volatile
+        var appContext: Context? = null
+
+        fun init(context: Context) {
+            appContext = context.applicationContext
+        }
+
         fun notifySessionLogged() {
             _sessionLoggedEventFlow.tryEmit(Unit)
+            FocusSessionDatabase.notifyTableChanged()
         }
     }
 
@@ -139,7 +149,12 @@ class ProductivityRepository(
         userId: Int,
         durationMinutes: Int,
         sessionType: String = "pomodoro",
-        taskId: Int? = null
+        taskId: Int? = null,
+        durationSeconds: Int = durationMinutes * 60,
+        startTime: String? = null,
+        endTime: String? = null,
+        taskTitle: String? = null,
+        taskCategory: String? = null
     ): Result<LogSessionResponse> = withContext(Dispatchers.IO) {
         val now = System.currentTimeMillis()
         val paramKey = "$userId-$durationMinutes-$sessionType-$taskId"
@@ -149,6 +164,26 @@ class ProductivityRepository(
         lastLogSessionTime = now
         lastLogSessionParams = paramKey
 
+        // 1. Immediately persist to local SQLite focus_sessions table
+        appContext?.let { ctx ->
+            try {
+                FocusSessionDatabase.getInstance(ctx).insertSession(
+                    userId = userId,
+                    durationMinutes = durationMinutes,
+                    durationSeconds = durationSeconds,
+                    sessionType = sessionType,
+                    taskId = taskId,
+                    startTime = startTime,
+                    endTime = endTime,
+                    taskTitle = taskTitle,
+                    taskCategory = taskCategory
+                )
+            } catch (e: Exception) {
+                // Ignore local database insertion errors
+            }
+        }
+
+        // 2. Synchronize with remote backend API
         val result = try {
             val request = LogSessionRequest(userId, durationMinutes, sessionType, taskId)
             val response = apiService.logSession(request)
@@ -168,15 +203,27 @@ class ProductivityRepository(
         userId: Int,
         limit: Int = 20
     ): Result<List<FocusSessionRecord>> = withContext(Dispatchers.IO) {
+        val localList = appContext?.let { ctx ->
+            try {
+                FocusSessionDatabase.getInstance(ctx).getRecentSessions(userId, limit)
+            } catch (e: Exception) {
+                emptyList()
+            }
+        } ?: emptyList()
+
         try {
             val response = apiService.getRecentSessions(userId, limit)
             if (response.isSuccessful && response.body()?.status == true) {
-                Result.success(response.body()?.data ?: emptyList())
+                val remoteList = response.body()?.data ?: emptyList()
+                val merged = (localList + remoteList).distinctBy { session ->
+                    if (session.id > 0) "id_${session.id}" else "${session.startedAt}_${session.durationMinutes}"
+                }
+                Result.success(merged)
             } else {
-                Result.success(emptyList())
+                Result.success(localList)
             }
         } catch (e: Exception) {
-            Result.success(emptyList())
+            Result.success(localList)
         }
     }
 
