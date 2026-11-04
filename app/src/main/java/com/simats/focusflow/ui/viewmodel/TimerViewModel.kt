@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.simats.focusflow.data.local.FocusSessionDatabase
 import com.simats.focusflow.data.models.FocusSessionRecord
 import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.session.SessionManager
@@ -92,11 +93,17 @@ class TimerViewModel(
                 loadSessionHistory()
             }
         }
+        viewModelScope.launch(Dispatchers.IO) {
+            FocusSessionDatabase.sessionTableChangedFlow.collect {
+                loadSessionHistory()
+            }
+        }
     }
 
     fun initSessionManager(context: Context, manager: SessionManager) {
         this.appContext = context.applicationContext
         this.sessionManager = manager
+        ProductivityRepository.init(context)
         viewModelScope.launch(Dispatchers.IO) {
             val session = manager.userSessionFlow.first()
             if (session.userId != null && session.userId > 0) {
@@ -120,12 +127,31 @@ class TimerViewModel(
 
     fun loadSessionHistory() {
         viewModelScope.launch(Dispatchers.IO) {
+            val localSessions = appContext?.let { ctx ->
+                try {
+                    FocusSessionDatabase.getInstance(ctx).getRecentSessions(currentUserId, 50)
+                } catch (e: Exception) {
+                    emptyList()
+                }
+            } ?: emptyList()
+
+            if (localSessions.isNotEmpty()) {
+                withContext(Dispatchers.Main) {
+                    _uiState.update { current ->
+                        current.copy(
+                            recentSessions = localSessions,
+                            completedSessions = maxOf(current.completedSessions, localSessions.size)
+                        )
+                    }
+                }
+            }
+
             val result = repository.getRecentSessions(currentUserId)
             withContext(Dispatchers.Main) {
                 result.fold(
                     onSuccess = { list ->
-                        val distinct = list.distinctBy { session ->
-                            if (session.id > 0) session.id else "${session.startedAt}_${session.durationMinutes}"
+                        val distinct = (localSessions + list).distinctBy { session ->
+                            if (session.id > 0) "id_${session.id}" else "${session.startedAt}_${session.durationMinutes}"
                         }
                         _uiState.update { current ->
                             current.copy(
@@ -134,7 +160,7 @@ class TimerViewModel(
                             )
                         }
                     },
-                    onFailure = { /* keep existing */ }
+                    onFailure = { /* retain local */ }
                 )
             }
         }

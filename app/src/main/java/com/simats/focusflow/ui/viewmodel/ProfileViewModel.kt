@@ -4,7 +4,9 @@ import android.content.Context
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.simats.focusflow.data.local.FocusSessionDatabase
 import com.simats.focusflow.data.models.ProfileData
+import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.repository.ProfileRepository
 import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.utils.ProfileImageManager
@@ -38,6 +40,39 @@ class ProfileViewModel(
 
     private var currentUserId: Int = 1
     private var appContext: Context? = null
+
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            FocusSessionDatabase.sessionTableChangedFlow.collect {
+                refreshLocalStats()
+            }
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            ProductivityRepository.sessionLoggedEventFlow.collect {
+                refreshLocalStats()
+            }
+        }
+    }
+
+    private fun refreshLocalStats() {
+        val ctx = appContext ?: return
+        val localTotalMins = try {
+            FocusSessionDatabase.getInstance(ctx).getTotalFocusMinutes(currentUserId)
+        } catch (_: Exception) { 0 }
+
+        viewModelScope.launch(Dispatchers.Main) {
+            _uiState.update { current ->
+                val effectiveMins = maxOf(current.profile.totalFocusMinutes, localTotalMins)
+                val effectiveHours = effectiveMins / 60.0f
+                current.copy(
+                    profile = current.profile.copy(
+                        totalFocusMinutes = effectiveMins,
+                        totalFocusHours = effectiveHours
+                    )
+                )
+            }
+        }
+    }
 
     fun initSessionManager(context: Context, manager: SessionManager) {
         this.appContext = context.applicationContext
@@ -165,6 +200,12 @@ class ProfileViewModel(
                 }
             }
 
+            val localTotalMinutes = appContext?.let { ctx ->
+                try {
+                    FocusSessionDatabase.getInstance(ctx).getTotalFocusMinutes(currentUserId)
+                } catch (_: Exception) { 0 }
+            } ?: 0
+
             val result = repository.getProfile(currentUserId)
             withContext(Dispatchers.Main) {
                 result.fold(
@@ -195,16 +236,34 @@ class ProfileViewModel(
                             else -> ""
                         }
 
+                        val effectiveMinutes = maxOf(data.totalFocusMinutes, localTotalMinutes)
+                        val effectiveHours = effectiveMinutes / 60.0f
+
                         val finalData = data.copy(
                             name = if (!sName.isNullOrBlank()) sName else data.name,
                             email = if (!sEmail.isNullOrBlank()) sEmail else data.email,
                             avatar = effectiveAvatar,
-                            bio = if (!sBio.isNullOrBlank()) sBio else data.bio
+                            bio = if (!sBio.isNullOrBlank()) sBio else data.bio,
+                            totalFocusMinutes = effectiveMinutes,
+                            totalFocusHours = effectiveHours
                         )
                         _uiState.update { it.copy(isLoading = false, profile = finalData) }
                     },
                     onFailure = { err ->
-                        _uiState.update { it.copy(isLoading = false, errorMessage = err.localizedMessage) }
+                        if (localTotalMinutes > 0) {
+                            val effectiveHours = localTotalMinutes / 60.0f
+                            _uiState.update { current ->
+                                current.copy(
+                                    isLoading = false,
+                                    profile = current.profile.copy(
+                                        totalFocusMinutes = localTotalMinutes,
+                                        totalFocusHours = effectiveHours
+                                    )
+                                )
+                            }
+                        } else {
+                            _uiState.update { it.copy(isLoading = false, errorMessage = err.localizedMessage) }
+                        }
                     }
                 )
             }
@@ -230,6 +289,11 @@ class ProfileViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             withContext(Dispatchers.Main) {
                 _uiState.update { it.copy(showResetDialog = false, isLoading = true) }
+            }
+            appContext?.let { ctx ->
+                try {
+                    FocusSessionDatabase.getInstance(ctx).clearUserData(currentUserId)
+                } catch (_: Exception) {}
             }
             val result = repository.resetStats(currentUserId)
             withContext(Dispatchers.Main) {
