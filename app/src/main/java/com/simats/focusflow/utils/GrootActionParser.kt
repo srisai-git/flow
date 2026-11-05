@@ -13,7 +13,6 @@ sealed interface ParsedGrootAction {
             get() = AiAction(
                 type = "START_TIMER",
                 title = "Focus Timer",
-                description = "Started $minutes min focus timer",
                 duration = minutes,
                 mode = mode
             )
@@ -26,7 +25,6 @@ sealed interface ParsedGrootAction {
             get() = AiAction(
                 type = "CREATE_HABIT",
                 title = title,
-                description = "Created daily habit",
                 category = "Daily"
             )
     }
@@ -38,7 +36,6 @@ sealed interface ParsedGrootAction {
             get() = AiAction(
                 type = "CREATE_TASK",
                 title = title,
-                description = "Created task",
                 priority = priority
             )
     }
