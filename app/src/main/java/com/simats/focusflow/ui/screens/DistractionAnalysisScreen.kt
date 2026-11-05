@@ -182,8 +182,10 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 val perm = UsageStatsHelper.hasUsageStatsPermission(context)
+                val wasMissing = !hasPermission
                 hasPermission = perm
-                if (perm) {
+                if (perm && (wasMissing || usageSummary.apps.isEmpty())) {
+                    isLoading = true
                     refreshTodayUsageStats()
                 }
             }
