@@ -584,7 +584,20 @@ object UsageStatsHelper {
         return null
     }
 
-    private fun categorizePackage(pkg: String, name: String): String {
+    fun categorizePackage(pkg: String, name: String, context: Context? = null): String {
+        // 1. Direct match with curated package dictionaries
+        if (SOCIAL_PACKAGES.contains(pkg)) return "Social Media"
+        if (MESSAGING_PACKAGES.contains(pkg)) return "Messaging"
+        if (STREAMING_PACKAGES.contains(pkg)) return "Video & Streaming"
+        if (BROWSING_PACKAGES.contains(pkg)) return "Search & Browsing"
+        if (PRODUCTIVITY_PACKAGES.contains(pkg)) return "Productivity"
+
+        // 2. Android 8.0+ ApplicationInfo.category check
+        context?.let { ctx ->
+            getApplicationCategory(ctx, pkg)?.let { return it }
+        }
+
+        // 3. Keyword heuristic classification
         val lower = "$pkg $name".lowercase()
         return when {
             lower.contains("instagram") || lower.contains("facebook") || lower.contains("twitter") ||
@@ -600,12 +613,22 @@ object UsageStatsHelper {
                     lower.contains("wechat") -> "Messaging"
 
             lower.contains("chrome") || lower.contains("firefox") || lower.contains("browser") ||
-                    lower.contains("opera") || lower.contains("edge") || lower.contains("safari") -> "Browsing"
+                    lower.contains("opera") || lower.contains("edge") || lower.contains("safari") ||
+                    lower.contains("search") -> "Search & Browsing"
 
             lower.contains("game") || lower.contains("candy") || lower.contains("pubg") ||
                     lower.contains("clash") || lower.contains("chess") -> "Games"
 
-            else -> "Other"
+            lower.contains("map") || lower.contains("navigate") || lower.contains("uber") ||
+                    lower.contains("waze") -> "Navigation"
+
+            lower.contains("news") || lower.contains("daily") || lower.contains("bbc") -> "News"
+
+            lower.contains("note") || lower.contains("task") || lower.contains("focus") ||
+                    lower.contains("office") || lower.contains("docs") || lower.contains("sheets") ||
+                    lower.contains("ai") || lower.contains("chatgpt") -> "Productivity"
+
+            else -> "Utilities"
         }
     }
 }
