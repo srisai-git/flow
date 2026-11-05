@@ -208,14 +208,25 @@ fun DashboardScreen(
                         color = colors.textMuted,
                         fontWeight = FontWeight.Medium
                     )
-                    Text(
-                        text = data.userName.ifBlank { "Focus User" },
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = colors.textPrimary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    if (data.userName.isBlank() && state.isLoading) {
+                        Box(
+                            modifier = Modifier
+                                .padding(vertical = 4.dp)
+                                .width(120.dp)
+                                .height(20.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(colors.surfaceVariant)
+                        )
+                    } else {
+                        Text(
+                            text = data.userName.ifBlank { "Focus User" },
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = colors.textPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                     Text(
                         text = currentDateStr,
                         fontSize = 11.5.sp,
