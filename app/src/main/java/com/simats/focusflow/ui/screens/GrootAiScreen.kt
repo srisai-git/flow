@@ -395,6 +395,8 @@ private fun ChatBubble(
     onActionClick: (AiAction) -> Unit
 ) {
     val colors = FocusFlowTheme.colors
+    val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (message.isFromUser) Arrangement.End else Arrangement.Start
