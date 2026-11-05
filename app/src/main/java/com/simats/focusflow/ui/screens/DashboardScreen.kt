@@ -208,7 +208,7 @@ fun DashboardScreen(
                         color = colors.textMuted,
                         fontWeight = FontWeight.Medium
                     )
-                    if (data.userName.isBlank() && state.isLoading) {
+                    if (data.userName.isBlank() && uiState.isLoading) {
                         Box(
                             modifier = Modifier
                                 .padding(vertical = 4.dp)
