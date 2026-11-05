@@ -537,6 +537,33 @@ object UsageStatsHelper {
         "com.google.android.apps.messaging"
     )
 
+    val STREAMING_PACKAGES = setOf(
+        "com.google.android.youtube",
+        "com.netflix.mediaclient",
+        "in.startv.hotstar",
+        "com.amazon.avod.thirdpartyclient",
+        "com.spotify.music",
+        "tv.twitch.android.app",
+        "org.videolan.vlc"
+    )
+
+    val BROWSING_PACKAGES = setOf(
+        "com.google.android.googlequicksearchbox",
+        "com.android.chrome",
+        "org.mozilla.firefox",
+        "com.microsoft.emmx",
+        "com.opera.browser"
+    )
+
+    val PRODUCTIVITY_PACKAGES = setOf(
+        "com.openai.chatgpt",
+        "com.anthropic.claude",
+        "com.microsoft.office.word",
+        "com.google.android.apps.docs",
+        "com.notion.id",
+        "com.todoist"
+    )
+
     fun getApplicationCategory(context: Context, pkg: String): String? {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             try {
