@@ -575,11 +575,39 @@ private fun ActionCard(
                 }
             }
 
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = colors.primary,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(start = 8.dp)
             ) {
+                if (isExecuted) {
+                    Box(
+                        modifier = Modifier
+                            .background(AccentGreen.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 7.dp, vertical = 4.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Outlined.CheckCircle,
+                                contentDescription = "Done",
+                                tint = AccentGreen,
+                                modifier = Modifier.size(11.dp)
+                            )
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(
+                                text = "Done",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = AccentGreen
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = colors.primary
+                ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -603,6 +631,7 @@ private fun ActionCard(
                         modifier = Modifier.size(11.dp)
                     )
                 }
+            }
             }
         }
     }
