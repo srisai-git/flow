@@ -37,7 +37,9 @@ class AiRepository(
                     userId = userId,
                     prompt = userPrompt,
                     history = activeHistory,
-                    queryType = queryType
+                    queryType = queryType,
+                    maxTokens = 400,
+                    temperature = 0.3f
                 )
             )
 
