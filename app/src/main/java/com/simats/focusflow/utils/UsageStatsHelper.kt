@@ -113,6 +113,9 @@ object UsageStatsHelper {
         }.timeInMillis
     }
 
+    fun getStartOfDayBoundary(): Long = getExactMidnightTimestamp()
+    fun getStrictNowTimestamp(): Long = System.currentTimeMillis()
+
     /**
      * Backward-compatible alias for getExactMidnightTimestamp.
      */
@@ -142,6 +145,35 @@ object UsageStatsHelper {
      * Queries foreground app durations using UsageEvents transition intervals.
      * Matches the exact algorithm used by Android Digital Wellbeing.
      */
+    const val EVENT_ACTIVITY_RESUMED = 1
+    const val EVENT_MOVE_TO_FOREGROUND = 1
+    const val EVENT_ACTIVITY_PAUSED = 2
+    const val EVENT_ACTIVITY_STOPPED = 23
+    const val EVENT_MOVE_TO_BACKGROUND = 2
+
+    val SYSTEM_IGNORED_PACKAGES = setOf(
+        "android",
+        "com.android.systemui",
+        "com.google.android.inputmethod.latin",
+        "com.samsung.android.honeyboard",
+        "com.google.android.apps.nexuslauncher",
+        "com.sec.android.app.launcher",
+        "com.android.launcher3",
+        "com.google.android.googlequicksearchbox",
+        "com.google.android.permissioncontroller"
+    )
+
+    fun isSystemProcessOrDaemon(pkg: String): Boolean {
+        if (SYSTEM_IGNORED_PACKAGES.contains(pkg)) return true
+        val lower = pkg.lowercase()
+        return lower.contains("systemui") || lower.contains(".daemon.") || lower.contains("telephony") ||
+                lower.contains("wallpaper") || lower.contains("inputmethod") || lower.contains("honeyboard")
+    }
+
+    /**
+     * Queries foreground app durations using chronologically sorted UsageEvents transition intervals.
+     * Accurately pairs foreground start/stop events and accounts for active running apps up to now.
+     */
     fun queryForegroundTimesFromEvents(
         context: Context,
         startTime: Long,
@@ -150,64 +182,63 @@ object UsageStatsHelper {
         val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
             ?: return emptyMap()
 
-        val events = try {
+        val rawEvents = try {
             usageStatsManager.queryEvents(startTime, endTime)
         } catch (_: Exception) {
             null
         } ?: return emptyMap()
 
-        val foregroundTimes = mutableMapOf<String, Long>()
-        val startTimes = mutableMapOf<String, Long>()
-        val event = android.app.usage.UsageEvents.Event()
-        val liveCurrentTime = minOf(endTime, System.currentTimeMillis())
+        val eventList = mutableListOf<AppEventTransition>()
+        val tempEvt = android.app.usage.UsageEvents.Event()
+        while (rawEvents.hasNextEvent()) {
+            rawEvents.getNextEvent(tempEvt)
+            val p = tempEvt.packageName
+            if (p != null && !isSystemProcessOrDaemon(p)) {
+                eventList.add(AppEventTransition(p, tempEvt.eventType, tempEvt.timeStamp))
+            }
+        }
+        eventList.sortBy { it.timestamp }
 
-        while (events.hasNextEvent()) {
-            events.getNextEvent(event)
-            val pkg = event.packageName ?: continue
-            val eventType = event.eventType
-            val rawTimestamp = event.timeStamp
-            val timestamp = minOf(liveCurrentTime, rawTimestamp)
+        val packageForegroundStart = mutableMapOf<String, Long>()
+        val appTotalTime = mutableMapOf<String, Long>()
+        val liveNow = minOf(endTime, System.currentTimeMillis())
+
+        for (transition in eventList) {
+            val pkg = transition.packageName
+            val eventType = transition.eventType
+            val timestamp = minOf(liveNow, transition.timestamp)
 
             val isForeground = eventType == android.app.usage.UsageEvents.Event.ACTIVITY_RESUMED ||
-                    eventType == 1 // MOVE_TO_FOREGROUND
+                    eventType == EVENT_MOVE_TO_FOREGROUND
             val isBackground = eventType == android.app.usage.UsageEvents.Event.ACTIVITY_PAUSED ||
-                    eventType == 23 || // ACTIVITY_STOPPED
-                    eventType == 2 // MOVE_TO_BACKGROUND
+                    eventType == EVENT_ACTIVITY_STOPPED ||
+                    eventType == EVENT_MOVE_TO_BACKGROUND
 
             if (isForeground) {
-                if (!startTimes.containsKey(pkg)) {
-                    startTimes[pkg] = maxOf(timestamp, startTime)
-                }
+                packageForegroundStart[pkg] = maxOf(timestamp, startTime)
             } else if (isBackground) {
-                val resumeTime = startTimes.remove(pkg)
-                if (resumeTime != null) {
-                    val delta = computeSafeForegroundDelta(
-                        resumeTime = resumeTime,
-                        pauseTime = timestamp,
-                        windowStartTime = startTime,
-                        windowEndTime = liveCurrentTime
-                    )
+                val start = packageForegroundStart.remove(pkg)
+                if (start != null) {
+                    val effectiveStart = maxOf(start, startTime)
+                    val effectiveEnd = minOf(liveNow, timestamp)
+                    val delta = maxOf(0L, effectiveEnd - effectiveStart)
                     if (delta > 0) {
-                        foregroundTimes[pkg] = (foregroundTimes[pkg] ?: 0L) + delta
+                        appTotalTime[pkg] = (appTotalTime[pkg] ?: 0L) + delta
                     }
                 }
             }
         }
 
-        // Account for any active ongoing sessions lacking a closing pause event
-        for ((pkg, resumeTime) in startTimes) {
-            val delta = computeSafeForegroundDelta(
-                resumeTime = resumeTime,
-                pauseTime = liveCurrentTime,
-                windowStartTime = startTime,
-                windowEndTime = liveCurrentTime
-            )
+        // Real-time live check: account for ongoing active apps currently running in foreground
+        for ((pkg, activeStart) in packageForegroundStart) {
+            val effectiveStart = maxOf(activeStart, startTime)
+            val delta = maxOf(0L, liveNow - effectiveStart)
             if (delta > 0) {
-                foregroundTimes[pkg] = (foregroundTimes[pkg] ?: 0L) + delta
+                appTotalTime[pkg] = (appTotalTime[pkg] ?: 0L) + delta
             }
         }
 
-        return foregroundTimes
+        return appTotalTime
     }
 
     fun hasUsageStatsPermission(context: Context): Boolean {
