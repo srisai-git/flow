@@ -47,6 +47,18 @@ object UsageStatsHelper {
         labelCache.clear()
     }
 
+    /**
+     * Returns strictly 00:00:00.000 midnight timestamp for today.
+     */
+    fun getTodayStartTimestamp(): Long {
+        return Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+    }
+
     fun hasUsageStatsPermission(context: Context): Boolean {
         return try {
             val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as? AppOpsManager ?: return false
