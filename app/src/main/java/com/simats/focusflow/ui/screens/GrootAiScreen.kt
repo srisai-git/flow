@@ -469,7 +469,7 @@ private fun ChatBubble(
                                 clipboardManager.setText(AnnotatedString(message.text))
                                 Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
                             },
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(24.dp).bounceClick()
                         ) {
                             Icon(
                                 imageVector = Icons.Default.ContentCopy,
