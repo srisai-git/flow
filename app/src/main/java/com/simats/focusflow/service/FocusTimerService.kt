@@ -125,6 +125,14 @@ class FocusTimerService : Service() {
             startServiceCompat(context, intent)
         }
 
+        fun resetService(context: Context) {
+            _timerStateFlow.value = TimerServiceState()
+            try {
+                val intent = Intent(context, FocusTimerService::class.java)
+                context.stopService(intent)
+            } catch (_: Exception) {}
+        }
+
         fun skipSession(context: Context) {
             val intent = Intent(context, FocusTimerService::class.java).apply {
                 action = ACTION_SKIP
