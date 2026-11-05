@@ -96,8 +96,9 @@ object UsageStatsHelper {
 
     /**
      * Returns strictly 00:00:00.000 midnight timestamp for today.
+     * Guarantees zeroed milliseconds, seconds, minutes, and hours for exact daily boundary.
      */
-    fun getTodayStartTimestamp(): Long {
+    fun getExactMidnightTimestamp(): Long {
         return Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0)
             set(Calendar.MINUTE, 0)
@@ -105,6 +106,11 @@ object UsageStatsHelper {
             set(Calendar.MILLISECOND, 0)
         }.timeInMillis
     }
+
+    /**
+     * Backward-compatible alias for getExactMidnightTimestamp.
+     */
+    fun getTodayStartTimestamp(): Long = getExactMidnightTimestamp()
 
     /**
      * Queries foreground app durations using UsageEvents transition intervals.
