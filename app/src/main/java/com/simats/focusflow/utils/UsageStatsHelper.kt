@@ -516,6 +516,26 @@ object UsageStatsHelper {
         )
     }
 
+    fun getApplicationCategory(context: Context, pkg: String): String? {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                val appInfo = context.packageManager.getApplicationInfo(pkg, 0)
+                return when (appInfo.category) {
+                    ApplicationInfo.CATEGORY_GAME -> "Games"
+                    ApplicationInfo.CATEGORY_AUDIO, ApplicationInfo.CATEGORY_VIDEO -> "Video & Streaming"
+                    ApplicationInfo.CATEGORY_SOCIAL -> "Social Media"
+                    ApplicationInfo.CATEGORY_NEWS -> "News"
+                    ApplicationInfo.CATEGORY_MAPS -> "Navigation"
+                    ApplicationInfo.CATEGORY_PRODUCTIVITY -> "Productivity"
+                    else -> null
+                }
+            } catch (_: Exception) {
+                null
+            }
+        }
+        return null
+    }
+
     private fun categorizePackage(pkg: String, name: String): String {
         val lower = "$pkg $name".lowercase()
         return when {
