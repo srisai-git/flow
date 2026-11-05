@@ -242,16 +242,24 @@ object UsageStatsHelper {
             // Strictly exclude FocusFlow itself from distraction stats
             if (pkg == selfPkg || launcherAppMap.containsKey(pkg)) continue
 
-            val label = try {
-                resolveInfo.loadLabel(pm).toString()
-            } catch (_: Exception) {
-                pkg.substringAfterLast('.')
+            val label = getCachedLabel(pkg) ?: run {
+                val l = try {
+                    resolveInfo.loadLabel(pm).toString()
+                } catch (_: Exception) {
+                    pkg.substringAfterLast('.')
+                }
+                putCachedLabel(pkg, l)
+                l
             }
 
-            val icon = try {
-                resolveInfo.loadIcon(pm)
-            } catch (_: Exception) {
-                null
+            val icon = getCachedIcon(pkg) ?: run {
+                val ic = try {
+                    resolveInfo.loadIcon(pm)
+                } catch (_: Exception) {
+                    null
+                }
+                if (ic != null) putCachedIcon(pkg, ic)
+                ic
             }
 
             launcherAppMap[pkg] = Pair(label, icon)
@@ -424,16 +432,24 @@ object UsageStatsHelper {
             val pkg = resolveInfo.activityInfo?.packageName ?: continue
             if (pkg == selfPkg || launcherAppMap.containsKey(pkg)) continue
 
-            val label = try {
-                resolveInfo.loadLabel(pm).toString()
-            } catch (_: Exception) {
-                pkg.substringAfterLast('.')
+            val label = getCachedLabel(pkg) ?: run {
+                val l = try {
+                    resolveInfo.loadLabel(pm).toString()
+                } catch (_: Exception) {
+                    pkg.substringAfterLast('.')
+                }
+                putCachedLabel(pkg, l)
+                l
             }
 
-            val icon = try {
-                resolveInfo.loadIcon(pm)
-            } catch (_: Exception) {
-                null
+            val icon = getCachedIcon(pkg) ?: run {
+                val ic = try {
+                    resolveInfo.loadIcon(pm)
+                } catch (_: Exception) {
+                    null
+                }
+                if (ic != null) putCachedIcon(pkg, ic)
+                ic
             }
 
             launcherAppMap[pkg] = Pair(label, icon)
