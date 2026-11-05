@@ -12,7 +12,9 @@ import android.graphics.drawable.Drawable
 import android.os.Build
 import android.os.Process
 import android.provider.Settings
+import androidx.collection.LruCache
 import java.util.Calendar
+import java.util.concurrent.ConcurrentHashMap
 
 data class AppUsageInfo(
     val packageName: String,
@@ -32,6 +34,18 @@ data class DistractionUsageSummary(
 )
 
 object UsageStatsHelper {
+
+    private val iconCache = LruCache<String, Drawable>(150)
+    private val labelCache = ConcurrentHashMap<String, String>()
+
+    fun getCachedIcon(packageName: String): Drawable? = iconCache.get(packageName)
+    fun putCachedIcon(packageName: String, icon: Drawable) { iconCache.put(packageName, icon) }
+    fun getCachedLabel(packageName: String): String? = labelCache[packageName]
+    fun putCachedLabel(packageName: String, label: String) { labelCache[packageName] = label }
+    fun clearCache() {
+        iconCache.evictAll()
+        labelCache.clear()
+    }
 
     fun hasUsageStatsPermission(context: Context): Boolean {
         val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as? AppOpsManager ?: return false
