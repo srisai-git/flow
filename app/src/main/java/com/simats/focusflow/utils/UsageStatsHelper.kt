@@ -302,52 +302,55 @@ object UsageStatsHelper {
             ?: return DistractionUsageSummary()
 
         // Today boundary: strictly 00:00:00 midnight to System.currentTimeMillis()
-        val cal = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-        val startOfDay = cal.timeInMillis
+        val startOfDay = getTodayStartTimestamp()
         val currentTime = System.currentTimeMillis()
 
-        val usageStatsList: List<UsageStats> = try {
-            usageStatsManager.queryUsageStats(
-                UsageStatsManager.INTERVAL_DAILY,
-                startOfDay,
-                currentTime
-            ) ?: emptyList()
-        } catch (_: Exception) {
-            emptyList()
-        }
+        // 1. Primary Engine: UsageEvents transition delta calculation (matches Digital Wellbeing)
+        val eventTimes = queryForegroundTimesFromEvents(context, startOfDay, currentTime)
 
-        // Aggregate totalTimeInForeground strictly for today without prior-day overlap or double counting
         val packageTimeMap = mutableMapOf<String, Long>()
-        for (stats in usageStatsList) {
-            val pkg = stats.packageName ?: continue
-            if (pkg == selfPkg || !launcherAppMap.containsKey(pkg)) continue
-            // Ensure app was actually active today
-            if (stats.lastTimeUsed < startOfDay) continue
-
-            val time = stats.totalTimeInForeground
-            if (time > 0L) {
-                // Avoid double-counting overlapping daily interval buckets
-                val existing = packageTimeMap[pkg] ?: 0L
-                packageTimeMap[pkg] = maxOf(existing, time)
+        for ((pkg, timeMs) in eventTimes) {
+            if (pkg == selfPkg) continue
+            if (launcherAppMap.containsKey(pkg) || isUserFacingApp(context, pkg)) {
+                packageTimeMap[pkg] = timeMs
             }
         }
 
-        // Fallback to queryAndAggregateUsageStats if queryUsageStats was empty
+        // 2. Secondary Fallback: queryUsageStats if UsageEvents returned empty
         if (packageTimeMap.isEmpty()) {
-            try {
-                val aggregated = usageStatsManager.queryAndAggregateUsageStats(startOfDay, currentTime)
-                for ((pkg, stats) in aggregated) {
-                    if (pkg == selfPkg || !launcherAppMap.containsKey(pkg)) continue
-                    if (stats.lastTimeUsed >= startOfDay && stats.totalTimeInForeground > 0L) {
-                        packageTimeMap[pkg] = stats.totalTimeInForeground
-                    }
+            val usageStatsList: List<UsageStats> = try {
+                usageStatsManager.queryUsageStats(
+                    UsageStatsManager.INTERVAL_DAILY,
+                    startOfDay,
+                    currentTime
+                ) ?: emptyList()
+            } catch (_: Exception) {
+                emptyList()
+            }
+
+            for (stats in usageStatsList) {
+                val pkg = stats.packageName ?: continue
+                if (pkg == selfPkg || !launcherAppMap.containsKey(pkg)) continue
+                if (stats.lastTimeUsed < startOfDay) continue
+
+                val time = stats.totalTimeInForeground
+                if (time > 0L) {
+                    val existing = packageTimeMap[pkg] ?: 0L
+                    packageTimeMap[pkg] = maxOf(existing, time)
                 }
-            } catch (_: Exception) {}
+            }
+
+            if (packageTimeMap.isEmpty()) {
+                try {
+                    val aggregated = usageStatsManager.queryAndAggregateUsageStats(startOfDay, currentTime)
+                    for ((pkg, stats) in aggregated) {
+                        if (pkg == selfPkg || !launcherAppMap.containsKey(pkg)) continue
+                        if (stats.lastTimeUsed >= startOfDay && stats.totalTimeInForeground > 0L) {
+                            packageTimeMap[pkg] = stats.totalTimeInForeground
+                        }
+                    }
+                } catch (_: Exception) {}
+            }
         }
 
         val appInfos = mutableListOf<AppUsageInfo>()
@@ -358,7 +361,7 @@ object UsageStatsHelper {
             val timeMs = packageTimeMap[pkg] ?: 0L
             val mins = (timeMs / 60_000L).toInt()
             val displayMins = if (mins == 0 && timeMs >= 15_000L) 1 else mins
-            val category = categorizePackage(pkg, pair.first)
+            val category = categorizePackage(pkg, pair.first, context)
 
             appInfos.add(
                 AppUsageInfo(
