@@ -79,4 +79,11 @@ object GrootActionParser {
 
         return null
     }
+
+    /**
+     * Test verification helper ensuring command string can be resolved to a valid action.
+     */
+    fun canHandleAction(prompt: String): Boolean {
+        return parseAction(prompt) != null
+    }
 }
