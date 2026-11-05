@@ -27,7 +27,7 @@ object ExportDataHelper {
     suspend fun generateAndShareExport(
         context: Context,
         userId: Int,
-        userName: String = "Sri Sai",
+        userName: String = "FocusFlow User",
         incSessions: Boolean = true,
         incTasks: Boolean = true,
         incStreaks: Boolean = true
