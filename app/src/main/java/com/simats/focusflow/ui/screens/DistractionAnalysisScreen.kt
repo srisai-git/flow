@@ -128,6 +128,10 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
     }
 
     // Filter apps that actually have recorded foreground usage today
+    val ringSegments = remember(usageSummary) {
+        usageSummary.computeRingSegments(maxTopApps = 4)
+    }
+
     val activeApps = remember(usageSummary) {
         usageSummary.apps.filter { it.usageMinutes > 0 }
     }
@@ -259,7 +263,7 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
                     contentAlignment = Alignment.Center
                 ) {
                     Canvas(modifier = Modifier.size(176.dp)) {
-                        val strokeWidth = 11.dp.toPx()
+                        val strokeWidth = 18.dp.toPx()
                         val diameter = size.minDimension - strokeWidth
                         val topLeftOffset = androidx.compose.ui.geometry.Offset(strokeWidth / 2, strokeWidth / 2)
                         val arcSize = androidx.compose.ui.geometry.Size(diameter, diameter)
