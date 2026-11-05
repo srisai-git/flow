@@ -557,7 +557,9 @@ data class AiRequest(
     @SerializedName("user_id") val userId: Int,
     @SerializedName("prompt") val prompt: String = "",
     @SerializedName("history") val history: List<ChatHistoryMessage> = emptyList(),
-    @SerializedName("query_type") val queryType: String = "chat"
+    @SerializedName("query_type") val queryType: String = "chat",
+    @SerializedName("max_tokens") val maxTokens: Int = 400,
+    @SerializedName("temperature") val temperature: Float = 0.3f
 )
 
 @Immutable
