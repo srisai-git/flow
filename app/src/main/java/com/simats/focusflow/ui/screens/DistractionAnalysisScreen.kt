@@ -263,71 +263,13 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Permission request card if access has not been granted
         if (!hasPermission) {
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = colors.surface,
-                border = BorderStroke(1.dp, colors.primary.copy(alpha = 0.35f)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(20.dp).animateContentSize()) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .background(colors.primary.copy(alpha = 0.15f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Security,
-                                contentDescription = null,
-                                tint = colors.primaryLight,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = "Usage Access Required",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.textPrimary
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Text(
-                        text = "FocusFlow needs usage access to read your screen time and analyze app distractions, just like Digital Wellbeing.",
-                        fontSize = 13.sp,
-                        color = colors.textMuted,
-                        lineHeight = 19.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(18.dp))
-
-                    Button(
-                        onClick = {
-                            UsageStatsHelper.openUsageAccessSettings(context)
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(46.dp)
-                            .bounceClick()
-                    ) {
-                        Text(
-                            text = "Grant Permission",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
+            Spacer(modifier = Modifier.height(16.dp))
+            UsagePermissionPromptCard(
+                onGrantAccess = {
+                    UsageStatsHelper.openUsageAccessSettings(context)
                 }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
+            )
         }
 
         // Digital Wellbeing Hero Section: Sleek Minimalist Indicator
