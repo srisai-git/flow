@@ -199,7 +199,7 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
                 border = BorderStroke(1.dp, colors.primary.copy(alpha = 0.35f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
+                Column(modifier = Modifier.padding(20.dp).animateContentSize()) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
@@ -400,7 +400,9 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
             Spacer(modifier = Modifier.height(24.dp))
 
             // App Breakdown List / Empty State
-            if (activeApps.isEmpty()) {
+            if (isLoading) {
+                ShimmerLoadingPlaceholder(colors)
+            } else if (activeApps.isEmpty()) {
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -436,7 +438,7 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
                     color = colors.surface,
                     border = BorderStroke(1.dp, colors.border)
                 ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
+                    Column(modifier = Modifier.padding(20.dp).animateContentSize()) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
