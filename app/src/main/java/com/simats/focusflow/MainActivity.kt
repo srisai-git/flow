@@ -27,7 +27,11 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.LaunchedEffect
+import android.view.View
+import android.view.ViewTreeObserver
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -104,8 +108,23 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private var resolvedDestination: String? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val content = findViewById<View>(android.R.id.content)
+        content?.viewTreeObserver?.addOnPreDrawListener(
+            object : ViewTreeObserver.OnPreDrawListener {
+                override fun onPreDraw(): Boolean {
+                    return if (resolvedDestination != null) {
+                        content.viewTreeObserver.removeOnPreDrawListener(this)
+                        true
+                    } else {
+                        false
+                    }
+                }
+            }
+        )
         enableEdgeToEdge()
 
         com.simats.focusflow.data.repository.ProductivityRepository.init(applicationContext)
@@ -178,6 +197,21 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
+            var initialRoute by remember { mutableStateOf<String?>(resolvedDestination) }
+
+            LaunchedEffect(Unit) {
+                if (initialRoute == null) {
+                    val session = sessionManager.userSessionFlow.first()
+                    val target = if (session.isLoggedIn) {
+                        if (session.isOnboardingCompleted) Screen.Dashboard.route else "make_it_yours/${session.userId ?: 1}"
+                    } else {
+                        "welcome_start"
+                    }
+                    resolvedDestination = target
+                    initialRoute = target
+                }
+            }
+
             FOCUSFLOWTheme(themeMode = themeMode) {
                 val navController = rememberNavController()
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -220,20 +254,12 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 ) { innerPadding ->
+                    val effectiveStart = initialRoute ?: "welcome_start"
                     NavHost(
                         navController = navController,
-                        startDestination = "splash",
+                        startDestination = effectiveStart,
                         modifier = Modifier.padding(innerPadding)
                     ) {
-                        composable("splash") {
-                            SplashScreen(
-                                onNavigate = { destination ->
-                                    navController.navigate(destination) {
-                                        popUpTo("splash") { inclusive = true }
-                                    }
-                                }
-                            )
-                        }
                         composable("welcome_start") {
                             WelcomeStartScreen(
                                 onBack = { navController.popBackStack() },
@@ -327,7 +353,7 @@ class MainActivity : ComponentActivity() {
                                 onBack = { navController.popBackStack() },
                                 onNavigateNext = {
                                     navController.navigate("dashboard") {
-                                        popUpTo("splash") { inclusive = true }
+                                        popUpTo(0) { inclusive = true }
                                     }
                                 }
                             )
@@ -619,7 +645,7 @@ class MainActivity : ComponentActivity() {
                                 onBack = { navController.popBackStack() },
                                 onGoToDashboard = {
                                     navController.navigate(Screen.Dashboard.route) {
-                                        popUpTo("splash") { inclusive = true }
+                                        popUpTo(0) { inclusive = true }
                                     }
                                 },
                                 onEditPreferences = { navController.navigate("setup") }
