@@ -43,7 +43,7 @@ sealed interface ParsedGrootAction {
 
 object GrootActionParser {
 
-    private val TIMER_REGEX = Regex("(?i)\\b(?:set|start|begin|run)\\s+(?:a\\s+)?(\\d+)\\s*(?:min|mins|minute|minutes)?\\s*(?:timer|pomodoro|focus)?")
+    private val TIMER_REGEX = Regex("(?i)\\b(?:set|start|begin|run|launch)\\s+(?:a\\s+)?(\\d+)\\s*(?:min|mins|minute|minutes|m)?(?:\\s*(?:timer|pomodoro|focus|session))?")
     private val HABIT_REGEX = Regex("(?i)\\b(?:create|add|new|start)\\s+habit\\s+[\"']?([^\"'\\n]+)[\"']?")
     private val TASK_REGEX = Regex("(?i)\\b(?:create|add|new)\\s+task\\s+[\"']?([^\"'\\n]+)[\"']?")
 
