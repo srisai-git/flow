@@ -169,6 +169,24 @@ class GrootAiViewModel(
         val userMessage = ChatMessage(isFromUser = true, text = textToSend)
         val updatedWithUser = _uiState.value.messages + userMessage
 
+        // Strict Domain Guardrails Check: intercept off-topic or pop culture questions
+        if (com.simats.focusflow.utils.GrootGuardrailHelper.isOffTopicQuery(textToSend)) {
+            val declineMessage = ChatMessage(
+                isFromUser = false,
+                text = com.simats.focusflow.utils.GrootGuardrailHelper.DECLINE_MESSAGE
+            )
+            val updatedWithDecline = updatedWithUser + declineMessage
+            _uiState.update {
+                it.copy(
+                    messages = updatedWithDecline,
+                    inputText = if (query == null) "" else it.inputText,
+                    isAiThinking = false
+                )
+            }
+            persistMessages(updatedWithDecline)
+            return
+        }
+
         val currentHistory = updatedWithUser.takeLast(10).map {
             ChatHistoryMessage(
                 role = if (it.isFromUser) "user" else "assistant",
