@@ -436,6 +436,7 @@ class MainActivity : ComponentActivity() {
                                         try {
                                             com.simats.focusflow.service.FocusTimerService.resetService(applicationContext)
                                             com.simats.focusflow.utils.UsageStatsHelper.clearCache()
+                                            com.simats.focusflow.data.repository.ProductivityRepository.clearUserCache()
                                         } catch (_: Exception) {}
                                         sessionManager.clearSession()
                                         navController.navigate("login") {
