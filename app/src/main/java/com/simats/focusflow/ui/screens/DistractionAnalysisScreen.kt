@@ -331,7 +331,7 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "Today's Screen Time",
+                            text = "Today",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
                             color = colors.textMuted
