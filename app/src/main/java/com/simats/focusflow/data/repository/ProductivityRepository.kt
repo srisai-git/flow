@@ -244,6 +244,10 @@ class ProductivityRepository(
         }
     }
 
+    /**
+     * Queries habits for the given user from the remote API.
+     * Guarantees an empty habits list without seeded defaults for new user accounts.
+     */
     suspend fun getHabits(userId: Int): Result<HabitsResult> = withContext(Dispatchers.IO) {
         try {
             val response = apiService.getHabits(userId)
