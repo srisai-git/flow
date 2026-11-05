@@ -56,6 +56,26 @@ private val SegmentColors = listOf(
     Color(0xFF84CC16)  // Lime
 )
 
+private fun getAppBrandColor(packageName: String?, index: Int): Color {
+    if (packageName == null) return Color(0xFF6B7280) // "Other" segment neutral gray
+    val pkg = packageName.lowercase()
+    return when {
+        pkg.contains("instagram") -> Color(0xFFE1306C)
+        pkg.contains("youtube") -> Color(0xFFFF0000)
+        pkg.contains("whatsapp") -> Color(0xFF25D366)
+        pkg.contains("chrome") -> Color(0xFF4285F4)
+        pkg.contains("google") -> Color(0xFF34A853)
+        pkg.contains("snapchat") -> Color(0xFFFFB800)
+        pkg.contains("reddit") -> Color(0xFFFF4500)
+        pkg.contains("telegram") -> Color(0xFF24A1DE)
+        pkg.contains("twitter") || pkg.contains("x.com") -> Color(0xFF1DA1F2)
+        pkg.contains("spotify") -> Color(0xFF1DB954)
+        pkg.contains("netflix") -> Color(0xFFE50914)
+        pkg.contains("discord") -> Color(0xFF5865F2)
+        else -> SegmentColors[index % SegmentColors.size]
+    }
+}
+
 @Composable
 fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
     val context = LocalContext.current
