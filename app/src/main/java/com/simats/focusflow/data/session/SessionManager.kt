@@ -369,6 +369,9 @@ class SessionManager private constructor(
             preferences.remove(KEY_USER_AVATAR_PATH)
             preferences.remove(KEY_USER_BIO)
             preferences.remove(KEY_ONBOARDING_COMPLETED)
+            preferences.remove(KEY_DEADLINE_REMINDER_ENABLED)
+            preferences.remove(KEY_BREAK_REMINDER_ENABLED)
+            preferences.remove(KEY_AI_REPORT_REMINDER_ENABLED)
             preferences[KEY_IS_FIRST_LOGIN_FLOW] = false
             preferences[KEY_THEME_MODE] = "light"
         }
