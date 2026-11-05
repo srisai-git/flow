@@ -433,6 +433,10 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToEditProfile = { navController.navigate("edit_profile") },
                                 onLogout = {
                                     coroutineScope.launch {
+                                        try {
+                                            com.simats.focusflow.service.FocusTimerService.resetService(applicationContext)
+                                            com.simats.focusflow.utils.UsageStatsHelper.clearCache()
+                                        } catch (_: Exception) {}
                                         sessionManager.clearSession()
                                         navController.navigate("login") {
                                             popUpTo(0) { inclusive = true }
