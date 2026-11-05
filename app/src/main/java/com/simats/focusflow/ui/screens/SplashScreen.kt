@@ -102,28 +102,6 @@ fun SplashScreen(
                     .scale(scaleAnim.value * pulseScale)
                     .alpha(alphaAnim.value)
             )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Text(
-                text = "FocusFlow",
-                color = Color.White,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.5.sp,
-                modifier = Modifier.alpha(alphaAnim.value)
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Text(
-                text = "Mindful routines • Deep focus",
-                color = Color(0xFFC4B5FD),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
-                letterSpacing = 0.5.sp,
-                modifier = Modifier.alpha(alphaAnim.value)
-            )
         }
     }
 }
