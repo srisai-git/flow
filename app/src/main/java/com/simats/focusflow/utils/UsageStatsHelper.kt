@@ -225,10 +225,33 @@ object UsageStatsHelper {
     }
 
     /**
+     * Resolves all user-facing launcher package names using Intent(ACTION_MAIN, CATEGORY_LAUNCHER).
+     * Strictly discards system background packages lacking launcher entry points.
+     */
+    fun getLauncherPackageNames(context: Context): Set<String> {
+        val pm = context.packageManager
+        val launcherIntent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_LAUNCHER)
+        }
+        val resolveInfos: List<ResolveInfo> = try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                pm.queryIntentActivities(launcherIntent, PackageManager.ResolveInfoFlags.of(0L))
+            } else {
+                @Suppress("DEPRECATION")
+                pm.queryIntentActivities(launcherIntent, 0)
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+        return resolveInfos.mapNotNull { it.activityInfo?.packageName }.toSet()
+    }
+    /**
      * Checks if a package is a user-facing launcher application rather than an internal background process.
      */
     fun isUserFacingApp(context: Context, packageName: String): Boolean {
         if (packageName == context.packageName) return false
+        val launcherPackages = getLauncherPackageNames(context)
+        if (launcherPackages.contains(packageName)) return true
         val pm = context.packageManager
         val launchIntent = pm.getLaunchIntentForPackage(packageName)
         if (launchIntent != null) return true
