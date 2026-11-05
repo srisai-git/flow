@@ -79,6 +79,78 @@ private fun getAppBrandColor(packageName: String?, index: Int): Color {
     }
 }
 
+
+@Composable
+fun UsagePermissionPromptCard(
+    onGrantAccess: () -> Unit
+) {
+    val colors = FocusFlowTheme.colors
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = colors.surface,
+        border = BorderStroke(1.dp, colors.primary.copy(alpha = 0.35f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(colors.primary.copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Security,
+                    contentDescription = null,
+                    tint = colors.primaryLight,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Usage Permission Required",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = colors.textPrimary,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "FocusFlow needs usage access to compute accurate screen time like Digital Wellbeing.",
+                fontSize = 13.5.sp,
+                color = colors.textMuted,
+                lineHeight = 20.sp,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(22.dp))
+
+            Button(
+                onClick = onGrantAccess,
+                colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .bounceClick()
+            ) {
+                Text(
+                    text = "Grant Access",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
+        }
+    }
+}
+
 @Composable
 fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
     val context = LocalContext.current
