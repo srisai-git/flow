@@ -281,14 +281,15 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
 
         // Digital Wellbeing Hero Section: Sleek Minimalist Indicator
         if (hasPermission) {
-            Box(
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
+                val chartDiameter = minOf(maxWidth * 0.6f, 210.dp).coerceAtLeast(160.dp)
                 Box(
-                    modifier = Modifier.size(200.dp),
+                    modifier = Modifier.size(chartDiameter),
                     contentAlignment = Alignment.Center
                 ) {
                     Canvas(modifier = Modifier.size(176.dp)) {

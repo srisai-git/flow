@@ -834,51 +834,57 @@ private fun TimerCountdownDial(
         Brush.sweepGradient(listOf(primaryColor, primaryLight, primaryColor))
     }
 
-    Box(
-        modifier = Modifier.size(240.dp),
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center
     ) {
-        val density = LocalDensity.current
-        val strokeWidthPx = remember(density) { with(density) { 12.dp.toPx() } }
-        val bgStroke = remember(strokeWidthPx) { Stroke(width = strokeWidthPx) }
-        val arcStroke = remember(strokeWidthPx) { Stroke(width = strokeWidthPx, cap = StrokeCap.Round) }
+        val dialSize = minOf(maxWidth * 0.72f, 250.dp).coerceAtLeast(180.dp)
+        Box(
+            modifier = Modifier.size(dialSize),
+            contentAlignment = Alignment.Center
+        ) {
+            val density = LocalDensity.current
+            val strokeWidthPx = remember(density) { with(density) { 12.dp.toPx() } }
+            val bgStroke = remember(strokeWidthPx) { Stroke(width = strokeWidthPx) }
+            val arcStroke = remember(strokeWidthPx) { Stroke(width = strokeWidthPx, cap = StrokeCap.Round) }
 
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            // Background Track Ring
-            drawCircle(
-                color = surfaceVariant,
-                style = bgStroke
-            )
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                // Background Track Ring
+                drawCircle(
+                    color = surfaceVariant,
+                    style = bgStroke
+                )
 
-            // Sweeping Progress Arc
-            if (totalSeconds > 0) {
-                drawArc(
-                    brush = sweepBrush,
-                    startAngle = -90f,
-                    sweepAngle = animatedProgress * 360f,
-                    useCenter = false,
-                    style = arcStroke
+                // Sweeping Progress Arc
+                if (totalSeconds > 0) {
+                    drawArc(
+                        brush = sweepBrush,
+                        startAngle = -90f,
+                        sweepAngle = animatedProgress * 360f,
+                        useCenter = false,
+                        style = arcStroke
+                    )
+                }
+            }
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = formattedTime,
+                    fontSize = 48.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = colors.textPrimary,
+                    letterSpacing = 1.sp
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = if (isRunning) "In Deep Flow" else "Paused",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (isRunning) colors.primaryLight else colors.textMuted
                 )
             }
-        }
-
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = formattedTime,
-                fontSize = 48.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = colors.textPrimary,
-                letterSpacing = 1.sp
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = if (isRunning) "In Deep Flow" else "Paused",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = if (isRunning) colors.primaryLight else colors.textMuted
-            )
         }
     }
 }
