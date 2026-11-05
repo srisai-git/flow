@@ -516,6 +516,27 @@ object UsageStatsHelper {
         )
     }
 
+    val SOCIAL_PACKAGES = setOf(
+        "com.instagram.android",
+        "com.snapchat.android",
+        "com.twitter.android",
+        "com.zhiliaoapp.musically",
+        "com.facebook.katana",
+        "com.reddit.frontpage",
+        "com.facebook.orca",
+        "com.linkedin.android",
+        "com.pinterest"
+    )
+
+    val MESSAGING_PACKAGES = setOf(
+        "com.whatsapp",
+        "org.telegram.messenger",
+        "com.discord",
+        "org.thoughtcrime.securesms",
+        "com.slack",
+        "com.google.android.apps.messaging"
+    )
+
     fun getApplicationCategory(context: Context, pkg: String): String? {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             try {
