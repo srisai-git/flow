@@ -180,9 +180,13 @@ object UsageStatsHelper {
                 }
             } else if (isBackground) {
                 val resumeTime = startTimes.remove(pkg)
-                if (resumeTime != null && timestamp > resumeTime) {
-                    val cappedResume = maxOf(startTime, resumeTime)
-                    val delta = minOf(liveCurrentTime, timestamp) - cappedResume
+                if (resumeTime != null) {
+                    val delta = computeSafeForegroundDelta(
+                        resumeTime = resumeTime,
+                        pauseTime = timestamp,
+                        windowStartTime = startTime,
+                        windowEndTime = liveCurrentTime
+                    )
                     if (delta > 0) {
                         foregroundTimes[pkg] = (foregroundTimes[pkg] ?: 0L) + delta
                     }
@@ -191,10 +195,14 @@ object UsageStatsHelper {
         }
 
         // Account for any active ongoing sessions lacking a closing pause event
-        val liveCurrentTime = minOf(endTime, System.currentTimeMillis())
         for ((pkg, resumeTime) in startTimes) {
-            if (liveCurrentTime > resumeTime) {
-                val delta = liveCurrentTime - resumeTime
+            val delta = computeSafeForegroundDelta(
+                resumeTime = resumeTime,
+                pauseTime = liveCurrentTime,
+                windowStartTime = startTime,
+                windowEndTime = liveCurrentTime
+            )
+            if (delta > 0) {
                 foregroundTimes[pkg] = (foregroundTimes[pkg] ?: 0L) + delta
             }
         }
