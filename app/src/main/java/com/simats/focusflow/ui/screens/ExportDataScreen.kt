@@ -226,7 +226,7 @@ fun ExportDataScreen(onBack: () -> Unit = {}) {
                             isExporting = true
                             val session = sessionManager.userSessionFlow.first()
                             val uid = session.userId ?: 1
-                            val uname = session.userName ?: "Sri Sai"
+                            val uname = session.userName ?: "FocusFlow User"
                             ExportDataHelper.generateAndShareExport(
                                 context = context,
                                 userId = uid,
