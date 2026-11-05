@@ -213,12 +213,21 @@ data class LogSessionRequest(
     val sessionType: String = "pomodoro",
 
     @SerializedName("task_id")
-    val taskId: Int? = null
+    val taskId: Int? = null,
+
+    @SerializedName("status")
+    val status: String = "completed",
+
+    @SerializedName("started_at")
+    val startedAt: String? = null,
+
+    @SerializedName("completed_at")
+    val completedAt: String? = null
 )
 
 data class LogSessionResponse(
     @SerializedName("status")
-    val status: Boolean = false,
+    val rawStatus: Any? = false,
 
     @SerializedName("message")
     val message: String = "",
@@ -228,7 +237,10 @@ data class LogSessionResponse(
 
     @SerializedName("today_total_minutes")
     val todayTotalMinutes: Int? = null
-)
+) {
+    val status: Boolean
+        get() = rawStatus == true || rawStatus == "success" || (sessionId != null && sessionId > 0)
+}
 
 @Immutable
 data class FocusSessionRecord(

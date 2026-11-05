@@ -185,8 +185,20 @@ class ProductivityRepository(
 
         // 2. Synchronize with remote backend API
         val result = try {
-            val request = LogSessionRequest(userId, durationMinutes, sessionType, taskId)
-            val response = apiService.logSession(request)
+            val request = LogSessionRequest(
+                userId = userId,
+                durationMinutes = durationMinutes,
+                sessionType = sessionType,
+                taskId = taskId,
+                status = "completed",
+                startedAt = startTime,
+                completedAt = endTime
+            )
+            val response = try {
+                apiService.saveSession(request)
+            } catch (_: Exception) {
+                apiService.logSession(request)
+            }
             if (response.isSuccessful && response.body()?.status == true) {
                 Result.success(response.body()!!)
             } else {

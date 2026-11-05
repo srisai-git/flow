@@ -17,6 +17,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 @Immutable
 enum class TimerMode(val title: String) {
@@ -230,5 +234,40 @@ class TimerViewModel(
 
     fun clearToast() {
         _uiState.update { it.copy(toastMessage = null) }
+    }
+
+    /**
+     * Manually or programmatically records a completed focus session and propagates
+     * updates to local database, remote API (save_session.php), timer history, and profile stats.
+     */
+    fun recordCompletedSession(
+        durationMinutes: Int,
+        sessionType: String = "pomodoro",
+        taskId: Int? = null,
+        taskTitle: String? = null,
+        taskCategory: String? = null
+    ) {
+        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        val now = Date()
+        val endTime = sdf.format(now)
+        val cal = Calendar.getInstance()
+        cal.time = now
+        cal.add(Calendar.MINUTE, -durationMinutes)
+        val startTime = sdf.format(cal.time)
+
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.logSession(
+                userId = currentUserId,
+                durationMinutes = durationMinutes,
+                sessionType = sessionType,
+                taskId = taskId,
+                durationSeconds = durationMinutes * 60,
+                startTime = startTime,
+                endTime = endTime,
+                taskTitle = taskTitle,
+                taskCategory = taskCategory
+            )
+            loadSessionHistory()
+        }
     }
 }

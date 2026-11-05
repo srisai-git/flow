@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit
  */
 object RetrofitClient {
 
-    private const val DEFAULT_BASE_URL = "https://reaction-union-sublevel.ngrok-free.dev/flow_backend/"
+    private const val DEFAULT_BASE_URL = " https://reaction-union-sublevel.ngrok-free.dev/flow_backend/"
 
     @Volatile
     private var customBaseUrl: String? = null

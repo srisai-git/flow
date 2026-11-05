@@ -28,6 +28,9 @@ interface FlowApiService {
     @POST("tasks.php")
     suspend fun deleteTask(@Body request: DeleteTaskRequest): Response<TaskActionResponse>
 
+    @POST("save_session.php")
+    suspend fun saveSession(@Body request: LogSessionRequest): Response<LogSessionResponse>
+
     @POST("log_session.php")
     suspend fun logSession(@Body request: LogSessionRequest): Response<LogSessionResponse>
 
