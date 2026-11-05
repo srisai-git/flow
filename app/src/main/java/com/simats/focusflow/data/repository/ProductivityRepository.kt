@@ -35,6 +35,11 @@ class ProductivityRepository(
             appContext = context.applicationContext
         }
 
+        fun clearUserCache() {
+            lastLogSessionTime = 0L
+            lastLogSessionParams = ""
+        }
+
         fun notifySessionLogged() {
             _sessionLoggedEventFlow.tryEmit(Unit)
             FocusSessionDatabase.notifyTableChanged()
