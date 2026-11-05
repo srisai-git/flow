@@ -32,6 +32,12 @@ data class RingSegment(
     val percentage: Float
 )
 
+data class AppEventTransition(
+    val packageName: String,
+    val eventType: Int,
+    val timestamp: Long
+)
+
 data class DistractionUsageSummary(
     val totalScreenMinutes: Int = 0,
     val totalDistractionMinutes: Int = 0,
