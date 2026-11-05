@@ -370,7 +370,7 @@ fun SignupScreen(
                             password = it
                             if (uiState.errorMessage != null) viewModel.clearError()
                         },
-                        placeholder = { Text("At least 6 characters", color = DarkTextMuted, fontSize = 14.sp) },
+                        placeholder = { Text("e.g. FlowFocus#2026!", color = DarkTextMuted, fontSize = 14.sp) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .defaultMinSize(minHeight = 48.dp),
