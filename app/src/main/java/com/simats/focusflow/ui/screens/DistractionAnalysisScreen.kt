@@ -16,6 +16,9 @@ import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.animation.animateContentSize
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -84,6 +87,7 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
     var usageSummary by remember { mutableStateOf(DistractionUsageSummary()) }
     var hasPermission by remember { mutableStateOf(UsageStatsHelper.hasUsageStatsPermission(context)) }
     var isLoading by remember { mutableStateOf(true) }
+    var isExpanded by remember { mutableStateOf(false) }
 
     fun refreshTodayUsageStats() {
         val perm = UsageStatsHelper.hasUsageStatsPermission(context)
@@ -134,6 +138,10 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
 
     val activeApps = remember(usageSummary) {
         usageSummary.apps.filter { it.usageMinutes > 0 }
+    }
+
+    val displayedApps = remember(activeApps, isExpanded) {
+        if (isExpanded) activeApps else activeApps.take(3)
     }
 
     val totalMins = usageSummary.totalScreenMinutes
@@ -451,7 +459,7 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
 
                         Spacer(modifier = Modifier.height(18.dp))
 
-                        activeApps.forEachIndexed { index, app ->
+                        displayedApps.forEachIndexed { index, app ->
                             val segmentColor = SegmentColors[index % SegmentColors.size]
                             val durationText = if (app.usageMinutes >= 60) {
                                 "${app.usageMinutes / 60}h ${app.usageMinutes % 60}m"
@@ -524,12 +532,40 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
                                 }
                             }
 
-                            if (index < activeApps.size - 1) {
+                            if (index < displayedApps.size - 1) {
                                 HorizontalDivider(
                                     color = colors.border.copy(alpha = 0.4f),
                                     thickness = 1.dp,
                                     modifier = Modifier.padding(vertical = 8.dp)
                                 )
+                            }
+                        }
+
+                        if (activeApps.size > 3) {
+                            val remainingCount = activeApps.size - 3
+                            TextButton(
+                                onClick = { isExpanded = !isExpanded },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp)
+                                    .bounceClick(),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = if (isExpanded) "Show less" else "Show more ($remainingCount)",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = colors.primaryLight
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(
+                                        imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                        contentDescription = null,
+                                        tint = colors.primaryLight,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
                             }
                         }
                     }
