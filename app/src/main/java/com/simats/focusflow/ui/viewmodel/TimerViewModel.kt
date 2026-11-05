@@ -170,6 +170,24 @@ class TimerViewModel(
         }
     }
 
+    fun resetSessionState() {
+        _uiState.value = TimerUiState(
+            currentMode = TimerMode.FOCUS,
+            focusMinutes = 25,
+            shortBreakMinutes = 5,
+            longBreakMinutes = 15,
+            totalSeconds = 25 * 60,
+            remainingSeconds = 25 * 60,
+            isRunning = false,
+            completedSessions = 0,
+            recentSessions = emptyList(),
+            toastMessage = null,
+            isSettingsOpen = false,
+            isHistoryOpen = false
+        )
+        currentUserId = -1
+    }
+
     fun setSettingsOpen(isOpen: Boolean) {
         _uiState.update { it.copy(isSettingsOpen = isOpen) }
     }
