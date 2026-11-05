@@ -38,6 +38,7 @@ class FocusSessionDatabase private constructor(context: Context) :
         const val COLUMN_CREATED_AT = "created_at"
         const val COLUMN_TASK_TITLE = "task_title"
         const val COLUMN_TASK_CATEGORY = "task_category"
+        const val COLUMN_SESSION_UUID = "session_uuid"
 
         @Volatile
         private var instance: FocusSessionDatabase? = null
@@ -70,7 +71,8 @@ class FocusSessionDatabase private constructor(context: Context) :
                 $COLUMN_END_TIME TEXT NOT NULL,
                 $COLUMN_CREATED_AT TEXT NOT NULL,
                 $COLUMN_TASK_TITLE TEXT,
-                $COLUMN_TASK_CATEGORY TEXT
+                $COLUMN_TASK_CATEGORY TEXT,
+                $COLUMN_SESSION_UUID TEXT UNIQUE
             )
         """.trimIndent()
         db.execSQL(createTableSql)
@@ -79,6 +81,14 @@ class FocusSessionDatabase private constructor(context: Context) :
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         db.execSQL("DROP TABLE IF EXISTS $TABLE_FOCUS_SESSIONS")
         onCreate(db)
+    }
+
+    override fun onOpen(db: SQLiteDatabase) {
+        super.onOpen(db)
+        try {
+            db.execSQL("ALTER TABLE $TABLE_FOCUS_SESSIONS ADD COLUMN $COLUMN_SESSION_UUID TEXT")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS idx_focus_session_uuid ON $TABLE_FOCUS_SESSIONS($COLUMN_SESSION_UUID)")
+        } catch (_: Exception) {}
     }
 
     /**
@@ -93,7 +103,8 @@ class FocusSessionDatabase private constructor(context: Context) :
         startTime: String? = null,
         endTime: String? = null,
         taskTitle: String? = null,
-        taskCategory: String? = null
+        taskCategory: String? = null,
+        sessionUuid: String = java.util.UUID.randomUUID().toString()
     ): Long {
         val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
         val now = Date()
@@ -117,9 +128,15 @@ class FocusSessionDatabase private constructor(context: Context) :
             if (taskId != null) put(COLUMN_TASK_ID, taskId)
             if (!taskTitle.isNullOrBlank()) put(COLUMN_TASK_TITLE, taskTitle)
             if (!taskCategory.isNullOrBlank()) put(COLUMN_TASK_CATEGORY, taskCategory)
+            put(COLUMN_SESSION_UUID, sessionUuid)
         }
 
-        val rowId = writableDatabase.insert(TABLE_FOCUS_SESSIONS, null, values)
+        val rowId = writableDatabase.insertWithOnConflict(
+            TABLE_FOCUS_SESSIONS,
+            null,
+            values,
+            SQLiteDatabase.CONFLICT_IGNORE
+        )
         notifyTableChanged()
         return rowId
     }

@@ -222,7 +222,10 @@ data class LogSessionRequest(
     val startedAt: String? = null,
 
     @SerializedName("completed_at")
-    val completedAt: String? = null
+    val completedAt: String? = null,
+
+    @SerializedName("session_uuid")
+    val sessionUuid: String? = null
 )
 
 data class LogSessionResponse(
@@ -272,7 +275,10 @@ data class FocusSessionRecord(
     val taskTitle: String = "",
 
     @SerializedName("task_category")
-    val taskCategory: String = ""
+    val taskCategory: String = "",
+
+    @SerializedName("session_uuid")
+    val sessionUuid: String = ""
 )
 
 data class FocusSessionsResponse(

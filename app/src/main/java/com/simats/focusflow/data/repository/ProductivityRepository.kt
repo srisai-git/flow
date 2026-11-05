@@ -159,7 +159,8 @@ class ProductivityRepository(
         startTime: String? = null,
         endTime: String? = null,
         taskTitle: String? = null,
-        taskCategory: String? = null
+        taskCategory: String? = null,
+        sessionUuid: String = java.util.UUID.randomUUID().toString()
     ): Result<LogSessionResponse> = withContext(Dispatchers.IO) {
         val now = System.currentTimeMillis()
         val paramKey = "$userId-$durationMinutes-$sessionType-$taskId"
@@ -181,7 +182,8 @@ class ProductivityRepository(
                     startTime = startTime,
                     endTime = endTime,
                     taskTitle = taskTitle,
-                    taskCategory = taskCategory
+                    taskCategory = taskCategory,
+                    sessionUuid = sessionUuid
                 )
             } catch (e: Exception) {
                 // Ignore local database insertion errors
@@ -197,7 +199,8 @@ class ProductivityRepository(
                 taskId = taskId,
                 status = "completed",
                 startedAt = startTime,
-                completedAt = endTime
+                completedAt = endTime,
+                sessionUuid = sessionUuid
             )
             val response = try {
                 apiService.saveSession(request)

@@ -408,6 +408,7 @@ class FocusTimerService : Service() {
                 )
             }
 
+            val sessionUuid = java.util.UUID.randomUUID().toString()
             serviceScope.launch {
                 repository.logSession(
                     userId = current.activeUserId,
@@ -415,7 +416,8 @@ class FocusTimerService : Service() {
                     sessionType = "pomodoro",
                     durationSeconds = sessionDuration * 60,
                     startTime = startTime,
-                    endTime = endTime
+                    endTime = endTime,
+                    sessionUuid = sessionUuid
                 )
             }
         } else {

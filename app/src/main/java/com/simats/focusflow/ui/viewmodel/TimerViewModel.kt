@@ -73,6 +73,7 @@ class TimerViewModel(
 
     private var appContext: Context? = null
     private var currentUserId: Int = 1
+    @Volatile private var isSavingSession = false
 
     init {
         viewModelScope.launch {
@@ -265,6 +266,9 @@ class TimerViewModel(
         taskTitle: String? = null,
         taskCategory: String? = null
     ) {
+        if (isSavingSession) return
+        isSavingSession = true
+
         val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
         val now = Date()
         val endTime = sdf.format(now)
@@ -272,20 +276,26 @@ class TimerViewModel(
         cal.time = now
         cal.add(Calendar.MINUTE, -durationMinutes)
         val startTime = sdf.format(cal.time)
+        val sessionUuid = java.util.UUID.randomUUID().toString()
 
         viewModelScope.launch(Dispatchers.IO) {
-            repository.logSession(
-                userId = currentUserId,
-                durationMinutes = durationMinutes,
-                sessionType = sessionType,
-                taskId = taskId,
-                durationSeconds = durationMinutes * 60,
-                startTime = startTime,
-                endTime = endTime,
-                taskTitle = taskTitle,
-                taskCategory = taskCategory
-            )
-            loadSessionHistory()
+            try {
+                repository.logSession(
+                    userId = currentUserId,
+                    durationMinutes = durationMinutes,
+                    sessionType = sessionType,
+                    taskId = taskId,
+                    durationSeconds = durationMinutes * 60,
+                    startTime = startTime,
+                    endTime = endTime,
+                    taskTitle = taskTitle,
+                    taskCategory = taskCategory,
+                    sessionUuid = sessionUuid
+                )
+                loadSessionHistory()
+            } finally {
+                isSavingSession = false
+            }
         }
     }
 }
