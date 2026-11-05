@@ -417,9 +417,9 @@ object UsageStatsHelper {
         val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
             ?: return DistractionUsageSummary()
 
-        // Today boundary: strictly 00:00:00 midnight to System.currentTimeMillis()
-        val startOfDay = getTodayStartTimestamp()
-        val currentTime = System.currentTimeMillis()
+        // Today boundary: strictly 00:00:00.000 midnight to live bounded current system time
+        val startOfDay = getExactMidnightTimestamp()
+        val currentTime = getLiveBoundedEndTime()
 
         // 1. Primary Engine: UsageEvents transition delta calculation (matches Digital Wellbeing)
         val eventTimes = queryForegroundTimesFromEvents(context, startOfDay, currentTime)
