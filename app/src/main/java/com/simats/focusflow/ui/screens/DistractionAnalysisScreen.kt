@@ -105,7 +105,11 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                refreshTodayUsageStats()
+                val perm = UsageStatsHelper.hasUsageStatsPermission(context)
+                hasPermission = perm
+                if (perm) {
+                    refreshTodayUsageStats()
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
