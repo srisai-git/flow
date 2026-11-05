@@ -280,10 +280,12 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
                         )
 
                         // 2. Accent arcs with rounded caps and clean spacing
-                        if (totalMins > 0) {
-                            if (activeApps.size <= 1) {
+                        if (totalMins > 0 && ringSegments.isNotEmpty()) {
+                            if (ringSegments.size <= 1) {
+                                val single = ringSegments.first()
+                                val singleColor = getAppBrandColor(single.packageName, 0)
                                 drawArc(
-                                    color = Color(0xFF8B5CF6),
+                                    color = singleColor,
                                     startAngle = -90f,
                                     sweepAngle = 360f,
                                     useCenter = false,
@@ -294,12 +296,11 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
                             } else {
                                 var currentAngle = -90f
                                 val gapDegrees = 5f
-                                val availableSweep = 360f - (activeApps.size * gapDegrees)
+                                val availableSweep = 360f - (ringSegments.size * gapDegrees)
 
-                                activeApps.forEachIndexed { index, app ->
-                                    val segmentSweep = ((app.usageMinutes.toFloat() / totalMins.toFloat()) * availableSweep)
-                                        .coerceAtLeast(4f)
-                                    val segmentColor = SegmentColors[index % SegmentColors.size]
+                                ringSegments.forEachIndexed { index, segment ->
+                                    val segmentSweep = (segment.percentage * availableSweep).coerceAtLeast(4f)
+                                    val segmentColor = getAppBrandColor(segment.packageName, index)
 
                                     drawArc(
                                         color = segmentColor,
