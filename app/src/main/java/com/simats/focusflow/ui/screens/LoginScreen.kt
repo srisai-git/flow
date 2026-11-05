@@ -48,6 +48,7 @@ import com.simats.focusflow.ui.theme.DarkTextPrimary
 import com.simats.focusflow.ui.theme.SuccessGreen
 import com.simats.focusflow.ui.viewmodel.AuthUiState
 import com.simats.focusflow.ui.viewmodel.AuthViewModel
+import com.simats.focusflow.utils.AuthValidator
 
 /**
  * Modern minimalist Login Screen for FocusFlow.
@@ -81,7 +82,7 @@ fun LoginScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val focusManager = LocalFocusManager.current
 
-    val isEmailFormatValid = email.isBlank() || (email.contains("@") && email.contains(".") && email.length >= 5)
+    val isEmailFormatValid = email.isBlank() || AuthValidator.isValidEmail(email)
     val isPasswordLengthValid = password.isBlank() || password.length >= 6
 
     LaunchedEffect(uiState.isSuccess) {
@@ -275,7 +276,7 @@ fun LoginScreen(
                     } else if (hasAttemptedSubmit && !isEmailFormatValid) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Please enter a valid email address",
+                            text = AuthValidator.INVALID_EMAIL_MESSAGE,
                             fontSize = 12.sp,
                             color = Color(0xFFEF4444)
                         )

@@ -50,6 +50,7 @@ import com.simats.focusflow.ui.theme.DarkTextPrimary
 import com.simats.focusflow.ui.theme.SuccessGreen
 import com.simats.focusflow.ui.viewmodel.AuthUiState
 import com.simats.focusflow.ui.viewmodel.AuthViewModel
+import com.simats.focusflow.utils.AuthValidator
 
 /**
  * Modern minimalist Signup Screen for FocusFlow.
@@ -85,7 +86,7 @@ fun SignupScreen(
     val focusManager = LocalFocusManager.current
 
     val isNameValid = name.isBlank() || name.trim().length >= 2
-    val isEmailValid = email.isBlank() || (email.contains("@") && email.contains(".") && email.length >= 5)
+    val isEmailValid = email.isBlank() || AuthValidator.isValidEmail(email)
     val isPasswordValid = password.isBlank() || (password.length >= 6 && com.simats.focusflow.utils.SecurityPasswordHelper.isSecurePassword(password))
     val passwordsMatch = confirmPassword.isBlank() || (password == confirmPassword)
 
@@ -348,7 +349,7 @@ fun SignupScreen(
                     } else if (!isEmailValid) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Please enter a valid email address",
+                            text = AuthValidator.INVALID_EMAIL_MESSAGE,
                             fontSize = 12.sp,
                             color = Color(0xFFEF4444)
                         )
