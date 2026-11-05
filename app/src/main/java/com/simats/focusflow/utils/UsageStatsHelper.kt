@@ -113,6 +113,11 @@ object UsageStatsHelper {
     fun getTodayStartTimestamp(): Long = getExactMidnightTimestamp()
 
     /**
+     * Returns strictly current system time clamped to now for live query boundary.
+     */
+    fun getLiveBoundedEndTime(): Long = System.currentTimeMillis()
+
+    /**
      * Queries foreground app durations using UsageEvents transition intervals.
      * Matches the exact algorithm used by Android Digital Wellbeing.
      */
