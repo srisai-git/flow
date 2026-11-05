@@ -441,11 +441,13 @@ private fun ChatBubble(
                     Spacer(modifier = Modifier.height(6.dp))
                 }
 
-                MarkdownChatMessage(
-                    text = message.text,
-                    isFromUser = message.isFromUser,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                SelectionContainer {
+                    MarkdownChatMessage(
+                        text = message.text,
+                        isFromUser = message.isFromUser,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
 
                 // Render Action Confirmation Card if Groot performed an in-app action!
                 if (message.action != null) {
