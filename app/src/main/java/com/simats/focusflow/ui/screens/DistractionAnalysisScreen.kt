@@ -210,7 +210,7 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text = "Allow FocusFlow to read today's app usage time so you can track digital distractions and protect your deep focus intervals.",
+                        text = "FocusFlow needs usage access to read your screen time and analyze app distractions, just like Digital Wellbeing.",
                         fontSize = 13.sp,
                         color = colors.textMuted,
                         lineHeight = 19.sp
@@ -230,7 +230,7 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
                             .bounceClick()
                     ) {
                         Text(
-                            text = "Enable Usage Access",
+                            text = "Grant Permission",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
