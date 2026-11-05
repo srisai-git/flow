@@ -279,7 +279,8 @@ fun HabitsScreen(
             Spacer(modifier = Modifier.height(18.dp))
 
             if (state.selectedTab == HabitTab.ROUTINE) {
-                // DAILY PROGRESS CARD
+                if (state.habits.isNotEmpty()) {
+                    // DAILY PROGRESS CARD
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp),
@@ -349,6 +350,7 @@ fun HabitsScreen(
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
+                }
 
                 if (state.isLoading) {
                     Box(
