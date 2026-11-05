@@ -25,13 +25,60 @@ data class AppUsageInfo(
     val icon: Drawable? = null
 )
 
+data class RingSegment(
+    val label: String,
+    val packageName: String?,
+    val minutes: Int,
+    val percentage: Float
+)
+
 data class DistractionUsageSummary(
     val totalScreenMinutes: Int = 0,
     val totalDistractionMinutes: Int = 0,
     val topCategory: String = "Social Media",
     val apps: List<AppUsageInfo> = emptyList(),
     val categoryBreakdown: Map<String, Int> = emptyMap()
-)
+) {
+    /**
+     * Groups active apps into top segments (up to 4) plus an "Other" segment for remaining apps,
+     * mirroring Digital Wellbeing's donut breakdown.
+     */
+    fun computeRingSegments(maxTopApps: Int = 4): List<RingSegment> {
+        val active = apps.filter { it.usageMinutes > 0 }
+        if (totalScreenMinutes <= 0 || active.isEmpty()) return emptyList()
+
+        val topApps = active.take(maxTopApps)
+        val otherApps = active.drop(maxTopApps)
+        val segments = mutableListOf<RingSegment>()
+
+        for (app in topApps) {
+            val pct = (app.usageMinutes.toFloat() / totalScreenMinutes.toFloat())
+            segments.add(
+                RingSegment(
+                    label = app.appName,
+                    packageName = app.packageName,
+                    minutes = app.usageMinutes,
+                    percentage = pct
+                )
+            )
+        }
+
+        val otherMinutes = otherApps.sumOf { it.usageMinutes }
+        if (otherMinutes > 0) {
+            val pct = (otherMinutes.toFloat() / totalScreenMinutes.toFloat())
+            segments.add(
+                RingSegment(
+                    label = "Other",
+                    packageName = null,
+                    minutes = otherMinutes,
+                    percentage = pct
+                )
+            )
+        }
+
+        return segments
+    }
+}
 
 object UsageStatsHelper {
 
