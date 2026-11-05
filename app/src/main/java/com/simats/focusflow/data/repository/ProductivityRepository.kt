@@ -1,5 +1,10 @@
 package com.simats.focusflow.data.repository
 
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+
 import android.content.Context
 import com.simats.focusflow.data.api.FlowApiService
 import com.simats.focusflow.data.api.RetrofitClient
@@ -251,6 +256,80 @@ class ProductivityRepository(
      * Queries habits for the given user from the remote API.
      * Guarantees an empty habits list without seeded defaults for new user accounts.
      */
+    fun calculateCurrentStreak(completedDates: List<String>): Int {
+        if (completedDates.isEmpty()) return 0
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val dates = completedDates.mapNotNull {
+            try { sdf.parse(it) } catch (_: Exception) { null }
+        }.sortedDescending()
+        if (dates.isEmpty()) return 0
+
+        val cal = Calendar.getInstance()
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        val today = cal.time
+
+        cal.add(Calendar.DAY_OF_YEAR, -1)
+        val yesterday = cal.time
+
+        val first = dates.first()
+        val expected = if (first == today) today else if (first == yesterday) yesterday else return 0
+
+        var streak = 0
+        val checkCal = Calendar.getInstance()
+        checkCal.time = expected
+
+        for (d in dates.distinct()) {
+            if (d == checkCal.time) {
+                streak++
+                checkCal.add(Calendar.DAY_OF_YEAR, -1)
+            } else {
+                break
+            }
+        }
+        return streak
+    }
+
+    fun calculateBestStreak(completedDates: List<String>): Int {
+        if (completedDates.isEmpty()) return 0
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val dates = completedDates.mapNotNull {
+            try { sdf.parse(it) } catch (_: Exception) { null }
+        }.distinct().sorted()
+        if (dates.isEmpty()) return 0
+
+        var maxStreak = 1
+        var curStreak = 1
+        val cal = Calendar.getInstance()
+
+        for (i in 1 until dates.size) {
+            cal.time = dates[i - 1]
+            cal.add(Calendar.DAY_OF_YEAR, 1)
+            if (cal.time == dates[i]) {
+                curStreak++
+                maxStreak = maxOf(maxStreak, curStreak)
+            } else {
+                curStreak = 1
+            }
+        }
+        return maxStreak
+    }
+
+    fun calculate7DayConsistency(completedDates: List<String>): List<Boolean> {
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val set = completedDates.toSet()
+        val result = mutableListOf<Boolean>()
+        for (i in 6 downTo 0) {
+            val check = Calendar.getInstance()
+            check.add(Calendar.DAY_OF_YEAR, -i)
+            val dateStr = sdf.format(check.time)
+            result.add(set.contains(dateStr))
+        }
+        return result
+    }
+
     suspend fun getHabits(userId: Int): Result<HabitsResult> = withContext(Dispatchers.IO) {
         try {
             val response = apiService.getHabits(userId)

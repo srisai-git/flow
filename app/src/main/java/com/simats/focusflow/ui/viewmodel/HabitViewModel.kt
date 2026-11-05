@@ -81,6 +81,7 @@ class HabitViewModel(
                     currentUserId = session.userId
                 }
             }
+            // Enforce strict user isolation: habits belong exclusively to active user
 
             val result = repository.getHabits(currentUserId)
             withContext(Dispatchers.Main) {
