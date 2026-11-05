@@ -90,19 +90,14 @@ fun SplashScreen(
             .background(Color(0xFF0D0B14)),
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.app_logo),
-                contentDescription = "FocusFlow Logo",
-                modifier = Modifier
-                    .size(130.dp)
-                    .scale(scaleAnim.value * pulseScale)
-                    .alpha(alphaAnim.value)
-            )
-        }
+        Image(
+            painter = painterResource(id = R.drawable.app_logo),
+            contentDescription = "FocusFlow Logo",
+            modifier = Modifier
+                .size(128.dp)
+                .scale(scaleAnim.value * pulseScale)
+                .alpha(alphaAnim.value)
+        )
     }
 }
 
