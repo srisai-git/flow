@@ -170,10 +170,11 @@ object UsageStatsHelper {
             }
         }
 
-        // Close any session still active at endTime
+        // Account for any active ongoing sessions lacking a closing pause event
+        val liveCurrentTime = minOf(endTime, System.currentTimeMillis())
         for ((pkg, resumeTime) in startTimes) {
-            if (endTime > resumeTime) {
-                val delta = endTime - resumeTime
+            if (liveCurrentTime > resumeTime) {
+                val delta = liveCurrentTime - resumeTime
                 foregroundTimes[pkg] = (foregroundTimes[pkg] ?: 0L) + delta
             }
         }
