@@ -144,12 +144,14 @@ object UsageStatsHelper {
         val foregroundTimes = mutableMapOf<String, Long>()
         val startTimes = mutableMapOf<String, Long>()
         val event = android.app.usage.UsageEvents.Event()
+        val liveCurrentTime = minOf(endTime, System.currentTimeMillis())
 
         while (events.hasNextEvent()) {
             events.getNextEvent(event)
             val pkg = event.packageName ?: continue
             val eventType = event.eventType
-            val timestamp = event.timeStamp
+            val rawTimestamp = event.timeStamp
+            val timestamp = minOf(liveCurrentTime, rawTimestamp)
 
             val isForeground = eventType == android.app.usage.UsageEvents.Event.ACTIVITY_RESUMED ||
                     eventType == 1 // MOVE_TO_FOREGROUND
@@ -164,8 +166,11 @@ object UsageStatsHelper {
             } else if (isBackground) {
                 val resumeTime = startTimes.remove(pkg)
                 if (resumeTime != null && timestamp > resumeTime) {
-                    val delta = timestamp - resumeTime
-                    foregroundTimes[pkg] = (foregroundTimes[pkg] ?: 0L) + delta
+                    val cappedResume = maxOf(startTime, resumeTime)
+                    val delta = minOf(liveCurrentTime, timestamp) - cappedResume
+                    if (delta > 0) {
+                        foregroundTimes[pkg] = (foregroundTimes[pkg] ?: 0L) + delta
+                    }
                 }
             }
         }
