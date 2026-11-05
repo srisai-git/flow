@@ -236,7 +236,7 @@ fun SignupScreen(
                             name = it
                             if (uiState.errorMessage != null) viewModel.clearError()
                         },
-                        placeholder = { Text("e.g. Sri Sai", color = DarkTextMuted, fontSize = 14.sp) },
+                        placeholder = { Text("e.g. Alex Morgan", color = DarkTextMuted, fontSize = 14.sp) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .defaultMinSize(minHeight = 48.dp),
