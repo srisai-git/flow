@@ -155,6 +155,23 @@ object UsageStatsHelper {
     }
 
     /**
+     * Checks if a package is a user-facing launcher application rather than an internal background process.
+     */
+    fun isUserFacingApp(context: Context, packageName: String): Boolean {
+        if (packageName == context.packageName) return false
+        val pm = context.packageManager
+        val launchIntent = pm.getLaunchIntentForPackage(packageName)
+        if (launchIntent != null) return true
+        val appInfo = try {
+            pm.getApplicationInfo(packageName, 0)
+        } catch (_: Exception) {
+            null
+        } ?: return false
+        val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+        return !isSystem
+    }
+
+    /**
      * Resolves all user-facing launcher applications (including user-installed Play Store apps)
      * using PackageManager.queryIntentActivities(MAIN / LAUNCHER).
      */
