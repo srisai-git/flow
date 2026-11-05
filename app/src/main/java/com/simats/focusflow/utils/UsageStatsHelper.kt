@@ -119,6 +119,21 @@ object UsageStatsHelper {
     fun getTodayStartTimestamp(): Long = getExactMidnightTimestamp()
 
     /**
+     * Computes the strictly bounded foreground delta within the given time window,
+     * guarding against cross-midnight negative time intervals or timestamp inversion.
+     */
+    fun computeSafeForegroundDelta(
+        resumeTime: Long,
+        pauseTime: Long,
+        windowStartTime: Long,
+        windowEndTime: Long
+    ): Long {
+        val effectiveStart = maxOf(windowStartTime, resumeTime)
+        val effectiveEnd = minOf(windowEndTime, pauseTime)
+        return if (effectiveEnd > effectiveStart) effectiveEnd - effectiveStart else 0L
+    }
+
+    /**
      * Returns strictly current system time clamped to now for live query boundary.
      */
     fun getLiveBoundedEndTime(): Long = System.currentTimeMillis()
