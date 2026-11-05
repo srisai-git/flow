@@ -204,6 +204,29 @@ class FocusSessionDatabase private constructor(context: Context) :
     /**
      * Computes focus minutes logged today.
      */
+    fun getMonthStartTimestamp(): Long {
+        return Calendar.getInstance().apply {
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+    }
+
+    /**
+     * Accurately calculates total focus minutes for the current month strictly bounded
+     * between the 1st day of the month 00:00:00.000 and current time.
+     */
+    fun getCurrentMonthFocusMinutes(userId: Int): Int {
+        val monthStartStr = SimpleDateFormat("yyyy-MM-01", Locale.getDefault()).format(Date())
+        val query = "SELECT COALESCE(SUM($COLUMN_DURATION_MINUTES), 0) FROM $TABLE_FOCUS_SESSIONS WHERE $COLUMN_USER_ID = ? AND substr($COLUMN_END_TIME, 1, 10) >= ?"
+        val cursor = readableDatabase.rawQuery(query, arrayOf(userId.toString(), monthStartStr))
+        return cursor.use { c ->
+            if (c.moveToFirst()) c.getInt(0) else 0
+        }
+    }
+
     fun getTodayFocusMinutes(userId: Int): Int {
         val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
         val query = "SELECT COALESCE(SUM($COLUMN_DURATION_MINUTES), 0) FROM $TABLE_FOCUS_SESSIONS WHERE $COLUMN_USER_ID = ? AND $COLUMN_END_TIME LIKE ?"

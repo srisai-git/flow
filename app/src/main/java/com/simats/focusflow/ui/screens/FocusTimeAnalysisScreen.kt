@@ -41,6 +41,7 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
     var insightsData by remember { mutableStateOf(InsightsData()) }
     var localDailyMap by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var localTodayMinutes by remember { mutableIntStateOf(0) }
+    var localMonthMinutes by remember { mutableIntStateOf(0) }
     var localTotalMinutes by remember { mutableIntStateOf(0) }
     var todaySessionsCount by remember { mutableIntStateOf(0) }
     var isLoading by remember { mutableStateOf(true) }
@@ -54,6 +55,7 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
 
             localDailyMap = db.getDailyMinutesPast7Days(userId)
             localTodayMinutes = db.getTodayFocusMinutes(userId)
+            localMonthMinutes = db.getCurrentMonthFocusMinutes(userId)
             localTotalMinutes = db.getTotalFocusMinutes(userId)
             val todayDateKey = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
             todaySessionsCount = db.getRecentSessions(userId, 50)
@@ -136,7 +138,11 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
         maxOf(localTodayMinutes, localDailyMap[todayDateKey] ?: 0, insightsData.todayFocusMinutes)
     }
 
-    val selectedMinutes = if (selectedPeriod == "Today") effectiveTodayMinutes else totalWeekMinutes
+    val selectedMinutes = when (selectedPeriod) {
+        "Today" -> effectiveTodayMinutes
+        "This Month" -> maxOf(localMonthMinutes, totalWeekMinutes)
+        else -> totalWeekMinutes
+    }
     val selectedHours = selectedMinutes / 60
     val selectedRemainingMins = selectedMinutes % 60
     val dailyAvgMins = totalWeekMinutes / 7
@@ -162,7 +168,7 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                 .border(1.dp, colors.border, RoundedCornerShape(12.dp))
                 .padding(4.dp)
         ) {
-            listOf("Today", "This Week").forEach { option ->
+            listOf("Today", "This Week", "This Month").forEach { option ->
                 val isSelected = option == selectedPeriod
                 Box(
                     modifier = Modifier
