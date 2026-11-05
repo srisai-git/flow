@@ -59,6 +59,64 @@ object UsageStatsHelper {
         }.timeInMillis
     }
 
+    /**
+     * Queries foreground app durations using UsageEvents transition intervals.
+     * Matches the exact algorithm used by Android Digital Wellbeing.
+     */
+    fun queryForegroundTimesFromEvents(
+        context: Context,
+        startTime: Long,
+        endTime: Long
+    ): Map<String, Long> {
+        val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
+            ?: return emptyMap()
+
+        val events = try {
+            usageStatsManager.queryEvents(startTime, endTime)
+        } catch (_: Exception) {
+            null
+        } ?: return emptyMap()
+
+        val foregroundTimes = mutableMapOf<String, Long>()
+        val startTimes = mutableMapOf<String, Long>()
+        val event = android.app.usage.UsageEvents.Event()
+
+        while (events.hasNextEvent()) {
+            events.getNextEvent(event)
+            val pkg = event.packageName ?: continue
+            val eventType = event.eventType
+            val timestamp = event.timeStamp
+
+            val isForeground = eventType == android.app.usage.UsageEvents.Event.ACTIVITY_RESUMED ||
+                    eventType == 1 // MOVE_TO_FOREGROUND
+            val isBackground = eventType == android.app.usage.UsageEvents.Event.ACTIVITY_PAUSED ||
+                    eventType == 23 || // ACTIVITY_STOPPED
+                    eventType == 2 // MOVE_TO_BACKGROUND
+
+            if (isForeground) {
+                if (!startTimes.containsKey(pkg)) {
+                    startTimes[pkg] = maxOf(timestamp, startTime)
+                }
+            } else if (isBackground) {
+                val resumeTime = startTimes.remove(pkg)
+                if (resumeTime != null && timestamp > resumeTime) {
+                    val delta = timestamp - resumeTime
+                    foregroundTimes[pkg] = (foregroundTimes[pkg] ?: 0L) + delta
+                }
+            }
+        }
+
+        // Close any session still active at endTime
+        for ((pkg, resumeTime) in startTimes) {
+            if (endTime > resumeTime) {
+                val delta = endTime - resumeTime
+                foregroundTimes[pkg] = (foregroundTimes[pkg] ?: 0L) + delta
+            }
+        }
+
+        return foregroundTimes
+    }
+
     fun hasUsageStatsPermission(context: Context): Boolean {
         return try {
             val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as? AppOpsManager ?: return false
