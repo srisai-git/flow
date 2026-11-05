@@ -131,10 +131,14 @@ class DashboardViewModel(
                 result.fold(
                     onSuccess = { data ->
                         val finalAvatar = if (sessionAvatar.isNotBlank()) sessionAvatar else data.userAvatar
+                        val sessionName = sessionManager?.let { sm ->
+                            kotlinx.coroutines.runBlocking { sm.userSessionFlow.first().userName }
+                        } ?: ""
+                        val finalData = if (data.userName.isNotBlank()) data else if (sessionName.isNotBlank()) data.copy(userName = sessionName) else data
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
-                                data = data,
+                                data = finalData,
                                 userAvatar = finalAvatar
                             )
                         }
