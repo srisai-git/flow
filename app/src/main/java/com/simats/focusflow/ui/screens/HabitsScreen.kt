@@ -90,7 +90,8 @@ fun resolveHabitIcon(iconKey: String): ImageVector = when (iconKey.lowercase()) 
 
 @Composable
 fun EmptyHabitsCard(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onCreateHabit: () -> Unit = {}
 ) {
     val colors = FocusFlowTheme.colors
     Surface(
@@ -132,6 +133,27 @@ fun EmptyHabitsCard(
                 color = colors.textMuted,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
+            Spacer(modifier = Modifier.height(20.dp))
+            Button(
+                onClick = onCreateHabit,
+                colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.bounceClick()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Create Habit",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
         }
     }
 }
@@ -369,7 +391,7 @@ fun HabitsScreen(
                             .padding(horizontal = 8.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        EmptyHabitsCard()
+                        EmptyHabitsCard(onCreateHabit = { viewModel.setAddHabitDialogOpen(true) })
                     }
                 } else {
                     LazyColumn(
