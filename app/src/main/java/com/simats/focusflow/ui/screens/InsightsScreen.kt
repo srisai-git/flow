@@ -50,7 +50,6 @@ fun InsightsScreen(
     onNavigateToProfile: () -> Unit = {},
     onNavigateToFocusAnalysis: () -> Unit = {},
     onNavigateToDistraction: () -> Unit = {},
-    onNavigateToAiReport: () -> Unit = {},
     onNavigateToProgressConsistency: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -378,13 +377,7 @@ fun InsightsScreen(
                     )
                     HorizontalDivider(color = colors.border, thickness = 1.dp)
 
-                    InsightNavRow(
-                        icon = Icons.Default.AutoAwesome,
-                        title = "AI Productivity Report",
-                        onClick = onNavigateToAiReport,
-                        isSparkle = true
-                    )
-                    HorizontalDivider(color = colors.border, thickness = 1.dp)
+
 
                     InsightNavRow(
                         icon = Icons.Default.TrendingUp,

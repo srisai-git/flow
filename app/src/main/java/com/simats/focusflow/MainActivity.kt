@@ -373,7 +373,6 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToGrootAi = { navController.navigate("groot_ai") },
                                 onNavigateToFocusAnalysis = { navController.navigate("focus_time_analysis") },
                                 onNavigateToDistraction = { navController.navigate("distraction_analysis") },
-                                onNavigateToAiReport = { navController.navigate("ai_report") },
                                 onNavigateToProgressConsistency = { navController.navigate("progress_consistency") }
                             )
                         }
@@ -551,7 +550,6 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                                 onNavigateToFocusAnalysis = { navController.navigate("focus_time_analysis") },
                                 onNavigateToDistraction = { navController.navigate("distraction_analysis") },
-                                onNavigateToAiReport = { navController.navigate("ai_report") },
                                 onNavigateToProgressConsistency = { navController.navigate("progress_consistency") }
                             )
                         }
