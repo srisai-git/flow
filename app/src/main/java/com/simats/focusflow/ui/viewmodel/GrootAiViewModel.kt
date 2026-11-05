@@ -187,6 +187,28 @@ class GrootAiViewModel(
             return
         }
 
+        // Autonomous Tool Calling: parse and execute action commands (timers, habits, tasks)
+        val parsedAction = com.simats.focusflow.utils.GrootActionParser.parseAction(textToSend)
+        if (parsedAction != null) {
+            val executed = performAutonomousAction(parsedAction.aiAction)
+            val actionMessage = ChatMessage(
+                isFromUser = false,
+                text = parsedAction.confirmationMessage,
+                action = parsedAction.aiAction,
+                actionExecuted = executed
+            )
+            val updatedWithAction = updatedWithUser + actionMessage
+            _uiState.update {
+                it.copy(
+                    messages = updatedWithAction,
+                    inputText = if (query == null) "" else it.inputText,
+                    isAiThinking = false
+                )
+            }
+            persistMessages(updatedWithAction)
+            return
+        }
+
         val currentHistory = updatedWithUser.takeLast(10).map {
             ChatHistoryMessage(
                 role = if (it.isFromUser) "user" else "assistant",
