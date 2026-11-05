@@ -458,12 +458,33 @@ private fun ChatBubble(
                 }
 
                 Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = message.timestamp,
-                    fontSize = 10.sp,
-                    color = if (message.isFromUser) Color.White.copy(alpha = 0.7f) else colors.textMuted,
-                    modifier = Modifier.align(Alignment.End)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = if (!message.isFromUser) Arrangement.SpaceBetween else Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (!message.isFromUser) {
+                        IconButton(
+                            onClick = {
+                                clipboardManager.setText(AnnotatedString(message.text))
+                                Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = "Copy text",
+                                tint = colors.textMuted.copy(alpha = 0.7f),
+                                modifier = Modifier.size(13.dp)
+                            )
+                        }
+                    }
+                    Text(
+                        text = message.timestamp,
+                        fontSize = 10.sp,
+                        color = if (message.isFromUser) Color.White.copy(alpha = 0.7f) else colors.textMuted
+                    )
+                }
             }
         }
     }
