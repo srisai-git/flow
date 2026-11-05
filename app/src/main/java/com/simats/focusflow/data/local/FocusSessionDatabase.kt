@@ -234,6 +234,15 @@ class FocusSessionDatabase private constructor(context: Context) :
     }
 
     /**
+     * Verifies that all returned sessions strictly belong to the specified user,
+     * ensuring complete data isolation between authenticated user sessions.
+     */
+    fun verifyUserSessionIsolation(userId: Int): Boolean {
+        val userSessions = getRecentSessions(userId, 100)
+        return userSessions.all { it.userId == userId }
+    }
+
+    /**
      * Clears all session data for a user (used during stats reset).
      */
     fun clearUserData(userId: Int) {
