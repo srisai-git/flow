@@ -112,7 +112,7 @@ fun UsagePermissionPromptCard(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Usage Permission Required",
+                text = "Usage Access Required",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = colors.textPrimary,
@@ -122,7 +122,7 @@ fun UsagePermissionPromptCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "FocusFlow needs usage access to compute accurate screen time like Digital Wellbeing.",
+                text = "FocusFlow needs usage access to read your screen time and analyze app distractions, just like Digital Wellbeing.",
                 fontSize = 13.5.sp,
                 color = colors.textMuted,
                 lineHeight = 20.sp,
@@ -266,12 +266,17 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
         Spacer(modifier = Modifier.height(24.dp))
 
         if (!hasPermission) {
-            Spacer(modifier = Modifier.height(16.dp))
-            UsagePermissionPromptCard(
-                onGrantAccess = {
-                    UsageStatsHelper.openUsageAccessSettings(context)
-                }
-            )
+            Spacer(modifier = Modifier.height(40.dp))
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                UsagePermissionPromptCard(
+                    onGrantAccess = {
+                        UsageStatsHelper.openUsageAccessSettings(context)
+                    }
+                )
+            }
         }
 
         // Digital Wellbeing Hero Section: Sleek Minimalist Indicator
