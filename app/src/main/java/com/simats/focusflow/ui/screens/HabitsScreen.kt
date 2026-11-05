@@ -363,30 +363,11 @@ fun HabitsScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f),
+                            .weight(1f)
+                            .padding(horizontal = 8.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                imageVector = Icons.Default.Repeat,
-                                contentDescription = null,
-                                tint = colors.primaryLight,
-                                modifier = Modifier.size(48.dp)
-                            )
-                            Spacer(modifier = Modifier.height(14.dp))
-                            Text(
-                                text = "No habits tracked yet!",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.textPrimary
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Tap '+' below to start building your daily routine.",
-                                fontSize = 13.sp,
-                                color = colors.textMuted
-                            )
-                        }
+                        EmptyHabitsCard()
                     }
                 } else {
                     LazyColumn(
