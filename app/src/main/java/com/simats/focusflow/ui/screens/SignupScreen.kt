@@ -86,7 +86,7 @@ fun SignupScreen(
 
     val isNameValid = name.isBlank() || name.trim().length >= 2
     val isEmailValid = email.isBlank() || (email.contains("@") && email.contains(".") && email.length >= 5)
-    val isPasswordValid = password.isBlank() || password.length >= 6
+    val isPasswordValid = password.isBlank() || (password.length >= 6 && com.simats.focusflow.utils.SecurityPasswordHelper.isSecurePassword(password))
     val passwordsMatch = confirmPassword.isBlank() || (password == confirmPassword)
 
     LaunchedEffect(uiState.isSuccess) {
