@@ -454,7 +454,7 @@ private fun ChatBubble(
                 // Render Action Confirmation Card if Groot performed an in-app action!
                 if (message.action != null) {
                     Spacer(modifier = Modifier.height(10.dp))
-                    ActionCard(action = message.action, onClick = { onActionClick(message.action) })
+                    ActionCard(action = message.action, isExecuted = message.actionExecuted, onClick = { onActionClick(message.action) })
                 }
 
                 Spacer(modifier = Modifier.height(6.dp))
@@ -493,6 +493,7 @@ private fun ChatBubble(
 @Composable
 private fun ActionCard(
     action: AiAction,
+    isExecuted: Boolean = false,
     onClick: () -> Unit
 ) {
     val colors = FocusFlowTheme.colors
@@ -561,7 +562,7 @@ private fun ActionCard(
                     )
                     Text(
                         text = when {
-                            isTimer -> "${action.duration} Minutes • Running"
+                            isTimer -> "${action.duration} min session active"
                             isTask -> "${action.title} (${action.priority.uppercase()})"
                             isHabit -> "${action.title} • Daily Streak"
                             isGoal -> "${action.dailyMinutes / 60.0} Hours / Day"
