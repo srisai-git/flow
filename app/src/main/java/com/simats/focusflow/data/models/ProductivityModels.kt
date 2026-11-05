@@ -102,7 +102,7 @@ data class HabitUserStats(
 @Immutable
 data class DashboardData(
     @SerializedName("user_name")
-    val userName: String = "Sri Sai",
+    val userName: String = "",
 
     @SerializedName("user_avatar")
     val userAvatar: String = "",
@@ -376,16 +376,16 @@ data class ProfileData(
     val id: Int = 1,
 
     @SerializedName("name")
-    val name: String = "Sri Sai",
+    val name: String = "",
 
     @SerializedName("email")
-    val email: String = "sri.sai@example.com",
+    val email: String = "",
 
     @SerializedName("avatar")
     val avatar: String = "",
 
     @SerializedName("bio")
-    val bio: String = "Deep work enthusiast & Computer Science researcher",
+    val bio: String = "",
 
     @SerializedName("created_at")
     val createdAt: String = "",
