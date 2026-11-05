@@ -59,7 +59,7 @@ fun SplashScreen(
 
         // Check persistent session in background concurrently
         val session = manager.userSessionFlow.first()
-        delay(950) // Ensures minimum smooth display time to eliminate flickering
+        delay(300) // Fast and seamless transition into the app
 
         if (session.isLoggedIn) {
             if (session.isOnboardingCompleted) {
