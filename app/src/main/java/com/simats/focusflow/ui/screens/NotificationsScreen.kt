@@ -59,7 +59,6 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
     var reminderTime by remember { mutableStateOf("09:00 AM") }
     var deadlineReminder by remember { mutableStateOf(true) }
     var breakReminder by remember { mutableStateOf(true) }
-    var aiReportReminder by remember { mutableStateOf(false) }
 
     val presetTimes = listOf("07:00 AM", "08:00 AM", "09:00 AM", "10:00 AM", "06:00 PM", "08:00 PM")
 
@@ -103,8 +102,7 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
                         dailyReminder = dailyReminder,
                         reminderTime = customFormatted,
                         deadlineReminder = deadlineReminder,
-                        breakReminder = breakReminder,
-                        aiReportReminder = aiReportReminder
+                        breakReminder = breakReminder
                     )
                     val uid = sessionManager.userSessionFlow.first().userId ?: 1
                     try {
@@ -139,7 +137,6 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
             reminderTime = sessionManager.reminderTimeFlow.first()
             deadlineReminder = sessionManager.deadlineReminderEnabledFlow.first()
             breakReminder = sessionManager.breakReminderEnabledFlow.first()
-            aiReportReminder = sessionManager.aiReportReminderEnabledFlow.first()
 
             if (notificationsEnabled && dailyReminder) {
                 ReminderScheduler.scheduleDailyReminder(context, reminderTime, true)
@@ -248,8 +245,7 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
                                     dailyReminder = dailyReminder,
                                     reminderTime = reminderTime,
                                     deadlineReminder = deadlineReminder,
-                                    breakReminder = breakReminder,
-                                    aiReportReminder = aiReportReminder
+                                    breakReminder = breakReminder
                                 )
                                 val uid = sessionManager.userSessionFlow.first().userId ?: 1
                                 try {
@@ -331,7 +327,7 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
                                                 reminderTime = reminderTime,
                                                 deadlineReminder = deadlineReminder,
                                                 breakReminder = breakReminder,
-                                                aiReportReminder = aiReportReminder
+                                                
                                             )
                                             val uid = sessionManager.userSessionFlow.first().userId ?: 1
                                             try {
@@ -491,7 +487,7 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
                                                             reminderTime = quickTime,
                                                             deadlineReminder = deadlineReminder,
                                                             breakReminder = breakReminder,
-                                                            aiReportReminder = aiReportReminder
+                                                            
                                                         )
                                                     }
                                                 }
@@ -592,43 +588,7 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
                                 )
                             }
 
-                            Spacer(modifier = Modifier.height(16.dp))
-                            HorizontalDivider(color = colors.border, thickness = 1.dp)
-                            Spacer(modifier = Modifier.height(16.dp))
 
-                            // Weekly Groot AI Report
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "Weekly Groot AI Insights",
-                                        fontSize = 14.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = colors.textPrimary
-                                    )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        text = "Sunday productivity summary and suggestions",
-                                        fontSize = 12.sp,
-                                        color = colors.textMuted
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Switch(
-                                    checked = aiReportReminder,
-                                    onCheckedChange = { aiReportReminder = it },
-                                    colors = SwitchDefaults.colors(
-                                        checkedThumbColor = Color.White,
-                                        checkedTrackColor = colors.primary,
-                                        uncheckedThumbColor = colors.textMuted,
-                                        uncheckedTrackColor = colors.surfaceVariant,
-                                        uncheckedBorderColor = colors.border
-                                    )
-                                )
-                            }
                         }
                     }
 
@@ -761,8 +721,7 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
                                     dailyReminder = dailyReminder,
                                     reminderTime = reminderTime,
                                     deadlineReminder = deadlineReminder,
-                                    breakReminder = breakReminder,
-                                    aiReportReminder = aiReportReminder
+                                    breakReminder = breakReminder
                                 )
                                 val uid = sessionManager.userSessionFlow.first().userId ?: 1
                                 try {

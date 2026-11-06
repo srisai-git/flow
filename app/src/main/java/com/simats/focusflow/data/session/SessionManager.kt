@@ -323,8 +323,7 @@ class SessionManager private constructor(
         dailyReminder: Boolean,
         reminderTime: String,
         deadlineReminder: Boolean = true,
-        breakReminder: Boolean = true,
-        aiReportReminder: Boolean = false
+        breakReminder: Boolean = true
     ) {
         dataStore.edit { preferences ->
             preferences[KEY_NOTIFICATIONS_ENABLED] = notificationsEnabled
@@ -332,7 +331,7 @@ class SessionManager private constructor(
             preferences[KEY_REMINDER_TIME] = reminderTime
             preferences[KEY_DEADLINE_REMINDER_ENABLED] = deadlineReminder
             preferences[KEY_BREAK_REMINDER_ENABLED] = breakReminder
-            preferences[KEY_AI_REPORT_REMINDER_ENABLED] = aiReportReminder
+            preferences.remove(KEY_AI_REPORT_REMINDER_ENABLED)
         }
     }
 
