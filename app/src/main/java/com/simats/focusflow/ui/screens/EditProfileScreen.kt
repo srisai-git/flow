@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.ui.components.bounceClick
@@ -197,6 +198,8 @@ fun EditProfileScreen(
                                     model = ImageRequest.Builder(context)
                                         .data(imageModel)
                                         .crossfade(true)
+                                        .diskCachePolicy(CachePolicy.ENABLED)
+                                        .memoryCachePolicy(CachePolicy.ENABLED)
                                         .build(),
                                     contentDescription = "Profile Photo",
                                     contentScale = ContentScale.Crop,

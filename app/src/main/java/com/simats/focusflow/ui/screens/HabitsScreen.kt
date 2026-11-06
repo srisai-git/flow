@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.simats.focusflow.data.models.HabitItem
+import com.simats.focusflow.data.models.HabitMonthlyChartItem
 import com.simats.focusflow.data.models.HabitUserStats
 import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.ui.components.FlowLoadingIndicator
@@ -1110,22 +1111,18 @@ private fun MonthConsistencyBarChart(userStats: HabitUserStats) {
     val primaryLight = colors.primaryLight
     val surfaceVariant = colors.surfaceVariant
 
-    val monthlyData = userStats.monthlyChartData
-
-    if (monthlyData.isEmpty()) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(130.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "No 4-week habit history yet",
-                fontSize = 12.sp,
-                color = colors.textMuted
-            )
+    val rawData = userStats.monthlyChartData
+    val monthlyData = remember(rawData) {
+        val defaultWeeks = listOf("W1", "W2", "W3", "W4")
+        defaultWeeks.mapIndexed { index, defaultLabel ->
+            val existing = rawData.getOrNull(index)
+            if (existing != null) {
+                val cleanLabel = if (existing.weekLabel.startsWith("Week ")) "W" + existing.weekLabel.removePrefix("Week ").trim() else existing.weekLabel
+                existing.copy(weekLabel = cleanLabel)
+            } else {
+                HabitMonthlyChartItem(weekLabel = defaultLabel, completionRate = 0f)
+            }
         }
-        return
     }
 
     Column {
@@ -1181,9 +1178,9 @@ private fun MonthConsistencyBarChart(userStats: HabitUserStats) {
                 val pct = (item.completionRate * 100).toInt()
                 Text(
                     text = "${item.weekLabel} ($pct%)",
-                    fontSize = 10.sp,
-                    color = colors.textMuted,
-                    fontWeight = FontWeight.Medium
+                    fontSize = 11.sp,
+                    color = if (pct > 0) colors.primaryLight else colors.textMuted,
+                    fontWeight = if (pct > 0) FontWeight.Bold else FontWeight.Medium
                 )
             }
         }

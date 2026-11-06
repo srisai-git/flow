@@ -51,7 +51,11 @@ fun FocusFlowBottomBar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Screen.bottomNavScreens.forEach { screen ->
-                val isSelected = currentRoute == screen.route
+                val isSelected = currentRoute != null && (
+                    currentRoute == screen.route ||
+                    currentRoute.startsWith("${screen.route}/") ||
+                    (screen == Screen.Activities && (currentRoute == "tasks" || currentRoute == "habits"))
+                )
                 val scale by animateFloatAsState(targetValue = if (isSelected) 1.08f else 1f, label = "iconScale")
                 val iconColor by animateColorAsState(targetValue = if (isSelected) colors.primary else colors.textMuted, label = "iconColor")
                 val textColor by animateColorAsState(targetValue = if (isSelected) colors.primary else colors.textMuted, label = "textColor")

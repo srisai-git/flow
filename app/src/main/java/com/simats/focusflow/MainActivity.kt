@@ -22,6 +22,12 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
@@ -42,6 +48,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavType
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -216,61 +223,69 @@ class MainActivity : ComponentActivity() {
             val startRoute by authResolvedDestination.collectAsState()
             val effectiveRoute = startRoute ?: resolvedDestination ?: "welcome_start"
 
-            if (startRoute == null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color(0xFF0D0B14))
-                )
-            } else {
-                FOCUSFLOWTheme(themeMode = themeMode) {
-                val navController = rememberNavController()
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentRoute = navBackStackEntry?.destination?.route
-                val isMainScreen = Screen.isMainScreen(currentRoute)
+            Crossfade(
+                targetState = (startRoute != null),
+                animationSpec = tween(300),
+                label = "splashCrossfade"
+            ) { isReady ->
+                if (!isReady) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xFF0D0B14))
+                    )
+                } else {
+                    FOCUSFLOWTheme(themeMode = themeMode) {
+                        val navController = rememberNavController()
+                        val navBackStackEntry by navController.currentBackStackEntryAsState()
+                        val currentRoute = navBackStackEntry?.destination?.route
+                        val isMainScreen = Screen.isMainScreen(currentRoute)
 
-                val targetRoute by pendingRoute.collectAsState()
-                LaunchedEffect(targetRoute, currentRoute) {
-                    val route = targetRoute
-                    if (route != null && currentRoute != null) {
-                        try {
-                            navController.navigate(route) {
-                                launchSingleTop = true
-                            }
-                        } catch (e: Exception) {
-                            Log.e("MainActivity", "Failed to navigate to route: $route", e)
-                        }
-                        pendingRoute.value = null
-                    }
-                }
-
-                Scaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    containerColor = FocusFlowTheme.colors.background,
-                    contentWindowInsets = WindowInsets.statusBars,
-                    bottomBar = {
-                        if (isMainScreen) {
-                            FocusFlowBottomBar(
-                                currentRoute = currentRoute,
-                                onNavigate = { route ->
+                        val targetRoute by pendingRoute.collectAsState()
+                        LaunchedEffect(targetRoute, currentRoute) {
+                            val route = targetRoute
+                            if (route != null && currentRoute != null) {
+                                try {
                                     navController.navigate(route) {
-                                        popUpTo(Screen.Dashboard.route) {
-                                            inclusive = false
-                                            saveState = false
-                                        }
                                         launchSingleTop = true
-                                        restoreState = false
                                     }
+                                } catch (e: Exception) {
+                                    Log.e("MainActivity", "Failed to navigate to route: $route", e)
                                 }
-                            )
+                                pendingRoute.value = null
+                            }
                         }
-                    }
-                ) { innerPadding ->
-                    NavHost(
-                        navController = navController,
-                        startDestination = effectiveRoute,
-                        modifier = Modifier.padding(innerPadding)
-                    ) {
+
+                        Scaffold(
+                            modifier = Modifier.fillMaxSize(),
+                            containerColor = FocusFlowTheme.colors.background,
+                            contentWindowInsets = WindowInsets.statusBars,
+                            bottomBar = {
+                                if (isMainScreen) {
+                                    FocusFlowBottomBar(
+                                        currentRoute = currentRoute,
+                                        onNavigate = { route ->
+                                            navController.navigate(route) {
+                                                popUpTo(navController.graph.findStartDestination().id) {
+                                                    saveState = true
+                                                }
+                                                launchSingleTop = true
+                                                restoreState = true
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        ) { innerPadding ->
+                            NavHost(
+                                navController = navController,
+                                startDestination = effectiveRoute,
+                                modifier = Modifier.padding(innerPadding),
+                                enterTransition = { fadeIn(animationSpec = tween(350, easing = FastOutSlowInEasing)) + scaleIn(initialScale = 0.96f, animationSpec = tween(350, easing = FastOutSlowInEasing)) },
+                                exitTransition = { fadeOut(animationSpec = tween(250, easing = FastOutSlowInEasing)) },
+                                popEnterTransition = { fadeIn(animationSpec = tween(350, easing = FastOutSlowInEasing)) + scaleIn(initialScale = 0.96f, animationSpec = tween(350, easing = FastOutSlowInEasing)) },
+                                popExitTransition = { fadeOut(animationSpec = tween(250, easing = FastOutSlowInEasing)) }
+                            ) {
                         composable("welcome_start") {
                             WelcomeStartScreen(
                                 onBack = { navController.popBackStack() },
@@ -703,4 +718,5 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+}
 }

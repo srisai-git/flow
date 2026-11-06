@@ -292,6 +292,95 @@ class FocusSessionDatabase private constructor(context: Context) :
     }
 
     /**
+     * Queries all focus sessions recorded for today for the given user.
+     */
+    fun getTodaySessions(userId: Int): List<FocusSessionRecord> {
+        val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        val list = mutableListOf<FocusSessionRecord>()
+        val query = """
+            SELECT $COLUMN_ID, $COLUMN_USER_ID, $COLUMN_TASK_ID, $COLUMN_DURATION_MINUTES,
+                   $COLUMN_SESSION_TYPE, $COLUMN_STATUS, $COLUMN_START_TIME, $COLUMN_END_TIME,
+                   $COLUMN_TASK_TITLE, $COLUMN_TASK_CATEGORY
+            FROM $TABLE_FOCUS_SESSIONS
+            WHERE $COLUMN_USER_ID = ? AND (substr($COLUMN_START_TIME, 1, 10) = ? OR substr($COLUMN_END_TIME, 1, 10) = ?)
+            ORDER BY $COLUMN_ID ASC
+        """.trimIndent()
+        val cursor = readableDatabase.rawQuery(query, arrayOf(userId.toString(), todayStr, todayStr))
+        cursor.use { c ->
+            val idIdx = c.getColumnIndexOrThrow(COLUMN_ID)
+            val uidIdx = c.getColumnIndexOrThrow(COLUMN_USER_ID)
+            val tidIdx = c.getColumnIndexOrThrow(COLUMN_TASK_ID)
+            val durIdx = c.getColumnIndexOrThrow(COLUMN_DURATION_MINUTES)
+            val typeIdx = c.getColumnIndexOrThrow(COLUMN_SESSION_TYPE)
+            val statusIdx = c.getColumnIndexOrThrow(COLUMN_STATUS)
+            val startIdx = c.getColumnIndexOrThrow(COLUMN_START_TIME)
+            val endIdx = c.getColumnIndexOrThrow(COLUMN_END_TIME)
+            val titleIdx = c.getColumnIndexOrThrow(COLUMN_TASK_TITLE)
+            val catIdx = c.getColumnIndexOrThrow(COLUMN_TASK_CATEGORY)
+
+            while (c.moveToNext()) {
+                val tid = if (!c.isNull(tidIdx)) c.getInt(tidIdx) else null
+                list.add(
+                    FocusSessionRecord(
+                        id = c.getInt(idIdx),
+                        userId = c.getInt(uidIdx),
+                        taskId = tid,
+                        durationMinutes = c.getInt(durIdx),
+                        sessionType = c.getString(typeIdx) ?: "pomodoro",
+                        status = c.getString(statusIdx) ?: "completed",
+                        startedAt = c.getString(startIdx) ?: "",
+                        completedAt = c.getString(endIdx) ?: "",
+                        taskTitle = c.getString(titleIdx) ?: "",
+                        taskCategory = c.getString(catIdx) ?: ""
+                    )
+                )
+            }
+        }
+        return list
+    }
+
+    /**
+     * Calculates focus minutes for each of the 4 weeks of the current month.
+     * Week 1: Days 1-7
+     * Week 2: Days 8-14
+     * Week 3: Days 15-21
+     * Week 4: Days 22-end of month
+     */
+    fun getMonthWeeklyMinutes(userId: Int): List<Int> {
+        val cal = Calendar.getInstance()
+        val currentYear = cal.get(Calendar.YEAR)
+        val currentMonth = cal.get(Calendar.MONTH) + 1
+        val monthPrefix = String.format(Locale.US, "%04d-%02d", currentYear, currentMonth)
+
+        val weekMinutes = IntArray(4)
+
+        val query = """
+            SELECT substr(COALESCE($COLUMN_START_TIME, $COLUMN_END_TIME), 9, 2) as day_num, $COLUMN_DURATION_MINUTES
+            FROM $TABLE_FOCUS_SESSIONS
+            WHERE $COLUMN_USER_ID = ?
+              AND substr(COALESCE($COLUMN_START_TIME, $COLUMN_END_TIME), 1, 7) = ?
+              AND $COLUMN_STATUS = 'completed'
+        """.trimIndent()
+
+        val cursor = readableDatabase.rawQuery(query, arrayOf(userId.toString(), monthPrefix))
+        cursor.use { c ->
+            while (c.moveToNext()) {
+                val dayStr = c.getString(0) ?: continue
+                val day = dayStr.toIntOrNull() ?: continue
+                val mins = c.getInt(1)
+                val weekIndex = when {
+                    day <= 7 -> 0
+                    day <= 14 -> 1
+                    day <= 21 -> 2
+                    else -> 3
+                }
+                weekMinutes[weekIndex] += mins
+            }
+        }
+        return weekMinutes.toList()
+    }
+
+    /**
      * Verifies that all returned sessions strictly belong to the specified user,
      * ensuring complete data isolation between authenticated user sessions.
      */

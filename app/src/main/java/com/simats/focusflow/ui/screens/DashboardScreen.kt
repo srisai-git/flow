@@ -720,50 +720,217 @@ fun DashboardScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        // Featured Hero Card (Full Width): Focus Time Analysis
+        Surface(
+            onClick = onNavigateToFocusAnalysis,
+            shape = RoundedCornerShape(20.dp),
+            color = colors.surface,
+            border = BorderStroke(1.dp, Brush.horizontalGradient(listOf(Color(0xFF4FD1C5).copy(alpha = 0.5f), colors.border))),
+            modifier = Modifier
+                .fillMaxWidth()
+                .bounceClick()
         ) {
-            InsightShortcutCard(
-                title = "Focus Time Analysis",
-                subtitle = "Hourly patterns & best window",
-                icon = Icons.Default.HourglassBottom,
-                tint = Color(0xFF4FD1C5),
-                modifier = Modifier.weight(1f),
-                onClick = onNavigateToFocusAnalysis
-            )
-            InsightShortcutCard(
-                title = "Distraction Analysis",
-                subtitle = "Interruption breakdown & triggers",
-                icon = Icons.Default.PieChart,
-                tint = Color(0xFFF59E0B),
-                modifier = Modifier.weight(1f),
-                onClick = onNavigateToDistraction
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.linearGradient(
+                            listOf(
+                                Color(0xFF4FD1C5).copy(alpha = 0.12f),
+                                Color(0xFF0F0F14).copy(alpha = 0.4f)
+                            )
+                        )
+                    )
+                    .padding(18.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF4FD1C5).copy(alpha = 0.2f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.HourglassBottom,
+                                    contentDescription = null,
+                                    tint = Color(0xFF4FD1C5),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = "Focus Time Analysis",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textPrimary
+                                )
+                                Text(
+                                    text = "Peak productivity windows & distribution",
+                                    fontSize = 11.5.sp,
+                                    color = colors.textMuted
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(
+                                text = "${data.focusMinutesToday}m",
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color(0xFF4FD1C5)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "logged today • ${(data.focusMinutesToday / 60f).let { String.format(Locale.US, "%.1fh", it) }}",
+                                fontSize = 12.sp,
+                                color = colors.textMuted,
+                                modifier = Modifier.padding(bottom = 2.dp)
+                            )
+                        }
+                    }
+
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        tint = Color(0xFF4FD1C5),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(10.dp))
 
+        // Bottom Row (2 Columns): Distraction Analysis & Progress & Consistency
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            InsightShortcutCard(
-                title = "Productivity Insights",
-                subtitle = "Focus patterns & trends",
-                icon = Icons.Default.AutoAwesome,
-                tint = Color(0xFF8B5CF6),
-                modifier = Modifier.weight(1f),
-                onClick = onNavigateToInsights
-            )
-            InsightShortcutCard(
-                title = "Progress & Consistency",
-                subtitle = "Streaks, weekly rhythm & totals",
-                icon = Icons.Default.TrendingUp,
-                tint = Color(0xFF10B981),
-                modifier = Modifier.weight(1f),
-                onClick = onNavigateToProgressConsistency
-            )
+            // Distraction Analysis Card
+            Surface(
+                onClick = onNavigateToDistraction,
+                shape = RoundedCornerShape(18.dp),
+                color = colors.surface,
+                border = BorderStroke(1.dp, colors.border),
+                modifier = Modifier
+                    .weight(1f)
+                    .bounceClick()
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFFF59E0B).copy(alpha = 0.16f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PieChart,
+                            contentDescription = null,
+                            tint = Color(0xFFF59E0B),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "Distractions",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textPrimary
+                    )
+                    Text(
+                        text = "App & Screen Usage",
+                        fontSize = 11.sp,
+                        color = colors.textMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFF59E0B))
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text(
+                            text = "Live Tracking",
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFFF59E0B)
+                        )
+                    }
+                }
+            }
+
+            // Progress & Consistency Card
+            Surface(
+                onClick = onNavigateToProgressConsistency,
+                shape = RoundedCornerShape(18.dp),
+                color = colors.surface,
+                border = BorderStroke(1.dp, colors.border),
+                modifier = Modifier
+                    .weight(1f)
+                    .bounceClick()
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFF10B981).copy(alpha = 0.16f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.TrendingUp,
+                            contentDescription = null,
+                            tint = Color(0xFF10B981),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "Consistency",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textPrimary
+                    )
+                    Text(
+                        text = "Streaks & Rhythm",
+                        fontSize = 11.sp,
+                        color = colors.textMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF10B981))
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text(
+                            text = "${data.streakDays}d Streak Active",
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF10B981)
+                        )
+                    }
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(96.dp)) // Space for bottom navigation bar

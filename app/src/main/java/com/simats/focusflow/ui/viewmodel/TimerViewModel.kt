@@ -73,6 +73,8 @@ class TimerViewModel(
 
     private var appContext: Context? = null
     private var currentUserId: Int = 1
+    private var activeSessionId: String = java.util.UUID.randomUUID().toString()
+    private val isSessionPersisted = java.util.concurrent.atomic.AtomicBoolean(false)
     @Volatile private var isSavingSession = false
 
     init {
@@ -247,12 +249,16 @@ class TimerViewModel(
             if (_uiState.value.isRunning) {
                 FocusTimerService.pauseTimer(ctx)
             } else {
+                activeSessionId = java.util.UUID.randomUUID().toString()
+                isSessionPersisted.set(false)
                 FocusTimerService.startTimer(ctx, currentUserId)
             }
         }
     }
 
     fun startTimer() {
+        activeSessionId = java.util.UUID.randomUUID().toString()
+        isSessionPersisted.set(false)
         appContext?.let { ctx ->
             FocusTimerService.startTimer(ctx, currentUserId)
         }
@@ -291,6 +297,7 @@ class TimerViewModel(
         taskTitle: String? = null,
         taskCategory: String? = null
     ) {
+        if (!isSessionPersisted.compareAndSet(false, true)) return
         if (isSavingSession) return
         isSavingSession = true
 
@@ -301,7 +308,7 @@ class TimerViewModel(
         cal.time = now
         cal.add(Calendar.MINUTE, -durationMinutes)
         val startTime = sdf.format(cal.time)
-        val sessionUuid = java.util.UUID.randomUUID().toString()
+        val sessionUuid = activeSessionId
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
