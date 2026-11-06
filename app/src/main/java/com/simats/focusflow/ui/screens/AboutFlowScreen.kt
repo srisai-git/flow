@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Layers
@@ -227,6 +228,51 @@ fun AboutFlowScreen(
                 title = "Privacy & Data Sovereignity",
                 content = "All user credentials, session history, and task logs are secured in isolated DataStore storage with complete support for on-demand CSV data export and instant local stats wipe."
             )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 7. ABOUT GROOT AI SECTION
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                color = CardDark,
+                border = BorderStroke(1.dp, VioletPrimary.copy(alpha = 0.45f))
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(VioletPrimary.copy(alpha = 0.18f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = VioletLight,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "About Groot AI",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextWhite
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "Groot is FocusFlow's native AI companion, named after the resilient and loyal guardian from Guardians of the Galaxy. Groot symbolizes steady growth, grounded focus, and quiet strength.\n\nBuilt exclusively for deliberate productivity, Groot guides your mindful focus intervals, tracks habit streaks, analyzes digital distractions, and automates in-app actions without unneeded digital noise.",
+                        fontSize = 13.5.sp,
+                        color = TextMuted,
+                        lineHeight = 20.sp
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(36.dp))
         }
