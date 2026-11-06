@@ -42,7 +42,16 @@ object ExportDataHelper {
             val streakDays = profileRes?.currentStreak ?: 0
             val resolvedName = profileRes?.name?.takeIf { it.isNotBlank() } ?: userName
 
-            val sessions = if (incSessions) prodRepo.getRecentSessions(userId, 100).getOrDefault(emptyList()) else emptyList()
+            val localSessions = try {
+                com.simats.focusflow.data.local.FocusSessionDatabase.getInstance(context).getRecentSessions(userId, 5000)
+            } catch (_: Exception) {
+                emptyList()
+            }
+            val remoteSessions = if (incSessions) prodRepo.getRecentSessions(userId, 500).getOrDefault(emptyList()) else emptyList()
+            val sessions = (localSessions + remoteSessions)
+                .filter { it.userId == userId }
+                .distinctBy { if (it.id > 0) "id_${it.id}" else "${it.startedAt}_${it.durationMinutes}" }
+                .sortedByDescending { it.id }
             val habitsResult = if (incStreaks) prodRepo.getHabits(userId).getOrNull() else null
             val habitsList = habitsResult?.habits ?: emptyList()
             val tasks = if (incTasks) prodRepo.getTasks(userId).getOrDefault(emptyList()) else emptyList()
@@ -79,60 +88,60 @@ object ExportDataHelper {
                 incTasks = incTasks
             )
 
-            // 4. Build Spaced, Emoji-Enhanced Share Message for Social / Chat Sharing
+            // 4. Build Clean Share Message without emojis
             val shareMessageText = buildString {
-                appendLine("✨ FOCUSFLOW PRODUCTIVITY REPORT")
-                appendLine("👤 User: $resolvedName")
-                appendLine("📅 Date: $exportTimestamp")
+                appendLine("FOCUSFLOW PRODUCTIVITY EXPORT")
+                appendLine("User: $resolvedName")
+                appendLine("Date: $exportTimestamp")
                 appendLine()
-                appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━")
-                appendLine("📊 SUMMARY METRICS")
-                appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━")
-                appendLine("⏳ Total Focus Time: ${String.format(Locale.US, "%.1f", totalHours)} hrs")
-                appendLine("🔥 Current Habit Streak: $streakDays days")
-                appendLine("✅ Tasks Completed: ${completedTasks.size}")
+                appendLine("-------------------------")
+                appendLine("SUMMARY METRICS")
+                appendLine("-------------------------")
+                appendLine("Total Focus Time: ${String.format(Locale.US, "%.1f", totalHours)} hrs")
+                appendLine("Current Habit Streak: $streakDays days")
+                appendLine("Tasks Completed: ${completedTasks.size}")
                 appendLine()
 
                 if (incSessions && sessions.isNotEmpty()) {
-                    appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━")
-                    appendLine("⏱️ RECENT FOCUS SESSIONS")
-                    appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━")
-                    sessions.take(5).forEach { s ->
+                    appendLine("-------------------------")
+                    appendLine("RECENT FOCUS SESSIONS (Total: ${sessions.size})")
+                    appendLine("-------------------------")
+                    sessions.take(10).forEach { s ->
                         val date = s.startedAt.take(10).ifBlank { exportTimestamp.take(10) }
                         val tag = s.taskTitle.ifBlank { s.sessionType }
-                        appendLine("• $date: ${s.durationMinutes} min ($tag)")
+                        appendLine("- $date: ${s.durationMinutes} min ($tag)")
                     }
-                    if (sessions.size > 5) {
-                        appendLine("  ...and ${sessions.size - 5} more sessions in attached reports")
+                    if (sessions.size > 10) {
+                        appendLine("  ...and ${sessions.size - 10} more sessions in attached export files")
                     }
                     appendLine()
                 }
 
                 if (incStreaks && habitsList.isNotEmpty()) {
-                    appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━")
-                    appendLine("⚡ HABIT CONSISTENCY")
-                    appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━")
+                    appendLine("-------------------------")
+                    appendLine("HABIT CONSISTENCY")
+                    appendLine("-------------------------")
                     habitsList.forEach { h ->
                         val best = if (h.longestStreak > 0) h.longestStreak else h.streakCount
-                        appendLine("• ${h.title}: ${h.streakCount}d streak (Best: ${best}d)")
+                        appendLine("- ${h.title}: ${h.streakCount}d streak (Best: ${best}d)")
                     }
                     appendLine()
                 }
 
                 if (incTasks && completedTasks.isNotEmpty()) {
-                    appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━")
-                    appendLine("📋 COMPLETED TASKS")
-                    appendLine("━━━━━━━━━━━━━━━━━━━━━━━━━")
-                    completedTasks.take(5).forEach { t ->
-                        appendLine("• [x] ${t.title} (${t.priority.uppercase()})")
+                    appendLine("-------------------------")
+                    appendLine("COMPLETED TASKS")
+                    appendLine("-------------------------")
+                    completedTasks.take(10).forEach { t ->
+                        appendLine("- [x] ${t.title} (${t.priority.uppercase()})")
                     }
-                    if (completedTasks.size > 5) {
-                        appendLine("  ...and ${completedTasks.size - 5} more tasks in attached reports")
+                    if (completedTasks.size > 10) {
+                        appendLine("  ...and ${completedTasks.size - 10} more tasks in attached export files")
                     }
                     appendLine()
                 }
 
-                appendLine("🚀 Empowering mindful deep work with FocusFlow.")
+                appendLine("Empowering mindful deep work with FocusFlow.")
             }
 
             // 5. Write files to internal cache directory
