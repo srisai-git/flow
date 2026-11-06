@@ -12,12 +12,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -57,6 +57,7 @@ fun InsightsScreen(
     var selectedTab by remember { mutableStateOf("Week") }
 
     var insightsData by remember { mutableStateOf(InsightsData()) }
+    var monthlyFocusMinutes by remember { mutableStateOf(0) }
     var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
@@ -71,6 +72,12 @@ fun InsightsScreen(
         }
         result.onFailure {
             isLoading = false
+        }
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val localDb = com.simats.focusflow.data.local.FocusSessionDatabase.getInstance(context)
+                monthlyFocusMinutes = localDb.getCurrentMonthFocusMinutes(userId)
+            } catch (_: Exception) {}
         }
     }
 
@@ -182,7 +189,11 @@ fun InsightsScreen(
                         verticalAlignment = Alignment.Top
                     ) {
                         Column {
-                            val totalMins = if (selectedTab == "Week") insightsData.weekFocusMinutes else insightsData.weekFocusMinutes * 4
+                            val totalMins = if (selectedTab == "Week") {
+                                insightsData.weekFocusMinutes
+                            } else {
+                                if (monthlyFocusMinutes > 0) monthlyFocusMinutes else insightsData.weekFocusMinutes * 4
+                            }
                             val hours = totalMins / 60
                             val mins = totalMins % 60
                             Text(
@@ -380,7 +391,7 @@ fun InsightsScreen(
 
 
                     InsightNavRow(
-                        icon = Icons.Default.TrendingUp,
+                        icon = Icons.AutoMirrored.Filled.TrendingUp,
                         title = "Progress & Consistency",
                         onClick = onNavigateToProgressConsistency
                     )

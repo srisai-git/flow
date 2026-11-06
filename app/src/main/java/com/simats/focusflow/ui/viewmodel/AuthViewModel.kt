@@ -18,8 +18,18 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+/**
+ * High-level authentication states for cold/warm startup and route routing.
+ */
+sealed interface AuthState {
+    object Loading : AuthState
+    data class Authenticated(val userId: Int, val name: String) : AuthState
+    object Unauthenticated : AuthState
+}
 
 /**
  * UI State for authentication screens holding loading status, success indicator,
@@ -47,6 +57,9 @@ class AuthViewModel(
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
+    private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
+    val authState: StateFlow<AuthState> = _authState.asStateFlow()
+
     private var appContext: Context? = null
 
     /**
@@ -55,6 +68,7 @@ class AuthViewModel(
     fun initSessionManager(context: Context, manager: SessionManager) {
         this.appContext = context.applicationContext
         this.sessionManager = manager
+        checkCachedSession(manager)
     }
 
     /**
@@ -62,6 +76,28 @@ class AuthViewModel(
      */
     fun initSessionManager(manager: SessionManager) {
         this.sessionManager = manager
+        checkCachedSession(manager)
+    }
+
+    /**
+     * Checks local cached session credentials on Dispatchers.IO without network blocking.
+     */
+    fun checkCachedSession(manager: SessionManager) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val session = manager.userSessionFlow.first()
+                if (session.isLoggedIn && (session.userId ?: 0) > 0) {
+                    _authState.value = AuthState.Authenticated(
+                        session.userId ?: 1,
+                        session.userName ?: "FocusFlow User"
+                    )
+                } else {
+                    _authState.value = AuthState.Unauthenticated
+                }
+            } catch (_: Exception) {
+                _authState.value = AuthState.Unauthenticated
+            }
+        }
     }
 
     /**
@@ -152,6 +188,7 @@ class AuthViewModel(
                         }
                     }
 
+                    _authState.value = AuthState.Authenticated(authenticatedUser.id, authenticatedUser.name)
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -297,6 +334,7 @@ class AuthViewModel(
      */
     fun logout(onComplete: () -> Unit = {}) {
         viewModelScope.launch {
+            _authState.value = AuthState.Unauthenticated
             sessionManager?.clearSession()
             resetState()
             onComplete()

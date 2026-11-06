@@ -638,21 +638,16 @@ private fun AppIconImage(drawable: Drawable?, modifier: Modifier = Modifier) {
 
 @Composable
 private fun ShimmerLoadingPlaceholder(colors: com.simats.focusflow.ui.theme.FocusFlowColors) {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .height(220.dp),
+        contentAlignment = Alignment.Center
     ) {
-        repeat(4) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(64.dp)
-                    .background(colors.surface, RoundedCornerShape(14.dp))
-                    .border(1.dp, colors.border.copy(alpha = 0.3f), RoundedCornerShape(14.dp))
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-        }
+        CircularProgressIndicator(
+            color = colors.primaryLight,
+            modifier = Modifier.size(38.dp),
+            strokeWidth = 3.dp
+        )
     }
 }

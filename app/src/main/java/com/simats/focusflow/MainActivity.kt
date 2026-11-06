@@ -20,6 +20,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
@@ -110,6 +112,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private var resolvedDestination: String? = null
+    private var isSplashReady: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -117,8 +120,10 @@ class MainActivity : ComponentActivity() {
         content?.viewTreeObserver?.addOnPreDrawListener(
             object : ViewTreeObserver.OnPreDrawListener {
                 override fun onPreDraw(): Boolean {
-                    return if (resolvedDestination != null) {
-                        content.viewTreeObserver.removeOnPreDrawListener(this)
+                    return if (isSplashReady || resolvedDestination != null) {
+                        try {
+                            content.viewTreeObserver.removeOnPreDrawListener(this)
+                        } catch (_: Exception) {}
                         true
                     } else {
                         false
@@ -126,23 +131,44 @@ class MainActivity : ComponentActivity() {
                 }
             }
         )
+
+        // Strict 1500ms safety timeout: guaranteed window unblock even if device is offline or cold boot is slow
+        content?.postDelayed({
+            if (!isSplashReady) {
+                if (resolvedDestination == null) {
+                    resolvedDestination = "welcome_start"
+                    authResolvedDestination.value = "welcome_start"
+                }
+                isSplashReady = true
+            }
+        }, 1500L)
+
         enableEdgeToEdge()
 
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val sessionManager = SessionManager.getInstance(applicationContext)
-                val session = sessionManager.userSessionFlow.first()
-                val target = if (session.isLoggedIn) {
-                    if (session.isOnboardingCompleted) Screen.Dashboard.route else "make_it_yours/${session.userId ?: 1}"
-                } else {
-                    "welcome_start"
+        lifecycleScope.launch {
+            withTimeoutOrNull(1500L) {
+                try {
+                    withContext(Dispatchers.IO) {
+                        val sessionManager = SessionManager.getInstance(applicationContext)
+                        val session = sessionManager.userSessionFlow.first()
+                        val target = if (session.isLoggedIn) {
+                            if (session.isOnboardingCompleted) Screen.Dashboard.route else "make_it_yours/${session.userId ?: 1}"
+                        } else {
+                            "welcome_start"
+                        }
+                        resolvedDestination = target
+                        authResolvedDestination.value = target
+                    }
+                } catch (e: Exception) {
+                    resolvedDestination = "welcome_start"
+                    authResolvedDestination.value = "welcome_start"
                 }
-                resolvedDestination = target
-                authResolvedDestination.value = target
-            } catch (e: Exception) {
+            }
+            if (resolvedDestination == null) {
                 resolvedDestination = "welcome_start"
                 authResolvedDestination.value = "welcome_start"
             }
+            isSplashReady = true
         }
 
         com.simats.focusflow.data.repository.ProductivityRepository.init(applicationContext)
@@ -216,8 +242,9 @@ class MainActivity : ComponentActivity() {
             }
 
             val startRoute by authResolvedDestination.collectAsState()
+            val effectiveRoute = startRoute ?: resolvedDestination ?: "welcome_start"
 
-            if (startRoute == null) {
+            if (startRoute == null && !isSplashReady) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -268,7 +295,7 @@ class MainActivity : ComponentActivity() {
                 ) { innerPadding ->
                     NavHost(
                         navController = navController,
-                        startDestination = startRoute!!,
+                        startDestination = effectiveRoute,
                         modifier = Modifier.padding(innerPadding)
                     ) {
                         composable("welcome_start") {

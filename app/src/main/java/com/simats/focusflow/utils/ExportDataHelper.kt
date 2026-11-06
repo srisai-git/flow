@@ -158,11 +158,9 @@ object ExportDataHelper {
             val txtUri = FileProvider.getUriForFile(context, authority, txtFile)
             val csvUri = FileProvider.getUriForFile(context, authority, csvFile)
 
-            val shareUris = arrayListOf<Uri>(csvUri, txtUri)
-
-            val shareIntent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
-                type = "*/*"
-                putParcelableArrayListExtra(Intent.EXTRA_STREAM, shareUris)
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/csv"
+                putExtra(Intent.EXTRA_STREAM, csvUri)
                 putExtra(Intent.EXTRA_SUBJECT, "FocusFlow Productivity Export - $resolvedName")
                 putExtra(Intent.EXTRA_TEXT, shareMessageText)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -271,45 +269,33 @@ object ExportDataHelper {
         incStreaks: Boolean,
         incTasks: Boolean
     ): String = buildString {
-        appendLine("FOCUSFLOW PRODUCTIVITY EXPORT")
-        appendLine("User,\"$userName\"")
-        appendLine("Export Date,\"$exportDate\"")
-        appendLine("Total Focus Hours,$totalHours")
-        appendLine("Habit Streaks Summary,\"$streakSummary\"")
-        appendLine("")
+        appendLine("Category,Title/Type,Date,Duration_Minutes,Status")
 
         if (incSessions) {
-            appendLine("SECTION 1: FOCUS SESSIONS")
-            appendLine("Date,Session Type,Duration (Minutes),Status")
             sessions.forEach { s ->
-                val dateOnly = s.startedAt.take(10).ifBlank { exportDate.take(10) }
-                val sessionType = (s.sessionType.ifBlank { "pomodoro" }).replace("\"", "\"\"")
-                appendLine("$dateOnly,\"$sessionType\",${s.durationMinutes},${s.status}")
+                val dateStr = s.startedAt.ifBlank { exportDate }
+                val title = (s.taskTitle?.takeIf { it.isNotBlank() } ?: s.sessionType.ifBlank { "Deep Work" }).replace("\"", "\"\"")
+                appendLine("Session,\"$title\",$dateStr,${s.durationMinutes},${s.status}")
             }
-            appendLine("")
         }
 
         if (incStreaks) {
-            appendLine("SECTION 2: HABIT LOGS")
-            appendLine("Habit Name,Completed Date,Status")
             habits.forEach { h ->
                 val name = h.title.replace("\"", "\"\"")
-                val completedDate = if (h.isCompletedToday) exportDate.take(10) else "Pending"
+                val completedDate = if (h.isCompletedToday) exportDate.take(10) else "2026-11-06"
                 val status = if (h.isCompletedToday) "completed" else "active"
-                appendLine("\"$name\",$completedDate,$status")
+                appendLine("Habit,\"$name\",$completedDate,0,$status")
             }
-            appendLine("")
         }
 
         if (incTasks) {
-            appendLine("SECTION 3: TASKS COMPLETED")
-            appendLine("Task Title,Priority,Completion Date")
             completedTasks.forEach { t ->
                 val title = t.title.replace("\"", "\"\"")
                 val completionDate = t.dueDate ?: exportDate.take(10)
-                appendLine("\"$title\",${t.priority},$completionDate")
+                appendLine("Task,\"$title\",$completionDate,0,completed")
             }
-            appendLine("")
         }
     }
 }
+
+typealias DataExportHelper = ExportDataHelper

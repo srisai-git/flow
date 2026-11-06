@@ -349,15 +349,41 @@ fun HabitsScreen(
 
                         Spacer(modifier = Modifier.height(8.dp))
 
+                        val dynamicInsight = remember(state.habits, state.userStats) {
+                            viewModel.computeDynamicHabitInsight(state.habits, state.userStats)
+                        }
+
                         Text(
-                            text = if (state.totalCount > 0 && state.completedCount == state.totalCount) {
-                                "Outstanding! All daily habits completed today."
-                            } else {
-                                "Keep your momentum going. Tap a habit to complete."
-                            },
+                            text = dynamicInsight,
                             fontSize = 12.sp,
                             color = if (state.totalCount > 0 && state.completedCount == state.totalCount) colors.primaryLight else colors.textMuted
                         )
+
+                        val topStreakHabit = remember(state.habits) { state.habits.maxByOrNull { it.streakCount } }
+                        if (topStreakHabit != null && topStreakHabit.streakCount > 0) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(colors.primary.copy(alpha = 0.10f), RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = colors.primaryLight,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Top Habit: ${topStreakHabit.title} with ${topStreakHabit.streakCount} consecutive days",
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = colors.primaryLight
+                                )
+                            }
+                        }
                     }
                 }
 
