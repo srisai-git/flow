@@ -8,6 +8,7 @@ import com.simats.focusflow.data.local.FocusSessionDatabase
 import com.simats.focusflow.data.models.ProfileData
 import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.repository.ProfileRepository
+import com.simats.focusflow.data.repository.StreakRepository
 import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.utils.ProfileImageManager
 import kotlinx.coroutines.Dispatchers
@@ -60,16 +61,22 @@ class ProfileViewModel(
             FocusSessionDatabase.getInstance(ctx).getTotalFocusMinutes(currentUserId)
         } catch (_: Exception) { 0 }
 
-        viewModelScope.launch(Dispatchers.Main) {
-            _uiState.update { current ->
-                val effectiveMins = maxOf(current.profile.totalFocusMinutes, localTotalMins)
-                val effectiveHours = effectiveMins / 60.0f
-                current.copy(
-                    profile = current.profile.copy(
-                        totalFocusMinutes = effectiveMins,
-                        totalFocusHours = effectiveHours
+        viewModelScope.launch(Dispatchers.IO) {
+            val streakData = StreakRepository.getInstance().getStreaks(currentUserId).getOrNull()
+            val effectiveStreak = streakData?.currentStreak ?: 1
+            withContext(Dispatchers.Main) {
+                _uiState.update { current ->
+                    val effectiveMins = maxOf(current.profile.totalFocusMinutes, localTotalMins)
+                    val effectiveHours = effectiveMins / 60.0f
+                    val finalStreak = maxOf(current.profile.currentStreak, effectiveStreak)
+                    current.copy(
+                        profile = current.profile.copy(
+                            totalFocusMinutes = effectiveMins,
+                            totalFocusHours = effectiveHours,
+                            currentStreak = finalStreak
+                        )
                     )
-                )
+                }
             }
         }
     }
@@ -238,6 +245,8 @@ class ProfileViewModel(
 
                         val effectiveMinutes = maxOf(data.totalFocusMinutes, localTotalMinutes)
                         val effectiveHours = effectiveMinutes / 60.0f
+                        val streakData = StreakRepository.getInstance().getStreaks(currentUserId).getOrNull()
+                        val effectiveStreak = maxOf(data.currentStreak, streakData?.currentStreak ?: 1)
 
                         val finalData = data.copy(
                             name = if (!sName.isNullOrBlank()) sName else data.name,
@@ -245,7 +254,8 @@ class ProfileViewModel(
                             avatar = effectiveAvatar,
                             bio = if (!sBio.isNullOrBlank()) sBio else data.bio,
                             totalFocusMinutes = effectiveMinutes,
-                            totalFocusHours = effectiveHours
+                            totalFocusHours = effectiveHours,
+                            currentStreak = effectiveStreak
                         )
                         _uiState.update { it.copy(isLoading = false, profile = finalData) }
                     },
