@@ -88,7 +88,7 @@ fun TimerScreen(
         ) {
             Spacer(modifier = Modifier.height(24.dp))
 
-            // HEADER ROW WITH HISTORY ACTION BUTTON
+            // HEADER ROW
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -108,24 +108,6 @@ fun TimerScreen(
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.textPrimary
-                    )
-                }
-
-                // Recent Sessions History Button
-                IconButton(
-                    onClick = { viewModel.setHistoryOpen(true) },
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(CircleShape)
-                        .background(colors.surface)
-                        .border(1.dp, colors.border, CircleShape)
-                        .bounceClick()
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.History,
-                        contentDescription = "Session History",
-                        tint = colors.primaryLight,
-                        modifier = Modifier.size(20.dp)
                     )
                 }
             }

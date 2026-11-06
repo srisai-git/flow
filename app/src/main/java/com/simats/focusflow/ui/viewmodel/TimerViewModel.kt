@@ -132,7 +132,7 @@ class TimerViewModel(
 
     fun loadSessionHistory() {
         viewModelScope.launch(Dispatchers.IO) {
-            val localSessions = appContext?.let { ctx ->
+            val rawLocalSessions = appContext?.let { ctx ->
                 try {
                     FocusSessionDatabase.getInstance(ctx).getRecentSessions(currentUserId, 50)
                 } catch (e: Exception) {
@@ -140,12 +140,19 @@ class TimerViewModel(
                 }
             } ?: emptyList()
 
-            if (localSessions.isNotEmpty()) {
+            val distinctLocal = rawLocalSessions
+                .filter { it.userId == currentUserId }
+                .distinctBy { session ->
+                    if (session.id > 0) "id_${session.id}" else "${session.startedAt}_${session.durationMinutes}"
+                }
+                .sortedByDescending { it.id }
+
+            if (distinctLocal.isNotEmpty()) {
                 withContext(Dispatchers.Main) {
                     _uiState.update { current ->
                         current.copy(
-                            recentSessions = localSessions,
-                            completedSessions = maxOf(current.completedSessions, localSessions.size)
+                            recentSessions = distinctLocal,
+                            completedSessions = maxOf(current.completedSessions, distinctLocal.size)
                         )
                     }
                 }
@@ -155,9 +162,13 @@ class TimerViewModel(
             withContext(Dispatchers.Main) {
                 result.fold(
                     onSuccess = { list ->
-                        val distinct = (localSessions + list).distinctBy { session ->
-                            if (session.id > 0) "id_${session.id}" else "${session.startedAt}_${session.durationMinutes}"
-                        }
+                        val distinct = (distinctLocal + list)
+                            .filter { it.userId == currentUserId }
+                            .distinctBy { session ->
+                                if (session.id > 0) "id_${session.id}" else "${session.startedAt}_${session.durationMinutes}"
+                            }
+                            .sortedByDescending { it.id }
+
                         _uiState.update { current ->
                             current.copy(
                                 recentSessions = distinct,
