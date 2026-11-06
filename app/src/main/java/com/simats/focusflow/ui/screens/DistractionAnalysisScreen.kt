@@ -641,21 +641,14 @@ private fun ShimmerLoadingPlaceholder(colors: com.simats.focusflow.ui.theme.Focu
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 16.dp),
+            .padding(vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Box(
-            modifier = Modifier
-                .size(180.dp)
-                .background(Color.Transparent, CircleShape)
-                .border(16.dp, colors.border.copy(alpha = 0.35f), CircleShape)
-        )
-        Spacer(modifier = Modifier.height(28.dp))
-        repeat(3) {
+        repeat(4) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(60.dp)
+                    .height(64.dp)
                     .background(colors.surface, RoundedCornerShape(14.dp))
                     .border(1.dp, colors.border.copy(alpha = 0.3f), RoundedCornerShape(14.dp))
             )
