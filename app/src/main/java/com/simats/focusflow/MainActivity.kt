@@ -20,6 +20,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -99,6 +101,7 @@ import com.simats.focusflow.ui.theme.FOCUSFLOWTheme
 
 class MainActivity : ComponentActivity() {
     private val pendingRoute = MutableStateFlow<String?>(null)
+    private val authResolvedDestination = MutableStateFlow<String?>(null)
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
@@ -126,6 +129,23 @@ class MainActivity : ComponentActivity() {
             }
         )
         enableEdgeToEdge()
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val sessionManager = SessionManager.getInstance(applicationContext)
+                val session = sessionManager.userSessionFlow.first()
+                val target = if (session.isLoggedIn) {
+                    if (session.isOnboardingCompleted) Screen.Dashboard.route else "make_it_yours/${session.userId ?: 1}"
+                } else {
+                    "welcome_start"
+                }
+                resolvedDestination = target
+                authResolvedDestination.value = target
+            } catch (e: Exception) {
+                resolvedDestination = "welcome_start"
+                authResolvedDestination.value = "welcome_start"
+            }
+        }
 
         com.simats.focusflow.data.repository.ProductivityRepository.init(applicationContext)
 
@@ -197,22 +217,16 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            var initialRoute by remember { mutableStateOf<String?>(resolvedDestination) }
+            val startRoute by authResolvedDestination.collectAsState()
 
-            LaunchedEffect(Unit) {
-                if (initialRoute == null) {
-                    val session = sessionManager.userSessionFlow.first()
-                    val target = if (session.isLoggedIn) {
-                        if (session.isOnboardingCompleted) Screen.Dashboard.route else "make_it_yours/${session.userId ?: 1}"
-                    } else {
-                        "welcome_start"
-                    }
-                    resolvedDestination = target
-                    initialRoute = target
-                }
-            }
-
-            FOCUSFLOWTheme(themeMode = themeMode) {
+            if (startRoute == null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFF0D0B14))
+                )
+            } else {
+                FOCUSFLOWTheme(themeMode = themeMode) {
                 val navController = rememberNavController()
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
@@ -254,10 +268,9 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 ) { innerPadding ->
-                    val effectiveStart = initialRoute ?: "welcome_start"
                     NavHost(
                         navController = navController,
-                        startDestination = effectiveStart,
+                        startDestination = startRoute!!,
                         modifier = Modifier.padding(innerPadding)
                     ) {
                         composable("welcome_start") {
@@ -678,6 +691,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+            }
             }
         }
     }
