@@ -270,6 +270,34 @@ class FocusTimerService : Service() {
     private fun handleReset() {
         tickerJob?.cancel()
         val current = _timerStateFlow.value
+        val elapsedSeconds = current.totalSeconds - current.remainingSeconds
+        val elapsedMinutes = elapsedSeconds / 60
+
+        // If user intentionally stopped an active focus interval that ran for at least 1 min, dispatch to save_session.php
+        if (current.currentMode == TimerMode.FOCUS && elapsedMinutes >= 1) {
+            val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            val now = Date()
+            val endTime = sdf.format(now)
+            val cal = Calendar.getInstance().apply {
+                time = now
+                add(Calendar.MINUTE, -elapsedMinutes)
+            }
+            val startTime = sdf.format(cal.time)
+            val sessionUuid = java.util.UUID.randomUUID().toString()
+
+            serviceScope.launch {
+                repository.logSession(
+                    userId = current.activeUserId,
+                    durationMinutes = elapsedMinutes,
+                    sessionType = "pomodoro",
+                    durationSeconds = elapsedSeconds,
+                    startTime = startTime,
+                    endTime = endTime,
+                    sessionUuid = sessionUuid
+                )
+            }
+        }
+
         val secs = current.getDurationMinutes() * 60
         _timerStateFlow.update {
             it.copy(
