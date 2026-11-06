@@ -342,14 +342,6 @@ fun ProfileScreen(
                 border = BorderStroke(1.dp, colors.border)
             ) {
                 Column {
-                    ProfileMenuRow(
-                        icon = Icons.Default.Timer,
-                        title = "Focus Timer",
-                        subtitle = "Launch Pomodoro & deep work sessions",
-                        onClick = onNavigateToTimer
-                    )
-                    HorizontalDivider(color = colors.border, thickness = 1.dp)
-
                     val goalHours = (profile.dailyFocusGoalMinutes / 60).coerceAtLeast(1)
                     val rhythmBlock = if (profile.preferredFocusDuration > 0) profile.preferredFocusDuration else 45
                     ProfileMenuRow(
