@@ -7,6 +7,7 @@ import com.simats.focusflow.data.models.HabitItem
 import com.simats.focusflow.data.models.HabitUserStats
 import com.simats.focusflow.data.repository.AiRepository
 import com.simats.focusflow.data.repository.ProductivityRepository
+import com.simats.focusflow.data.repository.StreakRepository
 import com.simats.focusflow.data.session.SessionManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -84,6 +85,13 @@ class HabitViewModel(
             // Enforce strict user isolation: habits belong exclusively to active user
 
             val result = repository.getHabits(currentUserId)
+            launch {
+                try {
+                    StreakRepository.getInstance().getStreaks(currentUserId)
+                } catch (e: Exception) {
+                    // Fallback handled silently
+                }
+            }
             withContext(Dispatchers.Main) {
                 result.fold(
                     onSuccess = { res ->
@@ -136,6 +144,15 @@ class HabitViewModel(
 
     fun selectHabitForStreak(habit: HabitItem?) {
         _uiState.update { it.copy(selectedHabitForStreak = habit) }
+        if (habit != null) {
+            viewModelScope.launch(Dispatchers.IO) {
+                try {
+                    StreakRepository.getInstance().getStreaks(currentUserId)
+                } catch (e: Exception) {
+                    // Fallback handled
+                }
+            }
+        }
     }
 
     fun setAddHabitDialogOpen(isOpen: Boolean) {
@@ -160,6 +177,13 @@ class HabitViewModel(
                 }
 
                 repository.toggleHabit(currentUserId, habitId)
+                launch {
+                    try {
+                        StreakRepository.getInstance().updateStreak(currentUserId, updatedStreak)
+                    } catch (e: Exception) {
+                        // Fallback handled
+                    }
+                }
 
                 // Refresh backend stats silently to update real charts & streaks
                 val refreshed = repository.getHabits(currentUserId)

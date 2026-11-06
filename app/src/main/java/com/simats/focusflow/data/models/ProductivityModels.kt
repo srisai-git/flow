@@ -603,3 +603,20 @@ data class ResetStatsResponse(
     val message: String = ""
 )
 
+@Immutable
+data class StreakData(
+    @SerializedName("user_id") val userId: Int = 1,
+    @SerializedName("current_streak") val currentStreak: Int = 1,
+    @SerializedName("longest_streak") val longestStreak: Int = 1,
+    @SerializedName("total_active_days") val totalActiveDays: Int = 1,
+    @SerializedName("last_active_date") val lastActiveDate: String? = null
+)
+
+@Immutable
+data class StreakResponse(
+    @SerializedName("status") val status: String = "success",
+    @SerializedName("data") val data: StreakData? = null,
+    @SerializedName("message") val message: String? = null
+)
+
+

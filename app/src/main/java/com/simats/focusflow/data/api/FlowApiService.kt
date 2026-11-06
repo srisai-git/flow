@@ -52,6 +52,15 @@ interface FlowApiService {
     @POST("habits.php")
     suspend fun deleteHabit(@Body request: DeleteHabitRequest): Response<HabitActionResponse>
 
+    @GET("streaks.php")
+    suspend fun getStreaks(@Query("user_id") userId: Int): Response<StreakResponse>
+
+    @POST("streaks.php")
+    suspend fun updateStreak(
+        @Query("user_id") userId: Int,
+        @Query("streak_count") streakCount: Int
+    ): Response<StreakResponse>
+
     @GET("get_profile.php")
     suspend fun getProfile(@Query("user_id") userId: Int): Response<GetProfileResponse>
 
