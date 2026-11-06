@@ -95,11 +95,13 @@ class HabitViewModel(
             withContext(Dispatchers.Main) {
                 result.fold(
                     onSuccess = { res ->
+                        val insight = computeDynamicHabitInsight(res.habits, res.userStats)
                         _uiState.update { 
                             it.copy(
                                 isLoading = false, 
                                 habits = res.habits, 
-                                userStats = res.userStats
+                                userStats = res.userStats,
+                                aiInsight = it.aiInsight ?: insight
                             ) 
                         }
                     },
@@ -252,6 +254,25 @@ class HabitViewModel(
                     _uiState.update { it.copy(habits = res.habits, userStats = res.userStats) }
                 }
             }
+        }
+    }
+
+    fun computeDynamicHabitInsight(habits: List<HabitItem>, stats: HabitUserStats): String {
+        if (habits.isEmpty()) {
+            return "Start building consistency by creating your first daily habit."
+        }
+        val topStreakHabit = habits.maxByOrNull { it.streakCount }
+        val allCompletedToday = habits.isNotEmpty() && habits.all { it.isCompletedToday }
+        val completedCount = habits.count { it.isCompletedToday }
+
+        return when {
+            allCompletedToday -> "Flawless routine today! All ${habits.size} daily habits completed."
+            topStreakHabit != null && topStreakHabit.streakCount >= 3 ->
+                "${topStreakHabit.title} is your longest standing streak at ${topStreakHabit.streakCount} days."
+            completedCount > 0 ->
+                "You're most consistent on weekday mornings ($completedCount/${habits.size} habits logged today)."
+            else ->
+                "Stay consistent today: complete your daily habits to maintain your ${maxOf(1, stats.currentStreak)}-day streak."
         }
     }
 }
