@@ -57,11 +57,11 @@ class ProfileViewModel(
 
     private fun refreshLocalStats() {
         val ctx = appContext ?: return
-        val localTotalMins = try {
-            FocusSessionDatabase.getInstance(ctx).getTotalFocusMinutes(currentUserId)
-        } catch (_: Exception) { 0 }
-
         viewModelScope.launch(Dispatchers.IO) {
+            val localTotalMins = try {
+                FocusSessionDatabase.getInstance(ctx).getTotalFocusMinutes(currentUserId)
+            } catch (_: Exception) { 0 }
+
             val streakData = StreakRepository.getInstance().getStreaks(currentUserId).getOrNull()
             val effectiveStreak = streakData?.currentStreak ?: 1
             withContext(Dispatchers.Main) {

@@ -31,8 +31,6 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.LaunchedEffect
-import android.view.View
-import android.view.ViewTreeObserver
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -112,71 +110,41 @@ class MainActivity : ComponentActivity() {
     }
 
     private var resolvedDestination: String? = null
-    private var isSplashReady: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val content = findViewById<View>(android.R.id.content)
-        content?.viewTreeObserver?.addOnPreDrawListener(
-            object : ViewTreeObserver.OnPreDrawListener {
-                override fun onPreDraw(): Boolean {
-                    return if (isSplashReady || resolvedDestination != null) {
-                        try {
-                            content.viewTreeObserver.removeOnPreDrawListener(this)
-                        } catch (_: Exception) {}
-                        true
-                    } else {
-                        false
-                    }
-                }
-            }
-        )
-
-        // Strict 1500ms safety timeout: guaranteed window unblock even if device is offline or cold boot is slow
-        content?.postDelayed({
-            if (!isSplashReady) {
-                if (resolvedDestination == null) {
-                    resolvedDestination = "welcome_start"
-                    authResolvedDestination.value = "welcome_start"
-                }
-                isSplashReady = true
-            }
-        }, 1500L)
-
         enableEdgeToEdge()
 
+        // Resolve session on IO dispatcher with safety fallback
         lifecycleScope.launch {
-            withTimeoutOrNull(1500L) {
+            val target = withTimeoutOrNull(1500L) {
                 try {
                     withContext(Dispatchers.IO) {
                         val sessionManager = SessionManager.getInstance(applicationContext)
                         val session = sessionManager.userSessionFlow.first()
-                        val target = if (session.isLoggedIn) {
+                        if (session.isLoggedIn && (session.userId ?: 0) > 0) {
                             if (session.isOnboardingCompleted) Screen.Dashboard.route else "make_it_yours/${session.userId ?: 1}"
                         } else {
                             "welcome_start"
                         }
-                        resolvedDestination = target
-                        authResolvedDestination.value = target
                     }
-                } catch (e: Exception) {
-                    resolvedDestination = "welcome_start"
-                    authResolvedDestination.value = "welcome_start"
+                } catch (_: Exception) {
+                    "welcome_start"
                 }
-            }
-            if (resolvedDestination == null) {
-                resolvedDestination = "welcome_start"
-                authResolvedDestination.value = "welcome_start"
-            }
-            isSplashReady = true
+            } ?: "welcome_start"
+
+            resolvedDestination = target
+            authResolvedDestination.value = target
         }
 
-        com.simats.focusflow.data.repository.ProductivityRepository.init(applicationContext)
+        // Notification channels are initialized in FocusFlowApplication, ensure safe fallback here
+        try {
+            NotificationHelper.createNotificationChannels(applicationContext)
+        } catch (e: Exception) {
+            Log.e("MainActivity", "NotificationHelper init failed: ${e.message}")
+        }
 
-        // Create standard notification channels on app startup
-        NotificationHelper.createNotificationChannels(applicationContext)
-
-        // Ensure persistent daily focus reminder is actively scheduled in AlarmManager
+        // Ensure persistent daily focus reminder is actively scheduled in AlarmManager on background thread
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val sessionManager = SessionManager.getInstance(applicationContext)
@@ -197,26 +165,30 @@ class MainActivity : ComponentActivity() {
             pendingRoute.value = route
         }
 
-        // Firebase Cloud Messaging Token Registration & Logging
-        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-            if (!task.isSuccessful) {
-                Log.w("FlowFCM", "Fetching FCM registration token failed", task.exception)
-                return@addOnCompleteListener
-            }
-            val token = task.result
-            Log.d("FlowFCM", "Device Token: $token")
-            token?.let { fcmToken ->
-                lifecycleScope.launch(Dispatchers.IO) {
-                    val sessionManager = SessionManager.getInstance(applicationContext)
-                    sessionManager.userSessionFlow.collect { session ->
-                        session.userId?.let { uid ->
+        // Firebase Cloud Messaging Token Registration & Logging wrapped in safe try-catch
+        try {
+            FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                if (!task.isSuccessful) {
+                    Log.w("FlowFCM", "Fetching FCM registration token failed", task.exception)
+                    return@addOnCompleteListener
+                }
+                val token = task.result
+                Log.d("FlowFCM", "Device Token: $token")
+                token?.let { fcmToken ->
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        try {
+                            val sessionManager = SessionManager.getInstance(applicationContext)
+                            val session = sessionManager.userSessionFlow.first()
+                            val uid = session.userId ?: 0
                             if (uid > 0) {
                                 TokenSyncHelper.syncFcmToken(fcmToken, uid)
                             }
-                        }
+                        } catch (_: Exception) {}
                     }
                 }
             }
+        } catch (e: Exception) {
+            Log.w("FlowFCM", "Firebase messaging initialization skipped: ${e.message}")
         }
 
         setContent {
@@ -244,7 +216,7 @@ class MainActivity : ComponentActivity() {
             val startRoute by authResolvedDestination.collectAsState()
             val effectiveRoute = startRoute ?: resolvedDestination ?: "welcome_start"
 
-            if (startRoute == null && !isSplashReady) {
+            if (startRoute == null) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()

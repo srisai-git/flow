@@ -53,13 +53,15 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
             val userId = session.userId ?: 1
             val db = FocusSessionDatabase.getInstance(context)
 
-            localDailyMap = db.getDailyMinutesPast7Days(userId)
-            localTodayMinutes = db.getTodayFocusMinutes(userId)
-            localMonthMinutes = db.getCurrentMonthFocusMinutes(userId)
-            localTotalMinutes = db.getTotalFocusMinutes(userId)
-            val todayDateKey = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-            todaySessionsCount = db.getRecentSessions(userId, 50)
-                .count { it.completedAt.startsWith(todayDateKey) || it.startedAt.startsWith(todayDateKey) }
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                localDailyMap = db.getDailyMinutesPast7Days(userId)
+                localTodayMinutes = db.getTodayFocusMinutes(userId)
+                localMonthMinutes = db.getCurrentMonthFocusMinutes(userId)
+                localTotalMinutes = db.getTotalFocusMinutes(userId)
+                val todayDateKey = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                todaySessionsCount = db.getRecentSessions(userId, 50)
+                    .count { it.completedAt.startsWith(todayDateKey) || it.startedAt.startsWith(todayDateKey) }
+            }
 
             val repo = ProductivityRepository()
             val result = repo.getInsights(userId)

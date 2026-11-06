@@ -9,8 +9,10 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.io.IOException
 
@@ -75,13 +77,7 @@ class SessionManager private constructor(
      * Emits whether the user is actively logged in.
      */
     val isLoggedInFlow: Flow<Boolean> = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
+        .catch { emit(emptyPreferences()) }
         .map { preferences ->
             preferences[KEY_IS_LOGGED_IN] ?: false
         }
@@ -90,13 +86,7 @@ class SessionManager private constructor(
      * Emits the authenticated user's numeric ID or null.
      */
     val userIdFlow: Flow<Int?> = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
+        .catch { emit(emptyPreferences()) }
         .map { preferences ->
             preferences[KEY_USER_ID]
         }
@@ -105,13 +95,7 @@ class SessionManager private constructor(
      * Emits the cached user avatar uri/url directly.
      */
     val userAvatarFlow: Flow<String?> = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
+        .catch { emit(emptyPreferences()) }
         .map { preferences ->
             preferences[KEY_USER_AVATAR_PATH] ?: preferences[KEY_USER_AVATAR_URI] ?: preferences[KEY_USER_AVATAR]
         }
@@ -120,13 +104,7 @@ class SessionManager private constructor(
      * Emits the persistent local avatar file path directly.
      */
     val userAvatarPath: Flow<String?> = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
+        .catch { emit(emptyPreferences()) }
         .map { preferences ->
             preferences[KEY_USER_AVATAR_PATH] ?: preferences[KEY_USER_AVATAR_URI] ?: preferences[KEY_USER_AVATAR]
         }
@@ -135,13 +113,7 @@ class SessionManager private constructor(
      * Emits the entire composite UserSession.
      */
     val userSessionFlow: Flow<UserSession> = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
+        .catch { emit(emptyPreferences()) }
         .map { preferences ->
             val avatar = preferences[KEY_USER_AVATAR_PATH] ?: preferences[KEY_USER_AVATAR_URI] ?: preferences[KEY_USER_AVATAR]
             UserSession(
@@ -250,13 +222,7 @@ class SessionManager private constructor(
      * Emits the selected theme mode ("dark" or "light"). Defaults to "light".
      */
     val themeModeFlow: Flow<String> = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
+        .catch { emit(emptyPreferences()) }
         .map { preferences ->
             preferences[KEY_THEME_MODE] ?: "light"
         }
@@ -271,49 +237,37 @@ class SessionManager private constructor(
     }
 
     val notificationsEnabledFlow: Flow<Boolean> = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) emit(emptyPreferences()) else throw exception
-        }
+        .catch { emit(emptyPreferences()) }
         .map { preferences ->
             preferences[KEY_NOTIFICATIONS_ENABLED] ?: true
         }
 
     val dailyReminderEnabledFlow: Flow<Boolean> = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) emit(emptyPreferences()) else throw exception
-        }
+        .catch { emit(emptyPreferences()) }
         .map { preferences ->
             preferences[KEY_DAILY_REMINDER_ENABLED] ?: true
         }
 
     val reminderTimeFlow: Flow<String> = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) emit(emptyPreferences()) else throw exception
-        }
+        .catch { emit(emptyPreferences()) }
         .map { preferences ->
             preferences[KEY_REMINDER_TIME] ?: "09:00 AM"
         }
 
     val deadlineReminderEnabledFlow: Flow<Boolean> = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) emit(emptyPreferences()) else throw exception
-        }
+        .catch { emit(emptyPreferences()) }
         .map { preferences ->
             preferences[KEY_DEADLINE_REMINDER_ENABLED] ?: true
         }
 
     val breakReminderEnabledFlow: Flow<Boolean> = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) emit(emptyPreferences()) else throw exception
-        }
+        .catch { emit(emptyPreferences()) }
         .map { preferences ->
             preferences[KEY_BREAK_REMINDER_ENABLED] ?: true
         }
 
     val aiReportReminderEnabledFlow: Flow<Boolean> = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) emit(emptyPreferences()) else throw exception
-        }
+        .catch { emit(emptyPreferences()) }
         .map { preferences ->
             preferences[KEY_AI_REPORT_REMINDER_ENABLED] ?: false
         }
@@ -336,9 +290,7 @@ class SessionManager private constructor(
     }
 
     val isFirstLoginFlow: Flow<Boolean> = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) emit(emptyPreferences()) else throw exception
-        }
+        .catch { emit(emptyPreferences()) }
         .map { preferences ->
             preferences[KEY_IS_FIRST_LOGIN_FLOW] ?: false
         }
@@ -346,6 +298,24 @@ class SessionManager private constructor(
     suspend fun setFirstLoginFlow(isFirst: Boolean) {
         dataStore.edit { preferences ->
             preferences[KEY_IS_FIRST_LOGIN_FLOW] = isFirst
+        }
+    }
+
+    /**
+     * Safely reads cached token or user ID, returning null on any error or corruption.
+     */
+    fun getToken(): String? {
+        return try {
+            kotlinx.coroutines.runBlocking(Dispatchers.IO) {
+                try {
+                    val session = userSessionFlow.first()
+                    if (session.isLoggedIn && (session.userId ?: 0) > 0) session.userId.toString() else null
+                } catch (_: Exception) {
+                    null
+                }
+            }
+        } catch (_: Exception) {
+            null
         }
     }
 
