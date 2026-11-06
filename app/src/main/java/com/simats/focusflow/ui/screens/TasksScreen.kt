@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.simats.focusflow.data.models.TaskItem
 import com.simats.focusflow.data.session.SessionManager
+import com.simats.focusflow.ui.components.FlowLoadingIndicator
 import com.simats.focusflow.ui.components.bounceClick
 import com.simats.focusflow.ui.theme.FocusFlowTheme
 import com.simats.focusflow.ui.viewmodel.TaskFilter
@@ -229,7 +230,7 @@ fun TasksScreen(
                         .weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = colors.primary, modifier = Modifier.size(36.dp))
+                    FlowLoadingIndicator(size = 36.dp)
                 }
             } else if (state.filteredTasks.isEmpty()) {
                 Box(

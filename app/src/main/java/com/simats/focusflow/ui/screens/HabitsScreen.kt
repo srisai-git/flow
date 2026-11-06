@@ -65,6 +65,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.simats.focusflow.data.models.HabitItem
 import com.simats.focusflow.data.models.HabitUserStats
 import com.simats.focusflow.data.session.SessionManager
+import com.simats.focusflow.ui.components.FlowLoadingIndicator
 import com.simats.focusflow.ui.components.GrootAvatar
 import com.simats.focusflow.ui.components.bounceClick
 import com.simats.focusflow.ui.theme.FocusFlowTheme
@@ -381,7 +382,7 @@ fun HabitsScreen(
                             .weight(1f),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(color = colors.primary, modifier = Modifier.size(36.dp))
+                        FlowLoadingIndicator(size = 36.dp)
                     }
                 } else if (state.habits.isEmpty()) {
                     Box(
@@ -856,9 +857,8 @@ private fun AiProductivityInsightsCard(
                     enabled = !isLoading
                 ) {
                     if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            color = colors.primary,
+                        FlowLoadingIndicator(
+                            size = 18.dp,
                             strokeWidth = 2.dp
                         )
                     } else {
