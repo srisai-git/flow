@@ -43,7 +43,7 @@ data class GrootAiUiState(
     val messages: List<ChatMessage> = listOf(
         ChatMessage(
             isFromUser = false,
-            text = "I am Groot, your AI productivity companion inside FocusFlow. I can help optimize your focus timer, track habits, analyze distractions, and guide your daily workflow."
+            text = "I am Groot, your AI productivity companion inside FocusFlow. Named after the resilient, loyal guardian from Guardians of the Galaxy, I embody steady growth and unwavering focus. I am here to help you manage your focus intervals, track habit streaks, eliminate distractions, and cultivate deep flow. How can I assist your productivity today?"
         )
     ),
     val isAiThinking: Boolean = false,
@@ -226,10 +226,25 @@ class GrootAiViewModel(
         persistMessages(updatedWithUser)
 
         viewModelScope.launch(Dispatchers.IO) {
+            val session = sessionManager?.userSessionFlow?.first()
+            val userName = session?.userName?.ifBlank { null } ?: "Sri Sai"
+            val db = appContext?.let { com.simats.focusflow.data.local.FocusSessionDatabase.getInstance(it) }
+            val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+            val todaySessions = db?.getRecentSessions(currentUserId, 50)?.filter {
+                it.startedAt.startsWith(todayStr)
+            } ?: emptyList()
+            val sessionCount = todaySessions.size
+
+            val streakData = com.simats.focusflow.data.repository.StreakRepository.getInstance().getStreaks(currentUserId).getOrNull()
+            val streak = streakData?.currentStreak ?: 1
+
+            val userMetadataContext = "Active User: $userName, Current Streak: $streak days, Completed Sessions Today: $sessionCount"
+            val promptWithContext = "[$userMetadataContext]\n$textToSend"
+
             val result = aiRepository.getAiInsights(
                 userId = currentUserId,
                 queryType = "chat",
-                prompt = textToSend,
+                prompt = promptWithContext,
                 history = currentHistory
             )
 
