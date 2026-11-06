@@ -24,19 +24,19 @@ sealed class Screen(
 ) {
     object Dashboard : Screen("dashboard", "Home", Icons.Outlined.Home)
     object Activities : Screen("activities", "Activities", Icons.Outlined.Checklist)
+    object Timer : Screen("timer", "Timer", Icons.Outlined.Timer)
     object Insights : Screen("insights", "Insights", Icons.Outlined.Insights)
     object Profile : Screen("profile", "Profile", Icons.Outlined.Person)
 
     // Legacy screen objects maintained for direct deep-link and programmatic routing
     object Tasks : Screen("tasks", "Tasks", Icons.Outlined.Checklist)
-    object Timer : Screen("timer", "Timer", Icons.Outlined.Timer)
     object Habits : Screen("habits", "Habits", Icons.Outlined.Repeat)
 
     companion object {
-        val bottomNavScreens = listOf(Dashboard, Activities, Insights, Profile)
+        val bottomNavScreens = listOf(Dashboard, Activities, Timer, Insights, Profile)
 
         fun isMainScreen(route: String?): Boolean {
-            return bottomNavScreens.any { it.route == route } || route == "tasks" || route == "habits"
+            return bottomNavScreens.any { it.route == route } || route == "tasks" || route == "habits" || route == "timer"
         }
     }
 }
