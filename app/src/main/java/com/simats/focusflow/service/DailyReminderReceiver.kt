@@ -15,6 +15,10 @@ class DailyReminderReceiver : BroadcastReceiver() {
     companion object {
         private const val TAG = "DailyReminderReceiver"
         const val ACTION_DAILY_REMINDER = "com.simats.focusflow.ACTION_DAILY_REMINDER"
+        const val ACTION_DEADLINE_ALERT = "com.simats.focusflow.ACTION_DEADLINE_ALERT"
+        const val ACTION_BREATHER_PROMPT = "com.simats.focusflow.ACTION_BREATHER_PROMPT"
+        const val EXTRA_TASK_ID = "extra_task_id"
+        const val EXTRA_TASK_TITLE = "extra_task_title"
     }
 
     override fun onReceive(context: Context, intent: Intent?) {
@@ -38,6 +42,27 @@ class DailyReminderReceiver : BroadcastReceiver() {
                     Log.e(TAG, "Failed to restore reminder on boot: ${e.message}", e)
                 }
             }
+            return
+        }
+
+        if (action == ACTION_DEADLINE_ALERT) {
+            val title = intent.getStringExtra(EXTRA_TASK_TITLE) ?: "Upcoming Task"
+            val taskId = intent.getIntExtra(EXTRA_TASK_ID, 0)
+            NotificationHelper.showNotification(
+                context = context,
+                title = "Deadline Alert (1h 15m remaining)",
+                body = "Task: '$title' is due in 1 hour and 15 minutes. Plan your deep focus block now.",
+                route = "task_details",
+                channelId = NotificationHelper.CHANNEL_TASK_ALERTS,
+                notificationId = 20000 + taskId
+            )
+            Log.d(TAG, "Deadline alert notification fired for task: $title")
+            return
+        }
+
+        if (action == ACTION_BREATHER_PROMPT) {
+            NotificationHelper.sendBreatherNotification(context)
+            Log.d(TAG, "Breather reminder notification fired successfully.")
             return
         }
 
@@ -71,4 +96,3 @@ class DailyReminderReceiver : BroadcastReceiver() {
         }
     }
 }
-
