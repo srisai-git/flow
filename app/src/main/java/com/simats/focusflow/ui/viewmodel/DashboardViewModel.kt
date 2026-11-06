@@ -118,23 +118,38 @@ class DashboardViewModel(
             }
 
             var sessionAvatar = ""
-            sessionManager?.let { sm ->
-                val session = sm.userSessionFlow.first()
-                if (session.userId != null && session.userId > 0) {
-                    currentUserId = session.userId
+            var sessionName = ""
+            try {
+                sessionManager?.let { sm ->
+                    val session = sm.userSessionFlow.first()
+                    if (session.userId != null && session.userId > 0) {
+                        currentUserId = session.userId
+                    }
+                    sessionAvatar = session.userAvatarUri ?: session.userAvatar ?: ""
+                    sessionName = session.userName ?: ""
                 }
-                sessionAvatar = session.userAvatarUri ?: session.userAvatar ?: ""
+            } catch (e: Exception) {
+                android.util.Log.e("DashboardViewModel", "Session read error: ${e.message}")
             }
 
-            val result = repository.getDashboard(currentUserId)
+            val result = try {
+                repository.getDashboard(currentUserId)
+            } catch (e: Exception) {
+                android.util.Log.e("DashboardViewModel", "Repository error: ${e.message}")
+                Result.failure(e)
+            }
+
             withContext(Dispatchers.Main) {
                 result.fold(
                     onSuccess = { data ->
                         val finalAvatar = if (sessionAvatar.isNotBlank()) sessionAvatar else data.userAvatar
-                        val sessionName = sessionManager?.let { sm ->
-                            kotlinx.coroutines.runBlocking { sm.userSessionFlow.first().userName }
-                        } ?: ""
-                        val finalData = if (data.userName.isNotBlank()) data else if (sessionName.isNotBlank()) data.copy(userName = sessionName) else data
+                        val finalData = if (data.userName.isNotBlank()) {
+                            data
+                        } else if (sessionName.isNotBlank()) {
+                            data.copy(userName = sessionName)
+                        } else {
+                            data.copy(userName = "User")
+                        }
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
@@ -144,9 +159,11 @@ class DashboardViewModel(
                         }
                     },
                     onFailure = { err ->
+                        val fallbackName = if (sessionName.isNotBlank()) sessionName else "User"
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
+                                data = it.data.copy(userName = fallbackName),
                                 userAvatar = sessionAvatar,
                                 errorMessage = err.localizedMessage
                             )

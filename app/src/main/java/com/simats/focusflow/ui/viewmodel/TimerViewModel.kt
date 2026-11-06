@@ -110,9 +110,13 @@ class TimerViewModel(
         this.sessionManager = manager
         ProductivityRepository.init(context)
         viewModelScope.launch(Dispatchers.IO) {
-            val session = manager.userSessionFlow.first()
-            if (session.userId != null && session.userId > 0) {
-                currentUserId = session.userId
+            try {
+                val session = manager.userSessionFlow.first()
+                if (session.userId != null && session.userId > 0) {
+                    currentUserId = session.userId
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("TimerViewModel", "Failed to get user session: ${e.message}")
             }
             loadSessionHistory()
         }
@@ -122,9 +126,13 @@ class TimerViewModel(
     fun initSessionManager(manager: SessionManager) {
         this.sessionManager = manager
         viewModelScope.launch(Dispatchers.IO) {
-            val session = manager.userSessionFlow.first()
-            if (session.userId != null && session.userId > 0) {
-                currentUserId = session.userId
+            try {
+                val session = manager.userSessionFlow.first()
+                if (session.userId != null && session.userId > 0) {
+                    currentUserId = session.userId
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("TimerViewModel", "Failed to get user session: ${e.message}")
             }
             loadSessionHistory()
         }
@@ -136,6 +144,7 @@ class TimerViewModel(
                 try {
                     FocusSessionDatabase.getInstance(ctx).getRecentSessions(currentUserId, 50)
                 } catch (e: Exception) {
+                    android.util.Log.e("TimerViewModel", "Failed to get local sessions: ${e.message}")
                     emptyList()
                 }
             } ?: emptyList()
@@ -158,7 +167,12 @@ class TimerViewModel(
                 }
             }
 
-            val result = repository.getRecentSessions(currentUserId)
+            val result = try {
+                repository.getRecentSessions(currentUserId)
+            } catch (e: Exception) {
+                android.util.Log.e("TimerViewModel", "Failed to get recent sessions: ${e.message}")
+                Result.failure(e)
+            }
             withContext(Dispatchers.Main) {
                 result.fold(
                     onSuccess = { list ->

@@ -37,43 +37,47 @@ object NotificationHelper {
     }
 
     fun createNotificationChannels(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
 
-            val remoteChannel = NotificationChannel(
-                CHANNEL_REMOTE_ALERTS,
-                "Flow Alerts & Reminders",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Critical alerts and schedule reminders from FocusFlow"
-                enableLights(true)
-                enableVibration(true)
-                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                val remoteChannel = NotificationChannel(
+                    CHANNEL_REMOTE_ALERTS,
+                    "Flow Alerts & Reminders",
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    description = "Critical alerts and schedule reminders from FocusFlow"
+                    enableLights(true)
+                    enableVibration(true)
+                    lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                }
+
+                val dailyChannel = NotificationChannel(
+                    CHANNEL_DAILY_REMINDERS,
+                    "Daily Focus Reminders",
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    description = "Daily scheduled prompts to start your focus workflow"
+                    enableLights(true)
+                    enableVibration(true)
+                    lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                }
+
+                val taskChannel = NotificationChannel(
+                    CHANNEL_TASK_ALERTS,
+                    "Task & Deadline Alerts",
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    description = "Notifications for upcoming and pending task deadlines"
+                    enableLights(true)
+                    enableVibration(true)
+                    lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                }
+
+                notificationManager.createNotificationChannels(listOf(remoteChannel, dailyChannel, taskChannel))
             }
-
-            val dailyChannel = NotificationChannel(
-                CHANNEL_DAILY_REMINDERS,
-                "Daily Focus Reminders",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Daily scheduled prompts to start your focus workflow"
-                enableLights(true)
-                enableVibration(true)
-                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-            }
-
-            val taskChannel = NotificationChannel(
-                CHANNEL_TASK_ALERTS,
-                "Task & Deadline Alerts",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Notifications for upcoming and pending task deadlines"
-                enableLights(true)
-                enableVibration(true)
-                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-            }
-
-            notificationManager.createNotificationChannels(listOf(remoteChannel, dailyChannel, taskChannel))
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create notification channels: ${e.message}")
         }
     }
 

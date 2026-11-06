@@ -65,6 +65,10 @@ class HabitViewModel(
 
     private var currentUserId: Int = 1
 
+    fun initSessionManager(context: android.content.Context, manager: SessionManager) {
+        initSessionManager(manager)
+    }
+
     fun initSessionManager(manager: SessionManager) {
         this.sessionManager = manager
         loadHabits()
@@ -76,15 +80,24 @@ class HabitViewModel(
                 _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             }
 
-            sessionManager?.let { sm ->
-                val session = sm.userSessionFlow.first()
-                if (session.userId != null && session.userId > 0) {
-                    currentUserId = session.userId
+            try {
+                sessionManager?.let { sm ->
+                    val session = sm.userSessionFlow.first()
+                    if (session.userId != null && session.userId > 0) {
+                        currentUserId = session.userId
+                    }
                 }
+            } catch (e: Exception) {
+                android.util.Log.e("HabitViewModel", "Failed to read session: ${e.message}")
             }
             // Enforce strict user isolation: habits belong exclusively to active user
 
-            val result = repository.getHabits(currentUserId)
+            val result = try {
+                repository.getHabits(currentUserId)
+            } catch (e: Exception) {
+                android.util.Log.e("HabitViewModel", "Failed to get habits: ${e.message}")
+                Result.failure(e)
+            }
             launch {
                 try {
                     StreakRepository.getInstance().getStreaks(currentUserId)

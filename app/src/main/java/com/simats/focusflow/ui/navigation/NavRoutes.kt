@@ -33,10 +33,27 @@ sealed class Screen(
     object Habits : Screen("habits", "Habits", Icons.Outlined.Repeat)
 
     companion object {
-        val bottomNavScreens = listOf(Dashboard, Activities, Timer, Insights, Profile)
+        val Home: Screen get() = Dashboard
+
+        val bottomNavScreens: List<Screen> by lazy {
+            listOfNotNull(Dashboard, Activities, Timer, Insights, Profile)
+        }
 
         fun isMainScreen(route: String?): Boolean {
-            return bottomNavScreens.any { it.route == route } || route == "tasks" || route == "habits" || route == "timer"
+            if (route == null) return false
+            val mainRoutes = listOf(
+                Screen.Home.route,
+                Screen.Timer.route,
+                Screen.Habits.route,
+                Screen.Insights.route,
+                Screen.Profile.route,
+                Screen.Dashboard.route,
+                Screen.Activities.route,
+                Screen.Tasks.route
+            )
+            return mainRoutes.any { mainRoute ->
+                route.startsWith(mainRoute)
+            }
         }
     }
 }

@@ -230,8 +230,9 @@ class MainActivity : ComponentActivity() {
                 val isMainScreen = Screen.isMainScreen(currentRoute)
 
                 val targetRoute by pendingRoute.collectAsState()
-                LaunchedEffect(targetRoute) {
-                    targetRoute?.let { route ->
+                LaunchedEffect(targetRoute, currentRoute) {
+                    val route = targetRoute
+                    if (route != null && currentRoute != null) {
                         try {
                             navController.navigate(route) {
                                 launchSingleTop = true
@@ -459,6 +460,15 @@ class MainActivity : ComponentActivity() {
                             ProfileScreen(
                                 onNavigateToHome = { navController.navigate(Screen.Dashboard.route) { popUpTo(Screen.Dashboard.route) { inclusive = true } } },
                                 onNavigateToTasks = { navController.navigate(Screen.Tasks.route) },
+                                onNavigateToTimer = {
+                                    navController.navigate(Screen.Timer.route) {
+                                        popUpTo(navController.graph.startDestinationId) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                },
                                 onNavigateToInsights = { navController.navigate("insights") },
                                 onNavigateToNotifications = { navController.navigate("notifications") },
                                 onNavigateToDataAi = { navController.navigate("data_ai_preferences") },

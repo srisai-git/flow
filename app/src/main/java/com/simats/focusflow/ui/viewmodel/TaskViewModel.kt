@@ -74,6 +74,10 @@ class TaskViewModel(
 
     private var currentUserId: Int = 1
 
+    fun initSessionManager(context: android.content.Context, manager: SessionManager) {
+        initSessionManager(manager)
+    }
+
     fun initSessionManager(manager: SessionManager) {
         this.sessionManager = manager
         loadTasks()
@@ -85,14 +89,23 @@ class TaskViewModel(
                 _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             }
 
-            sessionManager?.let { sm ->
-                val session = sm.userSessionFlow.first()
-                if (session.userId != null && session.userId > 0) {
-                    currentUserId = session.userId
+            try {
+                sessionManager?.let { sm ->
+                    val session = sm.userSessionFlow.first()
+                    if (session.userId != null && session.userId > 0) {
+                        currentUserId = session.userId
+                    }
                 }
+            } catch (e: Exception) {
+                android.util.Log.e("TaskViewModel", "Failed to read session: ${e.message}")
             }
 
-            val result = repository.getTasks(currentUserId)
+            val result = try {
+                repository.getTasks(currentUserId)
+            } catch (e: Exception) {
+                android.util.Log.e("TaskViewModel", "Failed to get tasks: ${e.message}")
+                Result.failure(e)
+            }
             withContext(Dispatchers.Main) {
                 result.fold(
                     onSuccess = { list ->

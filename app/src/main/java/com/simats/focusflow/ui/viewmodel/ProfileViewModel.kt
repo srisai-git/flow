@@ -200,29 +200,45 @@ class ProfileViewModel(
                 _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             }
 
-            sessionManager?.let { sm ->
-                val session = sm.userSessionFlow.first()
-                if (session.userId != null && session.userId > 0) {
-                    currentUserId = session.userId
+            var sName: String? = null
+            var sEmail: String? = null
+            var sAvatar: String? = null
+            var sBio: String? = null
+
+            try {
+                sessionManager?.let { sm ->
+                    val session = sm.userSessionFlow.first()
+                    if (session.userId != null && session.userId > 0) {
+                        currentUserId = session.userId
+                    }
+                    sName = session.userName
+                    sEmail = session.userEmail
+                    sAvatar = session.userAvatarUri ?: session.userAvatar
+                    sBio = session.userBio
                 }
+            } catch (e: Exception) {
+                android.util.Log.e("ProfileViewModel", "Failed to read user session: ${e.message}")
             }
 
             val localTotalMinutes = appContext?.let { ctx ->
                 try {
                     FocusSessionDatabase.getInstance(ctx).getTotalFocusMinutes(currentUserId)
-                } catch (_: Exception) { 0 }
+                } catch (e: Exception) {
+                    android.util.Log.e("ProfileViewModel", "Failed to get local focus minutes: ${e.message}")
+                    0
+                }
             } ?: 0
 
-            val result = repository.getProfile(currentUserId)
+            val result = try {
+                repository.getProfile(currentUserId)
+            } catch (e: Exception) {
+                android.util.Log.e("ProfileViewModel", "Failed to fetch profile: ${e.message}")
+                Result.failure(e)
+            }
+
             withContext(Dispatchers.Main) {
                 result.fold(
                     onSuccess = { data ->
-                        val session = sessionManager?.userSessionFlow?.first()
-                        val sName = session?.userName
-                        val sEmail = session?.userEmail
-                        val sAvatar = session?.userAvatarUri ?: session?.userAvatar
-                        val sBio = session?.userBio
-
                         // If remote avatar is a URL/base64 and no local file exists, cache in background
                         appContext?.let { ctx ->
                             if (!data.avatar.isNullOrBlank() && !data.avatar.startsWith("avatar:") && (data.avatar.startsWith("http") || data.avatar.startsWith("data:"))) {
@@ -237,8 +253,8 @@ class ProfileViewModel(
 
                         val localPath = appContext?.let { ProfileImageManager.getAvatarPathIfExists(it, currentUserId) }
                         val effectiveAvatar = when {
-                            !localPath.isNullOrBlank() -> localPath
-                            !sAvatar.isNullOrBlank() -> sAvatar
+                            !localPath.isNullOrBlank() -> localPath ?: ""
+                            !sAvatar.isNullOrBlank() -> sAvatar ?: ""
                             data.avatar.isNotBlank() -> data.avatar
                             else -> ""
                         }
@@ -249,10 +265,10 @@ class ProfileViewModel(
                         val effectiveStreak = maxOf(data.currentStreak, streakData?.currentStreak ?: 1)
 
                         val finalData = data.copy(
-                            name = if (!sName.isNullOrBlank()) sName else data.name,
-                            email = if (!sEmail.isNullOrBlank()) sEmail else data.email,
+                            name = sName?.takeIf { it.isNotBlank() } ?: data.name,
+                            email = sEmail?.takeIf { it.isNotBlank() } ?: data.email,
                             avatar = effectiveAvatar,
-                            bio = if (!sBio.isNullOrBlank()) sBio else data.bio,
+                            bio = sBio?.takeIf { it.isNotBlank() } ?: data.bio,
                             totalFocusMinutes = effectiveMinutes,
                             totalFocusHours = effectiveHours,
                             currentStreak = effectiveStreak
