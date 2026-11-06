@@ -749,12 +749,12 @@ fun DashboardScreen(
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             InsightShortcutCard(
-                title = "AI Productivity Report",
-                subtitle = "Weekly synthesis & recommendations",
+                title = "Productivity Insights",
+                subtitle = "Focus patterns & trends",
                 icon = Icons.Default.AutoAwesome,
                 tint = Color(0xFF8B5CF6),
                 modifier = Modifier.weight(1f),
-                onClick = onNavigateToAiReport
+                onClick = onNavigateToInsights
             )
             InsightShortcutCard(
                 title = "Progress & Consistency",

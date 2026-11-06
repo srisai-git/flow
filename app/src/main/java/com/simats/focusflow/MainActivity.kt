@@ -56,7 +56,6 @@ import com.simats.focusflow.ui.screens.AboutFlowScreen
 import com.simats.focusflow.ui.screens.AccountRecoveryScreen
 import com.simats.focusflow.ui.screens.ActivitiesScreen
 import com.simats.focusflow.ui.screens.ActiveSessionScreen
-import com.simats.focusflow.ui.screens.AiReportScreen
 import com.simats.focusflow.ui.screens.AvatarSelectionScreen
 import com.simats.focusflow.ui.screens.CreateAccountScreen
 import com.simats.focusflow.ui.screens.DailyFocusGoalScreen
@@ -94,7 +93,6 @@ import com.simats.focusflow.ui.screens.TakeBreatherScreen
 import com.simats.focusflow.ui.screens.TaskDetailsScreen
 import com.simats.focusflow.ui.screens.TasksScreen
 import com.simats.focusflow.ui.screens.TimerScreen
-import com.simats.focusflow.ui.screens.WeeklyReportDetailsScreen
 import com.simats.focusflow.ui.screens.WelcomeStartScreen
 import com.simats.focusflow.ui.screens.WhyThisSuggestionScreen
 import com.simats.focusflow.ui.theme.FOCUSFLOWTheme
@@ -577,17 +575,18 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable("ai_report") {
-                            AiReportScreen(
-                                onBack = { navController.popBackStack() },
-                                onViewRecommendations = { navController.navigate("recommendations") },
-                                onViewReportDetails = { navController.navigate("weekly_report_details") }
-                            )
+                            LaunchedEffect(Unit) {
+                                navController.navigate("insights") {
+                                    popUpTo("ai_report") { inclusive = true }
+                                }
+                            }
                         }
                         composable("weekly_report_details") {
-                            WeeklyReportDetailsScreen(
-                                onBack = { navController.popBackStack() },
-                                onViewRecommendations = { navController.navigate("recommendations") }
-                            )
+                            LaunchedEffect(Unit) {
+                                navController.navigate("insights") {
+                                    popUpTo("weekly_report_details") { inclusive = true }
+                                }
+                            }
                         }
                         composable("recommendations") {
                             RecommendationsScreen(
