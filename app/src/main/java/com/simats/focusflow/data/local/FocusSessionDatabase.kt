@@ -152,6 +152,7 @@ class FocusSessionDatabase private constructor(context: Context) :
                    $COLUMN_TASK_TITLE, $COLUMN_TASK_CATEGORY
             FROM $TABLE_FOCUS_SESSIONS
             WHERE $COLUMN_USER_ID = ?
+            GROUP BY $COLUMN_START_TIME, $COLUMN_DURATION_MINUTES
             ORDER BY $COLUMN_ID DESC
             LIMIT ?
         """.trimIndent()

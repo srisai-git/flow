@@ -280,24 +280,23 @@ object ExportDataHelper {
 
         if (incSessions) {
             appendLine("SECTION 1: FOCUS SESSIONS")
-            appendLine("Date,Start Time,Duration (min),Task/Tag,Status")
+            appendLine("Date,Session Type,Duration (Minutes),Status")
             sessions.forEach { s ->
                 val dateOnly = s.startedAt.take(10).ifBlank { exportDate.take(10) }
-                val timeOnly = if (s.startedAt.length >= 16) s.startedAt.substring(11, 16) else "00:00"
-                val tag = (s.taskTitle ?: s.sessionType).replace("\"", "\"\"")
-                appendLine("$dateOnly,$timeOnly,${s.durationMinutes},\"$tag\",${s.status}")
+                val sessionType = (s.sessionType.ifBlank { "pomodoro" }).replace("\"", "\"\"")
+                appendLine("$dateOnly,\"$sessionType\",${s.durationMinutes},${s.status}")
             }
             appendLine("")
         }
 
         if (incStreaks) {
-            appendLine("SECTION 2: HABIT CONSISTENCY")
-            appendLine("Habit Name,Target Frequency,Current Streak,Best Streak,Total Completed")
+            appendLine("SECTION 2: HABIT LOGS")
+            appendLine("Habit Name,Completed Date,Status")
             habits.forEach { h ->
                 val name = h.title.replace("\"", "\"\"")
-                val streak = h.streakCount
-                val longest = if (h.longestStreak > 0) h.longestStreak else streak
-                appendLine("\"$name\",Daily,$streak days,$longest days,${h.totalCompletions}")
+                val completedDate = if (h.isCompletedToday) exportDate.take(10) else "Pending"
+                val status = if (h.isCompletedToday) "completed" else "active"
+                appendLine("\"$name\",$completedDate,$status")
             }
             appendLine("")
         }
