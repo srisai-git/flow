@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 
 /**
  * Repository handling data caching, network dispatching,
@@ -40,30 +42,50 @@ class ProductivityRepository(
             appContext = context.applicationContext
         }
 
+        @Volatile
+        private var cachedDashboardData: DashboardData? = null
+        @Volatile
+        private var cachedDashboardTime = 0L
+        @Volatile
+        private var cachedDashboardUserId = -1
+
+        fun invalidateDashboardCache() {
+            cachedDashboardTime = 0L
+            cachedDashboardData = null
+        }
+
         fun clearUserCache() {
             lastLogSessionTime = 0L
             lastLogSessionParams = ""
+            invalidateDashboardCache()
         }
 
         fun notifySessionLogged() {
+            invalidateDashboardCache()
             _sessionLoggedEventFlow.tryEmit(Unit)
             FocusSessionDatabase.notifyTableChanged()
         }
     }
 
     suspend fun getDashboard(userId: Int): Result<DashboardData> = withContext(Dispatchers.IO) {
+        val now = System.currentTimeMillis()
+        if (cachedDashboardUserId == userId && now - cachedDashboardTime < 4000L && cachedDashboardData != null) {
+            return@withContext Result.success(cachedDashboardData!!)
+        }
         try {
             val response = apiService.getDashboard(userId)
             if (response.isSuccessful && response.body()?.status == true) {
                 val data = response.body()?.data ?: DashboardData()
+                cachedDashboardData = data
+                cachedDashboardTime = now
+                cachedDashboardUserId = userId
                 Result.success(data)
             } else {
                 Result.success(DashboardData())
             }
         } catch (e: Exception) {
-            // Clean initial state for offline
             Result.success(
-                DashboardData(
+                cachedDashboardData ?: DashboardData(
                     userName = "Focus User",
                     focusMinutesToday = 0,
                     focusGoalMinutes = 240,
@@ -99,6 +121,7 @@ class ProductivityRepository(
         category: String = "General"
     ): Result<TaskItem> = withContext(Dispatchers.IO) {
         try {
+            invalidateDashboardCache()
             val request = CreateTaskRequest(userId, title, description, priority, dueDate, category)
             val response = apiService.createTask(request)
             if (response.isSuccessful && response.body()?.status == true) {
@@ -133,6 +156,7 @@ class ProductivityRepository(
 
     suspend fun toggleTask(userId: Int, taskId: Int, isCompleted: Boolean? = null): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
+            invalidateDashboardCache()
             val request = ToggleTaskRequest(userId, taskId, "toggle", isCompleted)
             val response = apiService.toggleTask(request)
             if (response.isSuccessful && response.body()?.status == true) {
@@ -147,6 +171,7 @@ class ProductivityRepository(
 
     suspend fun deleteTask(userId: Int, taskId: Int): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
+            invalidateDashboardCache()
             val request = DeleteTaskRequest(userId, taskId)
             val response = apiService.deleteTask(request)
             Result.success(response.isSuccessful)
@@ -351,6 +376,7 @@ class ProductivityRepository(
 
     suspend fun toggleHabit(userId: Int, habitId: Int): Result<HabitActionResponse> = withContext(Dispatchers.IO) {
         try {
+            invalidateDashboardCache()
             val request = ToggleHabitRequest(userId, habitId)
             val response = apiService.toggleHabit(request)
             if (response.isSuccessful && response.body()?.status == true) {
@@ -370,6 +396,7 @@ class ProductivityRepository(
         frequency: String = "daily"
     ): Result<HabitItem> = withContext(Dispatchers.IO) {
         try {
+            invalidateDashboardCache()
             val request = CreateHabitRequest(userId, title, icon, frequency)
             val response = apiService.createHabit(request)
             if (response.isSuccessful && response.body()?.status == true) {
@@ -399,6 +426,7 @@ class ProductivityRepository(
 
     suspend fun deleteHabit(userId: Int, habitId: Int): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
+            invalidateDashboardCache()
             val request = DeleteHabitRequest(userId, habitId)
             val response = apiService.deleteHabit(request)
             Result.success(response.isSuccessful && response.body()?.status == true)
@@ -420,17 +448,117 @@ class ProductivityRepository(
         }
     }
 
+    suspend fun logDistraction(
+        userId: Int,
+        reason: String,
+        category: String = "Other",
+        durationSeconds: Int = 0
+    ): Result<Boolean> = withContext(Dispatchers.IO) {
+        appContext?.let { ctx ->
+            try {
+                FocusSessionDatabase.getInstance(ctx).insertDistraction(
+                    userId = userId,
+                    reason = reason,
+                    category = category,
+                    durationSeconds = durationSeconds
+                )
+            } catch (_: Exception) {}
+        }
+        try {
+            val req = LogDistractionRequest(
+                userId = userId,
+                reason = reason,
+                category = category,
+                durationSeconds = durationSeconds
+            )
+            val resp = apiService.logDistraction(req)
+            Result.success(resp.isSuccessful && resp.body()?.status == true)
+        } catch (_: Exception) {
+            Result.success(true)
+        }
+    }
+
+    suspend fun getDistractions(userId: Int): Result<List<DistractionLogItem>> = withContext(Dispatchers.IO) {
+        val local = appContext?.let { ctx ->
+            try {
+                FocusSessionDatabase.getInstance(ctx).getDistractions(userId)
+            } catch (_: Exception) {
+                emptyList()
+            }
+        } ?: emptyList()
+
+        try {
+            val resp = apiService.getDistractions(userId)
+            if (resp.isSuccessful && resp.body()?.status == true) {
+                val remote = resp.body()?.data ?: emptyList()
+                val merged = (local + remote).distinctBy { item ->
+                    if (item.id > 0) "id_${item.id}" else "${item.createdAt}_${item.reason}"
+                }
+                Result.success(merged)
+            } else {
+                Result.success(local)
+            }
+        } catch (_: Exception) {
+            Result.success(local)
+        }
+    }
+
     suspend fun askGroot(message: String): Result<String> = withContext(Dispatchers.IO) {
         try {
             val response = apiService.askGroot(GrootRequest(message))
-            if (response.isSuccessful && response.body()?.success == true) {
-                Result.success(response.body()?.response ?: response.body()?.message ?: "I am Groot!")
+            val body = response.body()
+            if (response.isSuccessful && (body?.success == true || body?.status == "success" || !body?.response.isNullOrBlank() || !body?.insight.isNullOrBlank())) {
+                val reply = body?.response?.takeIf { it.isNotBlank() }
+                    ?: body?.insight?.takeIf { it.isNotBlank() }
+                    ?: body?.message?.takeIf { it.isNotBlank() && it != "success" }
+                    ?: "I am Groot!"
+                Result.success(reply)
             } else {
-                Result.failure(Exception(response.body()?.message ?: "Groot server unavailable"))
+                val direct = tryDirectFastApiCall(message)
+                if (direct != null) Result.success(direct)
+                else Result.failure(Exception(body?.message ?: "Groot server unavailable"))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            val direct = tryDirectFastApiCall(message)
+            if (direct != null) Result.success(direct)
+            else Result.failure(e)
         }
+    }
+
+    private fun tryDirectFastApiCall(promptText: String): String? {
+        val client = okhttp3.OkHttpClient.Builder()
+            .connectTimeout(3, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+            .build()
+        val jsonPayload = com.google.gson.Gson().toJson(mapOf("message" to promptText, "prompt" to promptText))
+        val mediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
+        val body = jsonPayload.toRequestBody(mediaType)
+
+        val urls = listOf(
+            "http://10.0.2.2:8000/ask_groot",
+            "http://127.0.0.1:8000/ask_groot"
+        )
+        for (url in urls) {
+            try {
+                val request = okhttp3.Request.Builder()
+                    .url(url)
+                    .post(body)
+                    .build()
+                val resp = client.newCall(request).execute()
+                if (resp.isSuccessful) {
+                    val respStr = resp.body?.string() ?: ""
+                    val json = com.google.gson.JsonParser.parseString(respStr).asJsonObject
+                    val reply = json.get("response")?.asString
+                        ?: json.get("reply")?.asString
+                        ?: json.get("insight")?.asString
+                        ?: json.get("message")?.asString
+                    if (!reply.isNullOrBlank()) {
+                        return reply
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+        return null
     }
 }
 
