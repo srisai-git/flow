@@ -228,7 +228,6 @@ fun HabitsScreen(
         ) {
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 1. TOP HEADER
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -259,7 +258,6 @@ fun HabitsScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // 2. TAB SWITCHER (Today's Routine vs Insights & Trends)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -305,7 +303,6 @@ fun HabitsScreen(
 
             if (state.selectedTab == HabitTab.ROUTINE) {
                 if (state.habits.isNotEmpty()) {
-                    // DAILY PROGRESS CARD
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp),
@@ -391,7 +388,6 @@ fun HabitsScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // HABIT LIST SECTION
                 Text(
                     text = "ACTIVE HABITS",
                     fontSize = 11.sp,
@@ -443,7 +439,6 @@ fun HabitsScreen(
                     }
                 }
             } else {
-                // INSIGHTS & TRENDS VIEW (Powered by real MySQL user stats & chart history)
                 HabitsInsightsView(
                     habits = state.habits,
                     userStats = state.userStats,
@@ -461,7 +456,6 @@ fun HabitsScreen(
             }
         }
 
-        // ADD HABIT DIALOG
         if (state.isAddHabitDialogOpen) {
             AddHabitDialog(
                 onDismiss = { viewModel.setAddHabitDialogOpen(false) },
@@ -471,7 +465,6 @@ fun HabitsScreen(
             )
         }
 
-        // INTERACTIVE STREAK DETAILS BOTTOM SHEET (Elevated Material3 matching reference card design)
         if (isStreakModalOpen || state.selectedHabitForStreak != null) {
             ModalBottomSheet(
                 onDismissRequest = {
@@ -542,7 +535,6 @@ private fun HabitCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Icon Badge
             Box(
                 modifier = Modifier
                     .size(46.dp)
@@ -560,7 +552,6 @@ private fun HabitCard(
 
             Spacer(modifier = Modifier.width(14.dp))
 
-            // Habit Info
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = habit.title,
@@ -572,7 +563,6 @@ private fun HabitCard(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Interactive Streak Badge
                     Surface(
                         onClick = onStreakClick,
                         shape = RoundedCornerShape(6.dp),
@@ -612,7 +602,6 @@ private fun HabitCard(
 
             Spacer(modifier = Modifier.width(10.dp))
 
-            // Completion Toggle Checkbox Circle
             Box(
                 modifier = Modifier
                     .size(36.dp)
@@ -653,7 +642,6 @@ private fun HabitsInsightsView(
             .fillMaxWidth()
             .padding(bottom = 100.dp)
     ) {
-        // AI Productivity Insights Card
         AiProductivityInsightsCard(
             insight = aiInsight,
             isLoading = isAiLoading,
@@ -663,7 +651,6 @@ private fun HabitsInsightsView(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Timeframe Selector: Day, Week, Month
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -696,7 +683,6 @@ private fun HabitsInsightsView(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Custom Canvas Chart Card
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(18.dp),
@@ -749,7 +735,6 @@ private fun HabitsInsightsView(
 
                 Spacer(modifier = Modifier.height(18.dp))
 
-                // Custom Jetpack Compose Canvas Chart
                 when (selectedTimeframe) {
                     HabitInsightTimeframe.DAY -> {
                         DayHabitProgressList(habits = habits)
@@ -1063,7 +1048,6 @@ private fun WeekCompletionBarChart(userStats: HabitUserStats) {
                     val barH = chartHeight * rate
                     val y = chartHeight - barH
 
-                    // Background track
                     drawRoundRect(
                         color = surfaceVariant,
                         topLeft = Offset(x, 0f),
@@ -1071,7 +1055,6 @@ private fun WeekCompletionBarChart(userStats: HabitUserStats) {
                         cornerRadius = CornerRadius(8.dp.toPx(), 8.dp.toPx())
                     )
 
-                    // Active filled bar
                     if (rate > 0f) {
                         drawRoundRect(
                             brush = Brush.verticalGradient(
@@ -1090,7 +1073,6 @@ private fun WeekCompletionBarChart(userStats: HabitUserStats) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Day label row
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceAround
@@ -1147,7 +1129,6 @@ private fun MonthConsistencyBarChart(userStats: HabitUserStats) {
                     val barH = chartHeight * rate
                     val y = chartHeight - barH
 
-                    // Background track
                     drawRoundRect(
                         color = surfaceVariant,
                         topLeft = Offset(x, 0f),
@@ -1155,7 +1136,6 @@ private fun MonthConsistencyBarChart(userStats: HabitUserStats) {
                         cornerRadius = CornerRadius(10.dp.toPx(), 10.dp.toPx())
                     )
 
-                    // Active filled bar
                     if (rate > 0f) {
                         drawRoundRect(
                             brush = Brush.verticalGradient(
@@ -1288,7 +1268,6 @@ private fun StreakDetailsSheetContent(
             .padding(horizontal = 24.dp)
             .padding(bottom = 36.dp)
     ) {
-        // Header
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -1332,8 +1311,6 @@ private fun StreakDetailsSheetContent(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // 4 Elevated Metric Rows Matching Reference Card Design
-        // Row 1: Vector flame icon -> "[X] days" (Bold Title) | "Current streak" (Subtext)
         StreakMetricRow(
             icon = Icons.Rounded.LocalFireDepartment,
             iconTint = Color(0xFFF59E0B),
@@ -1344,7 +1321,6 @@ private fun StreakDetailsSheetContent(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Row 2: Vector calendar icon -> "[X] days" (Bold Title) | "Longest streak" (Subtext)
         StreakMetricRow(
             icon = Icons.Rounded.CalendarToday,
             iconTint = Color(0xFF3B82F6),
@@ -1355,7 +1331,6 @@ private fun StreakDetailsSheetContent(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Row 3: Vector check/task icon -> "[X]" (Bold Title) | "Habits completed" (Subtext)
         StreakMetricRow(
             icon = Icons.Rounded.CheckCircle,
             iconTint = Color(0xFF10B981),
@@ -1366,7 +1341,6 @@ private fun StreakDetailsSheetContent(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Row 4: Vector hourglass/timer icon -> "[X] hrs [Y] min" (Bold Title) | "Total focus time" (Subtext)
         StreakMetricRow(
             icon = Icons.Rounded.HourglassBottom,
             iconTint = colors.primaryLight,
@@ -1377,7 +1351,6 @@ private fun StreakDetailsSheetContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Bottom Action: A clean "Share" button using Android's native share intent (ACTION_SEND)
         Button(
             onClick = {
                 val shareText = "I'm on a $currentStreak-day focus streak on FOCUSFLOW! Longest streak: $longestStreak days, $habitsCompleted habits completed, and $focusHours hrs $focusMins min of deep focus logged."
@@ -1487,7 +1460,6 @@ private fun AddHabitDialog(
         },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
-                // Habit Title Input
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
@@ -1508,7 +1480,6 @@ private fun AddHabitDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Icon Picker
                 Text(
                     text = "CHOOSE ICON",
                     fontSize = 11.sp,
@@ -1541,7 +1512,6 @@ private fun AddHabitDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Frequency Selector
                 Text(
                     text = "FREQUENCY",
                     fontSize = 11.sp,

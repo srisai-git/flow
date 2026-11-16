@@ -104,7 +104,6 @@ fun TasksScreen(
         ) {
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 1. HEADER ROW & REFRESH ACTION
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -127,7 +126,6 @@ fun TasksScreen(
                     )
                 }
 
-                // Total pending badge
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(14.dp))
@@ -146,7 +144,6 @@ fun TasksScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // 2. SEARCH BAR
             OutlinedTextField(
                 value = state.searchQuery,
                 onValueChange = { viewModel.setSearchQuery(it) },
@@ -184,7 +181,6 @@ fun TasksScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 3. CATEGORY / FILTER TABS
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -229,7 +225,6 @@ fun TasksScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 4. TASK LIST
             if (state.isLoading) {
                 Box(
                     modifier = Modifier
@@ -292,7 +287,6 @@ fun TasksScreen(
             }
         }
 
-        // 5. ADD TASK BOTTOM SHEET
         if (state.isBottomSheetOpen) {
             val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
             ModalBottomSheet(
@@ -387,7 +381,6 @@ private fun TaskItemCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Category Tag
                     if (task.category.isNotBlank()) {
                         Box(
                             modifier = Modifier
@@ -404,7 +397,6 @@ private fun TaskItemCard(
                         }
                     }
 
-                    // Due Date Tag
                     if (task.dueDate.isNotBlank()) {
                         Box(
                             modifier = Modifier
@@ -430,7 +422,6 @@ private fun TaskItemCard(
                         }
                     }
 
-                    // Priority Tag
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
@@ -449,7 +440,6 @@ private fun TaskItemCard(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // Delete Action Button
             IconButton(
                 onClick = onDelete,
                 modifier = Modifier.size(32.dp)
@@ -528,7 +518,6 @@ private fun AddTaskBottomSheetContent(
 
         Spacer(modifier = Modifier.height(18.dp))
 
-        // Title Input
         OutlinedTextField(
             value = title,
             onValueChange = { title = it },
@@ -549,7 +538,6 @@ private fun AddTaskBottomSheetContent(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Description Input
         OutlinedTextField(
             value = description,
             onValueChange = { description = it },
@@ -570,7 +558,6 @@ private fun AddTaskBottomSheetContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Priority Selector
         Text("PRIORITY", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = colors.primaryLight, letterSpacing = 1.sp)
         Spacer(modifier = Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -597,7 +584,6 @@ private fun AddTaskBottomSheetContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Due Date Selector
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -648,7 +634,6 @@ private fun AddTaskBottomSheetContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Category Selector
         Text("CATEGORY", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = colors.primaryLight, letterSpacing = 1.sp)
         Spacer(modifier = Modifier.height(8.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -673,7 +658,6 @@ private fun AddTaskBottomSheetContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Submit Button
         Button(
             onClick = {
                 if (title.isNotBlank()) {

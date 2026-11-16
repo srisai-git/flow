@@ -39,7 +39,6 @@ fun EditTaskScreen(onBack: () -> Unit = {}) {
             .padding(top = 48.dp, bottom = 24.dp, start = 24.dp, end = 24.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        // Top Bar
         CustomTopBar(
             title = "Edit task",
             subtitle = "TASK DETAILS",
@@ -48,7 +47,6 @@ fun EditTaskScreen(onBack: () -> Unit = {}) {
         
         Spacer(modifier = Modifier.height(32.dp))
         
-        // Task Title
         Text(text = "Task title", fontSize = 14.sp, color = Color(0xFF6B7280), fontWeight = FontWeight.Medium)
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
@@ -66,12 +64,11 @@ fun EditTaskScreen(onBack: () -> Unit = {}) {
         Text(
             text = "Title looks good · ${title.length} / 80 characters",
             fontSize = 12.sp,
-            color = Color(0xFF10B981) // Emerald green
+            color = Color(0xFF10B981)
         )
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        // Description
         Text(text = "Description", fontSize = 14.sp, color = Color(0xFF6B7280), fontWeight = FontWeight.Medium)
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
@@ -87,7 +84,6 @@ fun EditTaskScreen(onBack: () -> Unit = {}) {
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        // Category
         Text(text = "Category", fontSize = 14.sp, color = Color(0xFF6B7280), fontWeight = FontWeight.Medium)
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
@@ -121,7 +117,6 @@ fun EditTaskScreen(onBack: () -> Unit = {}) {
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        // Priority
         Text(text = "Priority", fontSize = 14.sp, color = Color(0xFF6B7280), fontWeight = FontWeight.Medium)
         Spacer(modifier = Modifier.height(8.dp))
         SegmentedControl(
@@ -132,7 +127,6 @@ fun EditTaskScreen(onBack: () -> Unit = {}) {
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        // Duration and Due Date Row
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = "Estimated duration", fontSize = 14.sp, color = Color(0xFF6B7280), fontWeight = FontWeight.Medium)
@@ -168,7 +162,6 @@ fun EditTaskScreen(onBack: () -> Unit = {}) {
         
         Spacer(modifier = Modifier.height(32.dp))
         
-        // Reminder Toggle
         Box(
             modifier = Modifier
                 .fillMaxWidth()

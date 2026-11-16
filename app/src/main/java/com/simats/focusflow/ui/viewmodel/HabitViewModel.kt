@@ -90,7 +90,6 @@ class HabitViewModel(
             } catch (e: Exception) {
                 android.util.Log.e("HabitViewModel", "Failed to read session: ${e.message}")
             }
-            // Enforce strict user isolation: habits belong exclusively to active user
 
             val result = try {
                 repository.getHabits(currentUserId)
@@ -102,7 +101,6 @@ class HabitViewModel(
                 try {
                     StreakRepository.getInstance().getStreaks(currentUserId)
                 } catch (e: Exception) {
-                    // Fallback handled silently
                 }
             }
             withContext(Dispatchers.Main) {
@@ -164,7 +162,6 @@ class HabitViewModel(
                 try {
                     StreakRepository.getInstance().getStreaks(currentUserId)
                 } catch (e: Exception) {
-                    // Fallback handled
                 }
             }
         }
@@ -196,11 +193,9 @@ class HabitViewModel(
                     try {
                         StreakRepository.getInstance().updateStreak(currentUserId, updatedStreak)
                     } catch (e: Exception) {
-                        // Fallback handled
                     }
                 }
 
-                // Refresh backend stats silently to update real charts & streaks
                 val refreshed = repository.getHabits(currentUserId)
                 refreshed.onSuccess { res ->
                     withContext(Dispatchers.Main) {
@@ -232,7 +227,6 @@ class HabitViewModel(
                     withContext(Dispatchers.Main) {
                         _uiState.update { it.copy(habits = updated) }
                     }
-                    // Refresh stats
                     val refreshed = repository.getHabits(currentUserId)
                     refreshed.onSuccess { res ->
                         withContext(Dispatchers.Main) {
