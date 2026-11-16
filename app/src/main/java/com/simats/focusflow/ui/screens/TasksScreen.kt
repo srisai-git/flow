@@ -62,6 +62,9 @@ fun TasksScreen(
     }
 
     val state by viewModel.uiState.collectAsState()
+    val filteredTasks = remember(state.tasks, state.searchQuery, state.selectedFilter) {
+        state.filteredTasks
+    }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(state.errorMessage) {
@@ -236,7 +239,7 @@ fun TasksScreen(
                 ) {
                     FlowLoadingIndicator(size = 36.dp)
                 }
-            } else if (state.filteredTasks.isEmpty()) {
+            } else if (filteredTasks.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -278,7 +281,7 @@ fun TasksScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     contentPadding = PaddingValues(bottom = 120.dp)
                 ) {
-                    items(state.filteredTasks, key = { it.id }) { task ->
+                    items(filteredTasks, key = { it.id }) { task ->
                         TaskItemCard(
                             task = task,
                             onToggle = { viewModel.toggleTask(task.id) },
