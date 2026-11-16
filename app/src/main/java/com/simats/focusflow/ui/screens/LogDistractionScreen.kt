@@ -93,7 +93,6 @@ fun LogDistractionScreen(
                 
                 Spacer(modifier = Modifier.height(20.dp))
                 
-                // Categories Grid (3 rows of 2)
                 for (row in 0 until 3) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),

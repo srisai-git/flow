@@ -56,17 +56,17 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 private val SegmentColors = listOf(
-    Color(0xFF8B5CF6), // Primary Violet
-    Color(0xFF10B981), // Emerald
-    Color(0xFFF59E0B), // Amber
-    Color(0xFFEC4899), // Pink
-    Color(0xFF06B6D4), // Cyan
-    Color(0xFF6366F1), // Indigo
-    Color(0xFF84CC16)  // Lime
+    Color(0xFF8B5CF6),
+    Color(0xFF10B981),
+    Color(0xFFF59E0B),
+    Color(0xFFEC4899),
+    Color(0xFF06B6D4),
+    Color(0xFF6366F1),
+    Color(0xFF84CC16)
 )
 
 private fun getAppBrandColor(packageName: String?, index: Int): Color {
-    if (packageName == null) return Color(0xFF6B7280) // "Other" segment neutral gray
+    if (packageName == null) return Color(0xFF6B7280)
     val pkg = packageName.lowercase()
     return when {
         pkg.contains("instagram") -> Color(0xFFE1306C)
@@ -246,7 +246,6 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
         sdf.format(Date())
     }
 
-    // Filter apps that actually have recorded foreground usage today
     val ringSegments = remember(usageSummary) {
         usageSummary.computeRingSegments(maxTopApps = 4)
     }
@@ -284,7 +283,6 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
 
         Spacer(modifier = Modifier.height(18.dp))
 
-        // Header date pill
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -320,7 +318,6 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
             }
         }
 
-        // Digital Wellbeing Hero Section: Sleek Minimalist Indicator
         if (hasPermission) {
             BoxWithConstraints(
                 modifier = Modifier
@@ -339,7 +336,6 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
                         val topLeftOffset = androidx.compose.ui.geometry.Offset(strokeWidth / 2, strokeWidth / 2)
                         val arcSize = androidx.compose.ui.geometry.Size(diameter, diameter)
 
-                        // 1. Sleek dark theme background track (#25203D)
                         drawArc(
                             color = Color(0xFF25203D),
                             startAngle = 0f,
@@ -350,7 +346,6 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
                             style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
                         )
 
-                        // 2. Accent arcs with rounded caps and clean spacing
                         if (totalMins > 0 && ringSegments.isNotEmpty()) {
                             if (ringSegments.size <= 1) {
                                 val single = ringSegments.first()
@@ -388,7 +383,6 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
                         }
                     }
 
-                    // Center typography: large bold hours and minutes, clean muted subtitle
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
@@ -413,7 +407,6 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Groot AI Distraction Insight Card
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = colors.surface,
@@ -462,7 +455,6 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // App Breakdown List / Empty State
             if (isLoading) {
                 ShimmerLoadingPlaceholder(colors)
             } else if (activeApps.isEmpty()) {
@@ -577,7 +569,6 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
 
                                 Spacer(modifier = Modifier.height(8.dp))
 
-                                // Proportional progress bar
                                 val progressFraction = if (totalMins > 0) {
                                     (app.usageMinutes.toFloat() / totalMins.toFloat()).coerceIn(0.03f, 1f)
                                 } else 0f

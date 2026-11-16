@@ -45,10 +45,8 @@ data class DistractionUsageSummary(
     val apps: List<AppUsageInfo> = emptyList(),
     val categoryBreakdown: Map<String, Int> = emptyMap()
 ) {
-    /**
-     * Groups active apps into top segments (up to 4) plus an "Other" segment for remaining apps,
-     * mirroring Digital Wellbeing's donut breakdown.
-     */
+    
+
     fun computeRingSegments(maxTopApps: Int = 4): List<RingSegment> {
         val active = apps.filter { it.usageMinutes > 0 }
         if (totalScreenMinutes <= 0 || active.isEmpty()) return emptyList()
@@ -100,10 +98,8 @@ object UsageStatsHelper {
         labelCache.clear()
     }
 
-    /**
-     * Returns strictly 00:00:00.000 midnight timestamp for today.
-     * Guarantees zeroed milliseconds, seconds, minutes, and hours for exact daily boundary.
-     */
+    
+
     fun getExactMidnightTimestamp(): Long {
         return Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0)
@@ -116,15 +112,12 @@ object UsageStatsHelper {
     fun getStartOfDayBoundary(): Long = getExactMidnightTimestamp()
     fun getStrictNowTimestamp(): Long = System.currentTimeMillis()
 
-    /**
-     * Backward-compatible alias for getExactMidnightTimestamp.
-     */
+    
+
     fun getTodayStartTimestamp(): Long = getExactMidnightTimestamp()
 
-    /**
-     * Computes the strictly bounded foreground delta within the given time window,
-     * guarding against cross-midnight negative time intervals or timestamp inversion.
-     */
+    
+
     fun computeSafeForegroundDelta(
         resumeTime: Long,
         pauseTime: Long,
@@ -136,15 +129,12 @@ object UsageStatsHelper {
         return if (effectiveEnd > effectiveStart) effectiveEnd - effectiveStart else 0L
     }
 
-    /**
-     * Returns strictly current system time clamped to now for live query boundary.
-     */
+    
+
     fun getLiveBoundedEndTime(): Long = System.currentTimeMillis()
 
-    /**
-     * Queries foreground app durations using UsageEvents transition intervals.
-     * Matches the exact algorithm used by Android Digital Wellbeing.
-     */
+    
+
     const val EVENT_ACTIVITY_RESUMED = 1
     const val EVENT_MOVE_TO_FOREGROUND = 1
     const val EVENT_ACTIVITY_PAUSED = 2
@@ -170,10 +160,8 @@ object UsageStatsHelper {
                 lower.contains("wallpaper") || lower.contains("inputmethod") || lower.contains("honeyboard")
     }
 
-    /**
-     * Queries foreground app durations using chronologically sorted UsageEvents transition intervals.
-     * Accurately pairs foreground start/stop events and accounts for active running apps up to now.
-     */
+    
+
     fun queryForegroundTimesFromEvents(
         context: Context,
         startTime: Long,
@@ -229,7 +217,6 @@ object UsageStatsHelper {
             }
         }
 
-        // Real-time live check: account for ongoing active apps currently running in foreground
         for ((pkg, activeStart) in packageForegroundStart) {
             val effectiveStart = maxOf(activeStart, startTime)
             val delta = maxOf(0L, liveNow - effectiveStart)
@@ -278,10 +265,8 @@ object UsageStatsHelper {
         }
     }
 
-    /**
-     * Resolves all user-facing launcher package names using Intent(ACTION_MAIN, CATEGORY_LAUNCHER).
-     * Strictly discards system background packages lacking launcher entry points.
-     */
+    
+
     fun getLauncherPackageNames(context: Context): Set<String> {
         val pm = context.packageManager
         val launcherIntent = Intent(Intent.ACTION_MAIN).apply {
@@ -299,9 +284,8 @@ object UsageStatsHelper {
         }
         return resolveInfos.mapNotNull { it.activityInfo?.packageName }.toSet()
     }
-    /**
-     * Checks if a package is a user-facing launcher application rather than an internal background process.
-     */
+    
+
     fun isUserFacingApp(context: Context, packageName: String): Boolean {
         if (packageName == context.packageName) return false
         val launcherPackages = getLauncherPackageNames(context)
@@ -318,10 +302,8 @@ object UsageStatsHelper {
         return !isSystem
     }
 
-    /**
-     * Resolves all user-facing launcher applications (including user-installed Play Store apps)
-     * using PackageManager.queryIntentActivities(MAIN / LAUNCHER).
-     */
+    
+
     fun queryAllInstalledLauncherApps(context: Context): List<AppUsageInfo> {
         val pm = context.packageManager
         val selfPkg = context.packageName
@@ -376,15 +358,12 @@ object UsageStatsHelper {
         return appList.sortedBy { it.appName.lowercase() }
     }
 
-    /**
-     * Queries device usage statistics strictly for TODAY (from 00:00:00 midnight to now).
-     * Filters out non-launcher system processes and prevents interval double-counting.
-     */
+    
+
     fun queryTodayDistractionStats(context: Context): DistractionUsageSummary {
         val pm = context.packageManager
         val selfPkg = context.packageName
 
-        // 1. Resolve ONLY user-facing launcher applications (Play Store & user launcher apps)
         val launcherIntent = Intent(Intent.ACTION_MAIN).apply {
             addCategory(Intent.CATEGORY_LAUNCHER)
         }
@@ -403,7 +382,6 @@ object UsageStatsHelper {
         val launcherAppMap = mutableMapOf<String, Pair<String, Drawable?>>()
         for (resolveInfo in resolveInfos) {
             val pkg = resolveInfo.activityInfo?.packageName ?: continue
-            // Strictly exclude FocusFlow itself from distraction stats
             if (pkg == selfPkg || launcherAppMap.containsKey(pkg)) continue
 
             val label = getCachedLabel(pkg) ?: run {
@@ -448,11 +426,9 @@ object UsageStatsHelper {
         val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
             ?: return DistractionUsageSummary()
 
-        // Today boundary: strictly 00:00:00.000 midnight to live bounded current system time
         val startOfDay = getExactMidnightTimestamp()
         val currentTime = getLiveBoundedEndTime()
 
-        // 1. Primary Engine: UsageEvents transition delta calculation (matches Digital Wellbeing)
         val eventTimes = queryForegroundTimesFromEvents(context, startOfDay, currentTime)
 
         val packageTimeMap = mutableMapOf<String, Long>()
@@ -463,7 +439,6 @@ object UsageStatsHelper {
             }
         }
 
-        // 2. Secondary Fallback: queryUsageStats if UsageEvents returned empty
         if (packageTimeMap.isEmpty()) {
             val usageStatsList: List<UsageStats> = try {
                 usageStatsManager.queryUsageStats(
@@ -503,7 +478,6 @@ object UsageStatsHelper {
         val appInfos = mutableListOf<AppUsageInfo>()
         var totalDistractionMillis = 0L
 
-        // Strictly include only launcher apps that had usage today
         for ((pkg, pair) in launcherAppMap) {
             val timeMs = packageTimeMap[pkg] ?: 0L
             val mins = (timeMs / 60_000L).toInt()
@@ -577,7 +551,6 @@ object UsageStatsHelper {
         val pm = context.packageManager
         val selfPkg = context.packageName
 
-        // 1. Discover all user-facing launcher applications (guarantees Play Store apps are included)
         val launcherIntent = Intent(Intent.ACTION_MAIN).apply {
             addCategory(Intent.CATEGORY_LAUNCHER)
         }
@@ -593,7 +566,6 @@ object UsageStatsHelper {
             emptyList()
         }
 
-        // Map packageName -> Pair(appName, appIcon)
         val launcherAppMap = mutableMapOf<String, Pair<String, Drawable?>>()
         for (resolveInfo in resolveInfos) {
             val pkg = resolveInfo.activityInfo?.packageName ?: continue
@@ -665,7 +637,6 @@ object UsageStatsHelper {
             usageStatsList = aggregated.values.toList()
         }
 
-        // Aggregate totalTimeInForeground by package
         val packageTimeMap = mutableMapOf<String, Long>()
         for (stats in usageStatsList) {
             val pkg = stats.packageName ?: continue
@@ -678,7 +649,6 @@ object UsageStatsHelper {
         val appInfos = mutableListOf<AppUsageInfo>()
         var totalDistractionMillis = 0L
 
-        // Cross-reference all discovered launcher apps against UsageStats
         for ((pkg, pair) in launcherAppMap) {
             val timeMs = packageTimeMap[pkg] ?: 0L
             val mins = (timeMs / 60_000L).toInt()
@@ -697,7 +667,6 @@ object UsageStatsHelper {
             totalDistractionMillis += timeMs
         }
 
-        // Include any remaining package that had usage and is a launchable user app
         for ((pkg, timeMs) in packageTimeMap) {
             if (pkg == selfPkg || launcherAppMap.containsKey(pkg)) continue
             if (timeMs < 30_000L) continue
@@ -738,7 +707,6 @@ object UsageStatsHelper {
             totalDistractionMillis += timeMs
         }
 
-        // Sort: Apps with recorded usage time first descending, then alphabetical
         val sortedApps = appInfos.sortedWith(
             compareByDescending<AppUsageInfo> { it.usageMinutes }
                 .thenBy { it.appName.lowercase() }
@@ -838,19 +806,16 @@ object UsageStatsHelper {
     }
 
     fun categorizePackage(pkg: String, name: String, context: Context? = null): String {
-        // 1. Direct match with curated package dictionaries
         if (SOCIAL_PACKAGES.contains(pkg)) return "Social Media"
         if (MESSAGING_PACKAGES.contains(pkg)) return "Messaging"
         if (STREAMING_PACKAGES.contains(pkg)) return "Video & Streaming"
         if (BROWSING_PACKAGES.contains(pkg)) return "Search & Browsing"
         if (PRODUCTIVITY_PACKAGES.contains(pkg)) return "Productivity"
 
-        // 2. Android 8.0+ ApplicationInfo.category check
         context?.let { ctx ->
             getApplicationCategory(ctx, pkg)?.let { return it }
         }
 
-        // 3. Keyword heuristic classification
         val lower = "$pkg $name".lowercase()
         return when {
             lower.contains("instagram") || lower.contains("facebook") || lower.contains("twitter") ||
