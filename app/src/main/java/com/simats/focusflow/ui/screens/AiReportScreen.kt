@@ -145,7 +145,6 @@ fun AiReportScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Key Findings
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -200,7 +199,6 @@ fun AiReportScreen(
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        // Strengths
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -235,7 +233,6 @@ fun AiReportScreen(
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        // Challenges
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -268,7 +265,6 @@ fun AiReportScreen(
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        // Recommendations
         Box(
             modifier = Modifier
                 .fillMaxWidth()

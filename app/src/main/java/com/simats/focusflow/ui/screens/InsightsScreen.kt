@@ -103,7 +103,6 @@ fun InsightsScreen(
         ) {
             Spacer(modifier = Modifier.height(24.dp))
 
-            // HEADER
             Text(
                 text = "PERFORMANCE ANALYTICS",
                 fontSize = 12.sp,
@@ -121,7 +120,6 @@ fun InsightsScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Date Range Pill
             Surface(
                 shape = RoundedCornerShape(8.dp),
                 color = colors.primary.copy(alpha = 0.12f),
@@ -138,7 +136,6 @@ fun InsightsScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Segmented Switcher (Week / Month)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -175,7 +172,6 @@ fun InsightsScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Bar Chart Card
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
@@ -221,14 +217,12 @@ fun InsightsScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Daily / Weekly Canvas Bar Chart (Strictly Authentic Database Records)
                     val chartItems = insightsData.dailyChartData
                     val dataPoints = if (chartItems.isNotEmpty() && selectedTab == "Week") {
                         chartItems.map { it.focusMinutes }
                     } else if (selectedTab == "Week") {
                         listOf(0, 0, 0, 0, 0, 0, 0)
                     } else {
-                        // Monthly estimate based on verified session minutes
                         val avgWeek = insightsData.weekFocusMinutes
                         if (avgWeek > 0) listOf(avgWeek, avgWeek, avgWeek, avgWeek) else listOf(0, 0, 0, 0)
                     }
@@ -263,7 +257,6 @@ fun InsightsScreen(
                                 val barH = chartH * ratio
                                 val y = chartH - barH
 
-                                // Track background
                                 drawRoundRect(
                                     color = surfaceVariant,
                                     topLeft = Offset(x, 0f),
@@ -271,7 +264,6 @@ fun InsightsScreen(
                                     cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
                                 )
 
-                                // Active Gradient Bar (only if authenticated user has recorded focus minutes)
                                 if (ratio > 0f) {
                                     drawRoundRect(
                                         brush = Brush.verticalGradient(
@@ -308,7 +300,6 @@ fun InsightsScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // 4 Stats Matrix Cards
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
@@ -366,7 +357,6 @@ fun InsightsScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Detailed Links Card
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),

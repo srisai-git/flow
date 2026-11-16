@@ -127,7 +127,6 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
         SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(Date())
     }
 
-    // Merge remote daily chart data with local database
     val remoteDailyMap = remember(insightsData) {
         val map = mutableMapOf<String, Int>()
         insightsData.dailyChartData.forEach { item ->
@@ -177,7 +176,6 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
     val selectedRemainingMins = selectedMinutes % 60
     val dailyAvgMins = totalWeekMinutes / 7
 
-    // Day View Time-of-Day Blocks (Morning, Afternoon, Evening, Night)
     val dayTimeBlocks = remember(localTodaySessions, effectiveTodayMinutes) {
         var morning = 0
         var afternoon = 0
@@ -226,7 +224,6 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
         if (maxMins > 0) dayTimeBlocks.firstOrNull { it.minutes == maxMins } else null
     }
 
-    // Month View 4-Week Breakdown
     val monthWeekItems = remember(localMonthWeeks, effectiveMonthMinutes) {
         val currentDay = Calendar.getInstance().get(Calendar.DAY_OF_MONTH)
         val maxDaysInMonth = Calendar.getInstance().getActualMaximum(Calendar.DAY_OF_MONTH)
@@ -264,7 +261,6 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Period Toggle: Today vs This Week vs This Month
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -295,7 +291,6 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Period header badge & date range
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
@@ -329,7 +324,6 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Metrics Overview Box
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -434,7 +428,6 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
 
         when (selectedPeriod) {
             "Today" -> {
-                // Day View: Time-of-Day Blocks with Peak Focus Window
                 if (peakDayBlock != null && peakDayBlock.minutes > 0) {
                     Box(
                         modifier = Modifier
@@ -610,7 +603,6 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                 }
             }
             "This Month" -> {
-                // Month View: 4-week cumulative comparison bars
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -759,7 +751,6 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                 }
             }
             else -> {
-                // Week View: 7-Day Bar Chart with Daily Goal Line (60m threshold)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -813,7 +804,6 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                                 .fillMaxWidth()
                                 .height(180.dp)
                         ) {
-                            // Horizontal Goal Line
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -840,7 +830,6 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                                 }
                             }
 
-                            // Bars Row
                             Row(
                                 modifier = Modifier.fillMaxSize(),
                                 horizontalArrangement = Arrangement.SpaceBetween,

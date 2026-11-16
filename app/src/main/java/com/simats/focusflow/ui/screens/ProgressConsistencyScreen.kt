@@ -143,7 +143,6 @@ fun ProgressConsistencyScreen(onBack: () -> Unit = {}) {
                 }
             }
         } else {
-            // 1. Current Streak vs Best Streak Card
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -189,7 +188,6 @@ fun ProgressConsistencyScreen(onBack: () -> Unit = {}) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 2. Simple 7-Day Circular Checklist Card
             Box(
                 modifier = Modifier
                     .fillMaxWidth()

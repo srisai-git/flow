@@ -146,7 +146,6 @@ fun WeeklyReportDetailsScreen(
                 }
             }
         } else {
-            // Card (a): Total Focus Time
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -198,7 +197,6 @@ fun WeeklyReportDetailsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Card (b): Most Productive Day/Time
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -250,7 +248,6 @@ fun WeeklyReportDetailsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Card (c): Single Actionable Tip
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
