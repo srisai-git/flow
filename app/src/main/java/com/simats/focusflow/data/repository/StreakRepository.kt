@@ -21,6 +21,13 @@ class StreakRepository(
         @Volatile
         private var instance: StreakRepository? = null
 
+        @Volatile
+        private var cachedStreakData: StreakData? = null
+        @Volatile
+        private var cachedStreakTime = 0L
+        @Volatile
+        private var cachedStreakUserId = -1
+
         fun getInstance(): StreakRepository {
             return instance ?: synchronized(this) {
                 instance ?: StreakRepository().also { instance = it }
@@ -29,16 +36,27 @@ class StreakRepository(
     }
 
     suspend fun getStreaks(userId: Int): Result<StreakData> = withContext(Dispatchers.IO) {
+        val now = System.currentTimeMillis()
+        if (cachedStreakUserId == userId && now - cachedStreakTime < 5000L && cachedStreakData != null) {
+            return@withContext Result.success(cachedStreakData!!)
+        }
         try {
             Log.d(TAG, "Fetching streaks over network for userId: $userId")
             val response = apiService.getStreaks(userId)
             if (response.isSuccessful && response.body()?.status == "success") {
                 val data = response.body()?.data ?: StreakData(userId = userId)
+                cachedStreakData = data
+                cachedStreakTime = now
+                cachedStreakUserId = userId
                 Log.d(TAG, "Streaks fetched successfully: current=${data.currentStreak}, longest=${data.longestStreak}")
                 Result.success(data)
             } else {
+                val fallback = calculateFallbackStreak(userId)
+                cachedStreakData = fallback
+                cachedStreakTime = now
+                cachedStreakUserId = userId
                 Log.w(TAG, "Network streaks returned error code: ${response.code()}, falling back to local cache")
-                Result.success(calculateFallbackStreak(userId))
+                Result.success(fallback)
             }
         } catch (e: Exception) {
             Log.w(TAG, "Network streaks failed: ${e.message}, falling back to local DB cache")
@@ -52,6 +70,9 @@ class StreakRepository(
             val response = apiService.updateStreak(userId, streakCount)
             if (response.isSuccessful && response.body()?.status == "success") {
                 val data = response.body()?.data ?: StreakData(userId = userId, currentStreak = streakCount)
+                cachedStreakData = data
+                cachedStreakTime = System.currentTimeMillis()
+                cachedStreakUserId = userId
                 Result.success(data)
             } else {
                 Result.success(calculateFallbackStreak(userId))
