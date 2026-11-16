@@ -77,12 +77,8 @@ import java.util.*
 import kotlin.math.cos
 import kotlin.math.sin
 
-/**
- * Modern Aesthetic Home Dashboard Screen for FocusFlow.
- * Features an abstract geometric clock hero canvas, streak modal sheet,
- * quick-start timer, priorities quick list, habit matrix, and Groot AI snippet.
- * Strict zero-emoji compliance.
- */
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
@@ -148,7 +144,6 @@ fun DashboardScreen(
     ) {
         Spacer(modifier = Modifier.height(24.dp))
 
-        // 1. TOP HEADER WITH GREETING, STREAK BADGE & GROOT AI ICON
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -158,7 +153,6 @@ fun DashboardScreen(
                 modifier = Modifier.weight(1f),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Interactive User Avatar leading icon (navigates to Profile)
                 Surface(
                     onClick = onNavigateToProfile,
                     shape = CircleShape,
@@ -239,7 +233,6 @@ fun DashboardScreen(
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Streak Badge (Isolated to Home Top Bar - Tapping opens Streak Bottom Sheet)
                 Surface(
                     onClick = { viewModel.setStreakModalOpen(true) },
                     shape = RoundedCornerShape(20.dp),
@@ -269,7 +262,6 @@ fun DashboardScreen(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                // Notification Bell Quick Launcher
                 IconButton(
                     onClick = onNavigateToNotifications,
                     modifier = Modifier
@@ -295,7 +287,6 @@ fun DashboardScreen(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                // Groot AI Assistant Quick Launcher Icon (Single Top-Bar Entry Point)
                 IconButton(
                     onClick = onNavigateToGrootAi,
                     modifier = Modifier
@@ -314,7 +305,6 @@ fun DashboardScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // 2. CENTRAL HERO CARD: ABSTRACT GEOMETRIC TIME-FLOW CLOCK & TARGET
         Surface(
             onClick = onNavigateToTimer,
             modifier = Modifier
@@ -363,7 +353,6 @@ fun DashboardScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Left Text Column: Focus Progress numbers
                     Column(modifier = Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text(
@@ -407,7 +396,6 @@ fun DashboardScreen(
 
                     Spacer(modifier = Modifier.width(16.dp))
 
-                    // Right Side: Abstract Geometric Time-Flow Clock Canvas
                     AbstractGeometricClock(
                         progress = animatedProgress,
                         modifier = Modifier.size(108.dp)
@@ -418,7 +406,6 @@ fun DashboardScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 3. PRODUCTIVITY VIBE / COMPACT GROOT AI SNIPPET
         Surface(
             onClick = onNavigateToGrootAi,
             shape = RoundedCornerShape(18.dp),
@@ -513,7 +500,6 @@ fun DashboardScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 4. QUICK-START FOCUS TIMER CARD (Tap-to-start 25m focus session)
         Surface(
             onClick = onNavigateToTimer,
             shape = RoundedCornerShape(18.dp),
@@ -573,7 +559,6 @@ fun DashboardScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // 5. TODAY'S PRIORITIES SECTION (Zero Empty Space)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -641,7 +626,6 @@ fun DashboardScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // 6. HABIT RHYTHM MATRIX (Quick Daily Routine Completion Row)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -697,7 +681,6 @@ fun DashboardScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // 7. INSIGHTS & ANALYTICS (Interactive Quick-Access Shortcuts)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -723,7 +706,6 @@ fun DashboardScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Featured Hero Card (Full Width): Focus Time Analysis
         Surface(
             onClick = onNavigateToFocusAnalysis,
             shape = RoundedCornerShape(20.dp),
@@ -814,12 +796,10 @@ fun DashboardScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Bottom Row (2 Columns): Distraction Analysis & Progress & Consistency
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Distraction Analysis Card
             Surface(
                 onClick = onNavigateToDistraction,
                 shape = RoundedCornerShape(18.dp),
@@ -877,7 +857,6 @@ fun DashboardScreen(
                 }
             }
 
-            // Progress & Consistency Card
             Surface(
                 onClick = onNavigateToProgressConsistency,
                 shape = RoundedCornerShape(18.dp),
@@ -936,10 +915,9 @@ fun DashboardScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(96.dp)) // Space for bottom navigation bar
+        Spacer(modifier = Modifier.height(96.dp))
     }
 
-    // STREAK MODAL BOTTOM SHEET (Requested in Requirement 4)
     if (uiState.isStreakModalOpen) {
         ModalBottomSheet(
             onDismissRequest = { viewModel.setStreakModalOpen(false) },
@@ -980,12 +958,8 @@ fun DashboardScreen(
     }
 }
 
-/**
- * Abstract, aesthetic geometric clock or time-flow visualization in Compose Canvas:
- * Concentric minimalist arc rings representing daily focus progress,
- * minimalist hour tick divisions, and current time rhythm indicator.
- * Strictly geometric - zero human illustrations.
- */
+
+
 @Composable
 private fun AbstractGeometricClock(
     progress: Float,
@@ -1029,7 +1003,6 @@ private fun AbstractGeometricClock(
         val outerRadius = w * 0.44f
         val innerRadius = w * 0.32f
 
-        // 1. 12 Geometric Clock Tick Marks around outer edge
         for (i in 0 until 12) {
             val angleDeg = i * 30.0 - 90.0
             val angleRad = Math.toRadians(angleDeg)
@@ -1054,7 +1027,6 @@ private fun AbstractGeometricClock(
             )
         }
 
-        // 2. Outer Track Arc Ring (Background)
         drawCircle(
             color = border,
             radius = outerRadius,
@@ -1062,7 +1034,6 @@ private fun AbstractGeometricClock(
             style = trackStroke
         )
 
-        // 3. Concentric Focus Progress Arc Ring
         if (progress > 0f) {
             drawArc(
                 brush = sweepBrush,
@@ -1075,7 +1046,6 @@ private fun AbstractGeometricClock(
             )
         }
 
-        // 4. Secondary Inner Track Arc (Time Flow Rhythm)
         drawCircle(
             color = border.copy(alpha = 0.5f),
             radius = innerRadius,
@@ -1083,7 +1053,6 @@ private fun AbstractGeometricClock(
             style = innerTrackStroke
         )
 
-        // 5. Center Dial & Rhythm Node
         drawCircle(
             color = primary.copy(alpha = 0.16f),
             radius = innerRadius * 0.7f,
@@ -1096,7 +1065,6 @@ private fun AbstractGeometricClock(
             center = center
         )
 
-        // Minimalist Geometric Hour / Minute Indicator Hands
         val progressAngleRad = Math.toRadians((progress * 360.0 - 90.0))
         val handLength = innerRadius * 0.85f
         val handEndX = (center.x + handLength * cos(progressAngleRad)).toFloat()
@@ -1112,15 +1080,8 @@ private fun AbstractGeometricClock(
     }
 }
 
-/**
- * Streak Bottom Sheet matching Requirement 4:
- * Vector flame icon -> "[X] days" | "Current streak"
- * Vector calendar icon -> "[X] days" | "Longest streak"
- * Vector check icon -> "[X]" | "Habits completed"
- * Vector timer icon -> "[X] hrs [Y] min" | "Total focus time"
- * Bottom Action: "Share" button triggering Android's native share intent (ACTION_SEND).
- * Zero community counts.
- */
+
+
 @Composable
 private fun StreakModalSheetContent(
     currentStreak: Int,
@@ -1156,7 +1117,6 @@ private fun StreakModalSheetContent(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Row 1: Flame Icon -> Current Streak
         StreakMetricRow(
             icon = Icons.Rounded.LocalFireDepartment,
             iconTint = Color(0xFFF59E0B),
@@ -1166,7 +1126,6 @@ private fun StreakModalSheetContent(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Row 2: Calendar Icon -> Longest Streak
         StreakMetricRow(
             icon = Icons.Default.CalendarMonth,
             iconTint = DarkPrimaryLight,
@@ -1176,7 +1135,6 @@ private fun StreakModalSheetContent(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Row 3: Check Icon -> Habits completed
         StreakMetricRow(
             icon = Icons.Default.Check,
             iconTint = Color(0xFF10B981),
@@ -1186,7 +1144,6 @@ private fun StreakModalSheetContent(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Row 4: Timer Icon -> Total focus time
         StreakMetricRow(
             icon = Icons.Default.HourglassBottom,
             iconTint = DarkPrimary,
@@ -1196,7 +1153,6 @@ private fun StreakModalSheetContent(
 
         Spacer(modifier = Modifier.height(26.dp))
 
-        // Share Action Button (Triggers ACTION_SEND native intent)
         Button(
             onClick = onShare,
             modifier = Modifier

@@ -21,11 +21,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.simats.focusflow.ui.theme.FocusFlowTheme
 
-/**
- * Branded Minimalist Loading Indicator for FocusFlow.
- * Renders an elegant rotating violet gradient arc with a soft pulsating center glow,
- * replacing standard material progress spinners with the app's refined aesthetic.
- */
+
+
 @Composable
 fun FlowLoadingIndicator(
     modifier: Modifier = Modifier,

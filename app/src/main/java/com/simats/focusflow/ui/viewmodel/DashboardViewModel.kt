@@ -47,7 +47,6 @@ class DashboardViewModel(
     private var sessionFlowJob: Job? = null
 
     init {
-        // Automatically reload dashboard whenever a focus session completes or is logged
         viewModelScope.launch(Dispatchers.IO) {
             ProductivityRepository.sessionLoggedEventFlow.collect {
                 loadDashboard(showLoadingIndicator = false)
@@ -179,7 +178,6 @@ class DashboardViewModel(
                 )
             }
 
-            // Fetch compact 1-liner productivity snippet from Groot AI independently (non-blocking)
             viewModelScope.launch(Dispatchers.IO) {
                 val aiRes = aiRepository.getAiInsights(currentUserId, queryType = "daily_summary")
                 aiRes.fold(
@@ -191,7 +189,7 @@ class DashboardViewModel(
                             }
                         }
                     },
-                    onFailure = { /* keep default snippet */ }
+                    onFailure = {  }
                 )
             }
         }
@@ -203,7 +201,6 @@ class DashboardViewModel(
             val task = tasks.find { it.id == taskId } ?: return@launch
             val newCompleted = !task.isCompleted
 
-            // Optimistic update
             val updatedTasks = tasks.map {
                 if (it.id == taskId) it.copy(isCompleted = newCompleted) else it
             }
@@ -230,7 +227,6 @@ class DashboardViewModel(
             val habit = habits.find { it.id == habitId } ?: return@launch
             val newCompleted = !habit.isCompletedToday
 
-            // Optimistic update
             val updatedHabits = habits.map {
                 if (it.id == habitId) it.copy(isCompletedToday = newCompleted) else it
             }

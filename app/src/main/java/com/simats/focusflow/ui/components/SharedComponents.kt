@@ -32,7 +32,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// Micro-interaction bounce modifier for buttons & cards
 fun Modifier.bounceClick() = composed {
     var isPressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(if (isPressed) 0.96f else 1f, label = "bounceScale")
@@ -54,7 +53,6 @@ fun Modifier.bounceClick() = composed {
         }
 }
 
-// Skeleton Shimmer Loader Component
 @Composable
 fun ShimmerSkeletonItem(
     modifier: Modifier = Modifier,
@@ -86,7 +84,6 @@ fun ShimmerSkeletonItem(
     )
 }
 
-// Empty State Layout Component
 @Composable
 fun EmptyStateCard(
     icon: androidx.compose.ui.graphics.vector.ImageVector = androidx.compose.material.icons.Icons.Default.Search,
@@ -124,7 +121,6 @@ fun EmptyStateCard(
     }
 }
 
-// Offline / Disconnected Banner Component
 @Composable
 fun OfflineBanner(
     isOffline: Boolean = false
@@ -151,7 +147,6 @@ fun OfflineBanner(
     }
 }
 
-// Smart Form Field Component with A11y and Inline Validation
 @Composable
 fun SmartTextField(
     value: String,
