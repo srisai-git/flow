@@ -351,9 +351,9 @@ class FocusTimerService : Service() {
     }
 
     private fun handleSetDurations(focus: Int, shortBreak: Int, longBreak: Int) {
-        val f = focus.coerceIn(5, 90)
-        val sb = shortBreak.coerceIn(1, 15)
-        val lb = longBreak.coerceIn(10, 30)
+        val f = focus.coerceIn(1, 180)
+        val sb = shortBreak.coerceIn(1, 60)
+        val lb = longBreak.coerceIn(1, 90)
 
         tickerJob?.cancel()
         _timerStateFlow.update { current ->
