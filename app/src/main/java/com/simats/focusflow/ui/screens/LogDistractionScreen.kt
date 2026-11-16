@@ -13,13 +13,19 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.simats.focusflow.data.api.RetrofitClient
+import com.simats.focusflow.data.repository.ProductivityRepository
+import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.ui.components.CustomTopBar
 import com.simats.focusflow.ui.components.SegmentedControl
 import com.simats.focusflow.ui.components.bounceClick
 import com.simats.focusflow.ui.theme.FocusFlowTheme
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,10 +33,13 @@ fun LogDistractionScreen(
     onBack: () -> Unit = {},
     onResume: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val colors = FocusFlowTheme.colors
     var notes by remember { mutableStateOf("Opened Instagram after a notification.") }
     var selectedCategory by remember { mutableStateOf("Social Media") }
     var timeAway by remember { mutableStateOf("< 1 min") }
+    var isSubmitting by remember { mutableStateOf(false) }
     
     val categories = listOf("Social Media", "Notifications", "Gaming", "Browsing", "People", "Other")
 
@@ -162,7 +171,31 @@ fun LogDistractionScreen(
         Spacer(modifier = Modifier.height(16.dp))
         
         Button(
-            onClick = onResume,
+            onClick = {
+                if (isSubmitting) return@Button
+                isSubmitting = true
+                coroutineScope.launch {
+                    val durationSecs = when (timeAway) {
+                        "< 1 min" -> 30
+                        "1-5 min" -> 180
+                        else -> 600
+                    }
+                    val sessionMgr = SessionManager.getInstance(context)
+                    val userId = try {
+                        sessionMgr.userSessionFlow.first().userId ?: 1
+                    } catch (_: Exception) { 1 }
+
+                    ProductivityRepository(RetrofitClient.flowApiService).logDistraction(
+                        userId = userId,
+                        reason = if (notes.isNotBlank()) notes.trim() else "Focus interruption",
+                        category = selectedCategory,
+                        durationSeconds = durationSecs
+                    )
+                    isSubmitting = false
+                    onResume()
+                }
+            },
+            enabled = !isSubmitting,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp)
@@ -171,7 +204,7 @@ fun LogDistractionScreen(
             shape = RoundedCornerShape(14.dp)
         ) {
             Text(
-                "Log Distraction & Resume",
+                if (isSubmitting) "Logging..." else "Log Distraction & Resume",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
