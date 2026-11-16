@@ -69,7 +69,7 @@ fun FocusFlowBottomBar(
                         .clip(RoundedCornerShape(16.dp))
                         .background(pillAlpha)
                         .clickable {
-                            if (!isSelected) {
+                            if (screen.route == Screen.Dashboard.route || !isSelected) {
                                 onNavigate(screen.route)
                             }
                         }
