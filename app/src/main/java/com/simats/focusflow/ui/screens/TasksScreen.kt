@@ -39,6 +39,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.simats.focusflow.data.models.TaskItem
 import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.ui.components.FlowLoadingIndicator
+import com.simats.focusflow.ui.components.TasksSkeleton
 import com.simats.focusflow.ui.components.bounceClick
 import com.simats.focusflow.ui.theme.FocusFlowTheme
 import com.simats.focusflow.ui.viewmodel.TaskFilter
@@ -226,14 +227,7 @@ fun TasksScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             if (state.isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    FlowLoadingIndicator(size = 36.dp)
-                }
+                TasksSkeleton()
             } else if (filteredTasks.isEmpty()) {
                 Box(
                     modifier = Modifier
