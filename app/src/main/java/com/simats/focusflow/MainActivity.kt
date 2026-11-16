@@ -265,12 +265,34 @@ class MainActivity : ComponentActivity() {
                                     FocusFlowBottomBar(
                                         currentRoute = currentRoute,
                                         onNavigate = { route ->
-                                            navController.navigate(route) {
-                                                popUpTo(navController.graph.findStartDestination().id) {
-                                                    saveState = true
+                                            val target = if (route == "home") Screen.Dashboard.route else route
+                                            try {
+                                                if (target == Screen.Dashboard.route) {
+                                                    navController.navigate(Screen.Dashboard.route) {
+                                                        popUpTo(Screen.Dashboard.route) {
+                                                            inclusive = false
+                                                            saveState = true
+                                                        }
+                                                        launchSingleTop = true
+                                                        restoreState = true
+                                                    }
+                                                } else {
+                                                    navController.navigate(target) {
+                                                        popUpTo(Screen.Dashboard.route) {
+                                                            saveState = true
+                                                        }
+                                                        launchSingleTop = true
+                                                        restoreState = true
+                                                    }
                                                 }
-                                                launchSingleTop = true
-                                                restoreState = true
+                                            } catch (_: Exception) {
+                                                try {
+                                                    navController.navigate(target) {
+                                                        launchSingleTop = true
+                                                    }
+                                                } catch (inner: Exception) {
+                                                    Log.e("MainActivity", "Navigation failure to $target: ${inner.message}")
+                                                }
                                             }
                                         }
                                     )
@@ -402,6 +424,24 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToProgressConsistency = { navController.navigate("progress_consistency") }
                             )
                         }
+                        composable("home") {
+                            DashboardScreen(
+                                onNavigateToTimer = { navController.navigate(Screen.Timer.route) },
+                                onNavigateToTasks = { navController.navigate(Screen.Tasks.route) },
+                                onNavigateToHabits = { navController.navigate(Screen.Habits.route) },
+                                onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
+                                onNavigateToNotifications = { navController.navigate("notifications") },
+                                onNavigateToInsights = { navController.navigate("insights") },
+                                onNavigateToSetIntention = { navController.navigate(Screen.Timer.route) },
+                                onNavigateToSessionHistory = { navController.navigate("session_history") },
+                                onNavigateToSearchFilters = { navController.navigate("search_filters") },
+                                onNavigateToDataAi = { navController.navigate("data_ai_preferences") },
+                                onNavigateToGrootAi = { navController.navigate("groot_ai") },
+                                onNavigateToFocusAnalysis = { navController.navigate("focus_time_analysis") },
+                                onNavigateToDistraction = { navController.navigate("distraction_analysis") },
+                                onNavigateToProgressConsistency = { navController.navigate("progress_consistency") }
+                            )
+                        }
                         composable("activities") {
                             ActivitiesScreen(
                                 initialTab = "Tasks",
@@ -473,7 +513,16 @@ class MainActivity : ComponentActivity() {
                             val sessionManager = remember { SessionManager.getInstance(context) }
 
                             ProfileScreen(
-                                onNavigateToHome = { navController.navigate(Screen.Dashboard.route) { popUpTo(Screen.Dashboard.route) { inclusive = true } } },
+                                onNavigateToHome = {
+                                    navController.navigate(Screen.Dashboard.route) {
+                                        popUpTo(Screen.Dashboard.route) {
+                                            inclusive = false
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                },
                                 onNavigateToTasks = { navController.navigate(Screen.Tasks.route) },
                                 onNavigateToTimer = {
                                     navController.navigate(Screen.Timer.route) {
