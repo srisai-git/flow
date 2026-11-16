@@ -16,9 +16,8 @@ object GrootGuardrailHelper {
         return OFF_TOPIC_PATTERNS.any { it.containsMatchIn(trimmed) }
     }
 
-    /**
-     * Checks if a user prompt is related to FocusFlow features or core productivity.
-     */
+    
+
     fun isFocusFlowDomainQuery(query: String): Boolean {
         val regex = Regex("(?i)\\b(timer|pomodoro|focus|habit|streak|task|break|analytic|stat|report|distraction|routine|goal)\\b")
         return regex.containsMatchIn(query)

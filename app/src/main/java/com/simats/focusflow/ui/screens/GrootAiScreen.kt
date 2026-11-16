@@ -92,7 +92,6 @@ fun GrootAiScreen(
     val state by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
 
-    // Auto-scroll to latest message
     LaunchedEffect(state.messages.size, state.isAiThinking) {
         if (state.messages.isNotEmpty()) {
             listState.animateScrollToItem(state.messages.size - 1)
@@ -144,7 +143,6 @@ fun GrootAiScreen(
                     Spacer(modifier = Modifier.width(12.dp))
 
                     Box(contentAlignment = Alignment.Center) {
-                        // Ambient subtle glow ring around Groot Avatar
                         Box(
                             modifier = Modifier
                                 .size(44.dp)
@@ -225,7 +223,6 @@ fun GrootAiScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 10.dp)
                 ) {
-                    // Quick Action Starter Chips
                     LazyRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -268,7 +265,6 @@ fun GrootAiScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Multiline Input Field & Send Button
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.Bottom
@@ -335,7 +331,6 @@ fun GrootAiScreen(
                 .padding(paddingValues)
                 .background(colors.background)
         ) {
-            // Ambient Atmospheric Gradients (adds modern depth)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -451,7 +446,6 @@ private fun ChatBubble(
                     )
                 }
 
-                // Render Action Confirmation Card if Groot performed an in-app action!
                 if (message.action != null) {
                     Spacer(modifier = Modifier.height(10.dp))
                     ActionCard(action = message.action, isExecuted = message.actionExecuted, onClick = { onActionClick(message.action) })

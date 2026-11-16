@@ -79,7 +79,6 @@ class GrootAiViewModel(
         }
     }
 
-    // Compatibility overload
     fun initSessionManager(manager: SessionManager) {
         this.sessionManager = manager
         loadPersistedMessages()
@@ -169,7 +168,6 @@ class GrootAiViewModel(
         val userMessage = ChatMessage(isFromUser = true, text = textToSend)
         val updatedWithUser = _uiState.value.messages + userMessage
 
-        // Strict Domain Guardrails Check: intercept off-topic or pop culture questions
         if (com.simats.focusflow.utils.GrootGuardrailHelper.isOffTopicQuery(textToSend)) {
             val declineMessage = ChatMessage(
                 isFromUser = false,
@@ -187,7 +185,6 @@ class GrootAiViewModel(
             return
         }
 
-        // Autonomous Tool Calling: parse and execute action commands (timers, habits, tasks)
         val parsedAction = com.simats.focusflow.utils.GrootActionParser.parseAction(textToSend)
         if (parsedAction != null) {
             val executed = performAutonomousAction(parsedAction.aiAction)
@@ -261,7 +258,6 @@ class GrootAiViewModel(
                     val action = response.action
                     var actionExecuted = false
 
-                    // Perform autonomous action if detected
                     if (action != null) {
                         actionExecuted = performAutonomousAction(action)
                     }

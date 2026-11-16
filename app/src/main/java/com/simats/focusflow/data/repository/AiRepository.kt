@@ -10,9 +10,8 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/**
- * Repository interfacing with Groot AI backend proxy and local AI microservice.
- */
+
+
 class AiRepository(
     private val apiService: FlowApiService = RetrofitClient.flowApiService
 ) {

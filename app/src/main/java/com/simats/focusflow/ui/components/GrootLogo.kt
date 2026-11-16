@@ -25,12 +25,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-/**
- * Stylized, minimalist vector icon inspired by Groot:
- * An organic geometric silhouette featuring a 4-point branch crown,
- * chiseled branch facets, and glowing violet almond eyes.
- * Zero emojis - pure vector geometric art.
- */
+
+
 @Composable
 fun GrootIcon(
     modifier: Modifier = Modifier,
@@ -42,37 +38,27 @@ fun GrootIcon(
         val w = size.width
         val h = size.height
 
-        // Outer Head / Branch Crown Path
         val headPath = Path().apply {
-            // Start at bottom center chin
             moveTo(w * 0.5f, h * 0.92f)
-            // Left jaw curve
             cubicTo(w * 0.28f, h * 0.92f, w * 0.20f, h * 0.75f, w * 0.20f, h * 0.55f)
-            // Left temple rising to leftmost crown spike
             lineTo(w * 0.16f, h * 0.32f)
             lineTo(w * 0.28f, h * 0.38f)
-            // Left-center crown spike
             lineTo(w * 0.38f, h * 0.18f)
             lineTo(w * 0.48f, h * 0.32f)
-            // Right-center crown spike (taller)
             lineTo(w * 0.60f, h * 0.14f)
             lineTo(w * 0.70f, h * 0.34f)
-            // Rightmost crown spike
             lineTo(w * 0.84f, h * 0.28f)
-            // Right temple descending to right jaw
             lineTo(w * 0.80f, h * 0.55f)
             cubicTo(w * 0.80f, h * 0.75f, w * 0.72f, h * 0.92f, w * 0.5f, h * 0.92f)
             close()
         }
 
-        // Draw solid head background silhouette
         drawPath(
             path = headPath,
             color = barkColor,
             style = Fill
         )
 
-        // Draw head outline with primary tint
         drawPath(
             path = headPath,
             color = tint,
@@ -83,7 +69,6 @@ fun GrootIcon(
             )
         )
 
-        // Wood grain facet line (top crown down between eyes)
         drawLine(
             color = tint.copy(alpha = 0.5f),
             start = Offset(w * 0.48f, h * 0.32f),
@@ -92,7 +77,6 @@ fun GrootIcon(
             cap = StrokeCap.Round
         )
 
-        // Left geometric branch facet line
         drawLine(
             color = tint.copy(alpha = 0.35f),
             start = Offset(w * 0.28f, h * 0.40f),
@@ -101,7 +85,6 @@ fun GrootIcon(
             cap = StrokeCap.Round
         )
 
-        // Right geometric branch facet line
         drawLine(
             color = tint.copy(alpha = 0.35f),
             start = Offset(w * 0.70f, h * 0.36f),
@@ -110,7 +93,6 @@ fun GrootIcon(
             cap = StrokeCap.Round
         )
 
-        // Subtle mouth bark slit
         drawLine(
             color = tint.copy(alpha = 0.6f),
             start = Offset(w * 0.42f, h * 0.78f),
@@ -119,12 +101,10 @@ fun GrootIcon(
             cap = StrokeCap.Round
         )
 
-        // Glowing Violet Almond Eyes
         val eyeWidth = w * 0.13f
         val eyeHeight = h * 0.14f
         val eyeY = h * 0.57f
 
-        // Left Eye (outer glow + inner bright dot)
         drawOval(
             color = tint,
             topLeft = Offset(w * 0.32f - eyeWidth / 2f, eyeY - eyeHeight / 2f),
@@ -136,7 +116,6 @@ fun GrootIcon(
             center = Offset(w * 0.32f, eyeY)
         )
 
-        // Right Eye (outer glow + inner bright dot)
         drawOval(
             color = tint,
             topLeft = Offset(w * 0.68f - eyeWidth / 2f, eyeY - eyeHeight / 2f),
@@ -150,9 +129,8 @@ fun GrootIcon(
     }
 }
 
-/**
- * Circular / rounded container avatar for Groot AI
- */
+
+
 @Composable
 fun GrootAvatar(
     modifier: Modifier = Modifier,
