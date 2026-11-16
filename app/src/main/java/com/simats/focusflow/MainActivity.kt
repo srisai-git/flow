@@ -129,7 +129,7 @@ class MainActivity : ComponentActivity() {
                         val sessionManager = SessionManager.getInstance(applicationContext)
                         val session = sessionManager.userSessionFlow.first()
                         if (session.isLoggedIn && (session.userId ?: 0) > 0) {
-                            if (session.isOnboardingCompleted) Screen.Dashboard.route else "make_it_yours/${session.userId ?: 1}"
+                            if (session.isOnboardingCompleted) Screen.Home.route else "make_it_yours/${session.userId ?: 1}"
                         } else {
                             "welcome_start"
                         }
@@ -258,28 +258,15 @@ class MainActivity : ComponentActivity() {
                             bottomBar = {
                                 if (isMainScreen) {
                                     FocusFlowBottomBar(
-                                        currentRoute = currentRoute,
+                                        navController = navController,
                                         onNavigate = { route ->
-                                            val target = if (route == "home") Screen.Dashboard.route else route
-                                            try {
-                                                navController.navigate(target) {
-                                                    popUpTo(navController.graph.findStartDestination().id) {
-                                                        saveState = true
-                                                    }
-                                                    launchSingleTop = true
-                                                    restoreState = true
+                                            val target = if (route == "dashboard") Screen.Home.route else route
+                                            navController.navigate(target) {
+                                                popUpTo(navController.graph.findStartDestination().id) {
+                                                    saveState = true
                                                 }
-                                            } catch (_: Exception) {
-                                                try {
-                                                    val popped = navController.popBackStack(target, inclusive = false)
-                                                    if (!popped) {
-                                                        navController.navigate(target) {
-                                                            launchSingleTop = true
-                                                        }
-                                                    }
-                                                } catch (inner: Exception) {
-                                                    Log.e("MainActivity", "Navigation failure to $target: ${inner.message}")
-                                                }
+                                                launchSingleTop = true
+                                                restoreState = true
                                             }
                                         }
                                     )
@@ -405,7 +392,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
-                        composable(Screen.Dashboard.route) {
+                        composable(Screen.Home.route) {
                             DashboardScreen(
                                 onNavigateToTimer = { navController.navigate(Screen.Timer.route) },
                                 onNavigateToTasks = { navController.navigate(Screen.Tasks.route) },
@@ -423,7 +410,7 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToProgressConsistency = { navController.navigate("progress_consistency") }
                             )
                         }
-                        composable("home") {
+                        composable("dashboard") {
                             DashboardScreen(
                                 onNavigateToTimer = { navController.navigate(Screen.Timer.route) },
                                 onNavigateToTasks = { navController.navigate(Screen.Tasks.route) },
