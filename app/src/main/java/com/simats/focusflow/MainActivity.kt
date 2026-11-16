@@ -301,10 +301,11 @@ class MainActivity : ComponentActivity() {
                                 onBack = { navController.popBackStack() },
                                 onLoginSuccess = {
                                     try {
-                                        navController.graph.setStartDestination(Screen.Dashboard.route)
+                                        navController.graph.setStartDestination(Screen.Home.route)
                                     } catch (_: Exception) {}
-                                    navController.navigate(Screen.Dashboard.route) {
-                                        popUpTo(0) { inclusive = true }
+                                    navController.navigate(Screen.Home.route) {
+                                        popUpTo(navController.graph.id) { inclusive = true }
+                                        launchSingleTop = true
                                     }
                                 },
                                 onForgotPassword = {
@@ -349,10 +350,11 @@ class MainActivity : ComponentActivity() {
                                 userId = 1,
                                 onEnterDashboard = {
                                     try {
-                                        navController.graph.setStartDestination(Screen.Dashboard.route)
+                                        navController.graph.setStartDestination(Screen.Home.route)
                                     } catch (_: Exception) {}
-                                    navController.navigate(Screen.Dashboard.route) {
-                                        popUpTo(0) { inclusive = true }
+                                    navController.navigate(Screen.Home.route) {
+                                        popUpTo(navController.graph.id) { inclusive = true }
+                                        launchSingleTop = true
                                     }
                                 }
                             )
@@ -371,10 +373,11 @@ class MainActivity : ComponentActivity() {
                                 userId = userId,
                                 onEnterDashboard = {
                                     try {
-                                        navController.graph.setStartDestination(Screen.Dashboard.route)
+                                        navController.graph.setStartDestination(Screen.Home.route)
                                     } catch (_: Exception) {}
-                                    navController.navigate(Screen.Dashboard.route) {
-                                        popUpTo(0) { inclusive = true }
+                                    navController.navigate(Screen.Home.route) {
+                                        popUpTo(navController.graph.id) { inclusive = true }
+                                        launchSingleTop = true
                                     }
                                 }
                             )
@@ -384,10 +387,11 @@ class MainActivity : ComponentActivity() {
                                 onBack = { navController.popBackStack() },
                                 onNavigateNext = {
                                     try {
-                                        navController.graph.setStartDestination(Screen.Dashboard.route)
+                                        navController.graph.setStartDestination(Screen.Home.route)
                                     } catch (_: Exception) {}
-                                    navController.navigate(Screen.Dashboard.route) {
-                                        popUpTo(0) { inclusive = true }
+                                    navController.navigate(Screen.Home.route) {
+                                        popUpTo(navController.graph.id) { inclusive = true }
+                                        launchSingleTop = true
                                     }
                                 }
                             )
@@ -737,8 +741,12 @@ class MainActivity : ComponentActivity() {
                             ReadySetupCompleteScreen(
                                 onBack = { navController.popBackStack() },
                                 onGoToDashboard = {
-                                    navController.navigate(Screen.Dashboard.route) {
-                                        popUpTo(0) { inclusive = true }
+                                    try {
+                                        navController.graph.setStartDestination(Screen.Home.route)
+                                    } catch (_: Exception) {}
+                                    navController.navigate(Screen.Home.route) {
+                                        popUpTo(navController.graph.id) { inclusive = true }
+                                        launchSingleTop = true
                                     }
                                 },
                                 onEditPreferences = { navController.navigate("setup") }
