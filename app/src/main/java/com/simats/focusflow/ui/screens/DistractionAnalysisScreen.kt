@@ -37,6 +37,11 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.simats.focusflow.data.api.RetrofitClient
+import com.simats.focusflow.data.local.FocusSessionDatabase
+import com.simats.focusflow.data.models.DistractionLogItem
+import com.simats.focusflow.data.repository.ProductivityRepository
+import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.ui.components.CustomTopBar
 import com.simats.focusflow.ui.components.bounceClick
 import com.simats.focusflow.ui.theme.FocusFlowTheme
@@ -44,6 +49,7 @@ import com.simats.focusflow.utils.AppUsageInfo
 import com.simats.focusflow.utils.DistractionUsageSummary
 import com.simats.focusflow.utils.UsageStatsHelper
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -160,6 +166,36 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
     var hasPermission by remember { mutableStateOf(UsageStatsHelper.hasUsageStatsPermission(context)) }
     var isLoading by remember { mutableStateOf(true) }
     var isExpanded by remember { mutableStateOf(false) }
+    var loggedDistractions by remember { mutableStateOf<List<DistractionLogItem>>(emptyList()) }
+
+    fun refreshLoggedDistractions() {
+        coroutineScope.launch(Dispatchers.IO) {
+            val sessionMgr = SessionManager.getInstance(context)
+            val userId = try {
+                sessionMgr.userSessionFlow.first().userId ?: 1
+            } catch (_: Exception) { 1 }
+
+            val local = try {
+                FocusSessionDatabase.getInstance(context).getDistractions(userId)
+            } catch (_: Exception) { emptyList() }
+
+            withContext(Dispatchers.Main) {
+                loggedDistractions = local
+            }
+
+            try {
+                val repoResult = ProductivityRepository(RetrofitClient.flowApiService).getDistractions(userId)
+                if (repoResult.isSuccess) {
+                    val merged = (local + (repoResult.getOrNull() ?: emptyList())).distinctBy {
+                        if (it.id > 0) "id_${it.id}" else "${it.createdAt}_${it.reason}"
+                    }
+                    withContext(Dispatchers.Main) {
+                        loggedDistractions = merged
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+    }
 
     fun refreshTodayUsageStats() {
         val perm = UsageStatsHelper.hasUsageStatsPermission(context)
@@ -181,6 +217,7 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
+                refreshLoggedDistractions()
                 val perm = UsageStatsHelper.hasUsageStatsPermission(context)
                 val wasMissing = !hasPermission
                 hasPermission = perm
@@ -198,6 +235,10 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
 
     LaunchedEffect(Unit) {
         refreshTodayUsageStats()
+        refreshLoggedDistractions()
+        FocusSessionDatabase.getInstance(context).distractionTableChangedFlow.collect {
+            refreshLoggedDistractions()
+        }
     }
 
     val todayDateFormatted = remember {
@@ -596,6 +637,122 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            color = colors.surface,
+            border = BorderStroke(1.dp, colors.border)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "LOGGED INTERRUPTIONS",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.primaryLight,
+                        letterSpacing = 1.sp
+                    )
+                    Text(
+                        text = "${loggedDistractions.size} logged",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.textMuted
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                if (loggedDistractions.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 20.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No focus interruptions logged yet.",
+                            fontSize = 13.sp,
+                            color = colors.textMuted
+                        )
+                    }
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        loggedDistractions.forEach { item ->
+                            DistractionItemRow(item = item)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DistractionItemRow(item: DistractionLogItem) {
+    val colors = FocusFlowTheme.colors
+    val durationText = when {
+        item.durationSeconds in 1..59 -> "< 1 min"
+        item.durationSeconds in 60..299 -> "1-5 min"
+        item.durationSeconds >= 300 -> "> 5 min"
+        else -> "< 1 min"
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.background, RoundedCornerShape(12.dp))
+            .border(1.dp, colors.border, RoundedCornerShape(12.dp))
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .background(colors.primary.copy(alpha = 0.14f), RoundedCornerShape(8.dp))
+                .padding(horizontal = 8.dp, vertical = 4.dp)
+        ) {
+            Text(
+                text = item.category.ifBlank { "Other" },
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = colors.primaryLight
+            )
+        }
+
+        Spacer(modifier = Modifier.width(10.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = item.reason.ifBlank { "Focus interruption" },
+                fontSize = 13.5.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = colors.textPrimary,
+                maxLines = 2
+            )
+            if (item.createdAt.isNotBlank()) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = item.createdAt,
+                    fontSize = 11.sp,
+                    color = colors.textMuted
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Text(
+            text = durationText,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            color = colors.textMuted
+        )
     }
 }
 
