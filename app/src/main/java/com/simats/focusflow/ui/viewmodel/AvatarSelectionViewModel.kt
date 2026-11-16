@@ -43,12 +43,10 @@ class AvatarSelectionViewModel(
             _uiState.value = AvatarSelectionUiState.Loading
             val avatarChoice = _selectedAvatar.value
             try {
-                // Persist to MySQL database
                 apiService.updateAvatar(
                     UpdateAvatarRequest(user_id = userId, avatar = avatarChoice)
                 )
 
-                // Persist to local DataStore
                 sessionManager?.let { sm ->
                     val currentSession = sm.userSessionFlow.first()
                     sm.updateProfile(
@@ -62,7 +60,6 @@ class AvatarSelectionViewModel(
                 _uiState.value = AvatarSelectionUiState.Success("Avatar updated!")
                 onSuccess()
             } catch (e: Exception) {
-                // Ensure local persistence on network failure
                 sessionManager?.let { sm ->
                     val currentSession = sm.userSessionFlow.first()
                     sm.updateProfile(

@@ -62,7 +62,6 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
 
     val presetTimes = listOf("07:00 AM", "08:00 AM", "09:00 AM", "10:00 AM", "06:00 PM", "08:00 PM")
 
-    // Helper to launch Android's native custom time picker dialog
     val openTimePicker = {
         val calendar = Calendar.getInstance()
         try {
@@ -87,14 +86,12 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
                 val customFormatted = String.format(Locale.US, "%02d:%02d %s", formattedHour, minute, amPm)
                 reminderTime = customFormatted
 
-                // Schedule alarm immediately at the selected custom time
                 ReminderScheduler.scheduleDailyReminder(
                     context,
                     customFormatted,
                     notificationsEnabled && dailyReminder
                 )
 
-                // Persist custom time immediately to session and backend
                 scope.launch(Dispatchers.IO) {
                     val sessionManager = SessionManager.getInstance(context)
                     sessionManager.saveNotificationPreferences(
@@ -124,11 +121,10 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
             },
             initialHour,
             initialMinute,
-            false // 12-hour AM/PM format
+            false
         ).show()
     }
 
-    // Load persisted preferences and verify FCM token sync
     LaunchedEffect(Unit) {
         val sessionManager = SessionManager.getInstance(context)
         try {
@@ -158,7 +154,6 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
-            // Top Bar with Sleek Circular Back Button
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -199,7 +194,6 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 1. MASTER TOGGLE CARD
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -237,7 +231,6 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
                                 reminderTime,
                                 isChecked && dailyReminder
                             )
-                            // Save master toggle immediately
                             scope.launch(Dispatchers.IO) {
                                 val sessionManager = SessionManager.getInstance(context)
                                 sessionManager.saveNotificationPreferences(
@@ -273,7 +266,6 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
                 }
             }
 
-            // WHEN NOTIFICATIONS ARE OFF: NOTHING SHOWS UP BELOW
             AnimatedVisibility(
                 visible = notificationsEnabled,
                 enter = expandVertically() + fadeIn(),
@@ -282,7 +274,6 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
                 Column {
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // 2. DAILY FOCUS REMINDER CARD WITH CUSTOM TIME PICKER
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
@@ -379,7 +370,6 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
 
                                 Spacer(modifier = Modifier.height(10.dp))
 
-                                // Interactive Custom Time Box (Tapping opens full native TimePickerDialog)
                                 Surface(
                                     shape = RoundedCornerShape(14.dp),
                                     color = colors.surfaceVariant,
@@ -448,7 +438,6 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
 
                                 Spacer(modifier = Modifier.height(14.dp))
 
-                                // Quick Presets and Custom Chip Row
                                 Text(
                                     text = "Quick Presets",
                                     fontSize = 11.5.sp,
@@ -508,7 +497,6 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // 3. TARGETED ALERTS SECTION
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
@@ -516,7 +504,6 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
                         border = BorderStroke(1.dp, colors.border)
                     ) {
                         Column(modifier = Modifier.padding(20.dp)) {
-                            // Deadline Reminders
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -554,7 +541,6 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
                             HorizontalDivider(color = colors.border, thickness = 1.dp)
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            // Break Reminders
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -604,7 +590,6 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Elegant Notification Card Preview
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
@@ -665,7 +650,6 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    // Send Test Notification Button
                     Surface(
                         onClick = {
                             NotificationHelper.sendTestNotification(context, "timer")
@@ -706,7 +690,6 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Save Preferences Button
                     Button(
                         onClick = {
                             ReminderScheduler.scheduleDailyReminder(

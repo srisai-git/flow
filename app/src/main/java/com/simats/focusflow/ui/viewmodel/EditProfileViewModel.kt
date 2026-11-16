@@ -113,10 +113,8 @@ class EditProfileViewModel(
         }
     }
 
-    /**
-     * Copies the picked gallery photo into app-private internal storage,
-     * updates the UI state with the permanent path, and caches to SessionManager immediately.
-     */
+    
+
     fun onGalleryImagePicked(context: Context, uri: Uri) {
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(isLoading = true) }
@@ -157,7 +155,6 @@ class EditProfileViewModel(
                 _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             }
 
-            // If avatar is a local file, prepare Base64 payload for backend sync if context is provided
             val avatarPayload = if (context != null && avatar.startsWith("/") && File(avatar).exists()) {
                 ProfileImageManager.getBase64FromInternalAvatar(context, currentUserId) ?: avatar
             } else {
@@ -173,7 +170,6 @@ class EditProfileViewModel(
                 sessionManager = sessionManager
             )
 
-            // Ensure the local permanent path is preserved in session
             sessionManager?.saveAvatarPath(avatar, currentUserId)
 
             withContext(Dispatchers.Main) {

@@ -62,7 +62,6 @@ fun ExportDataScreen(onBack: () -> Unit = {}) {
         ) {
             Spacer(modifier = Modifier.height(20.dp))
 
-            // TOP BAR
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -114,7 +113,6 @@ fun ExportDataScreen(onBack: () -> Unit = {}) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // RECORD TYPES CARD
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
@@ -183,7 +181,6 @@ fun ExportDataScreen(onBack: () -> Unit = {}) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // FORMAT PREVIEW
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
@@ -218,7 +215,6 @@ fun ExportDataScreen(onBack: () -> Unit = {}) {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // EXPORT BUTTON
             Button(
                 onClick = {
                     if (!isExporting) {

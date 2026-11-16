@@ -74,7 +74,6 @@ fun EditProfileScreen(
 
     var showAvatarPickerSheet by remember { mutableStateOf(false) }
 
-    // Gallery Photo Picker Launcher
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -117,7 +116,6 @@ fun EditProfileScreen(
         ) {
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 1. TOP BAR WITH BACK BUTTON
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -160,7 +158,6 @@ fun EditProfileScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // 2. AVATAR SELECTION HERO WITH GALLERY PICKER TRIGGER
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
@@ -173,7 +170,6 @@ fun EditProfileScreen(
                         .padding(20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Clickable Avatar with Pen Badge
                     Box(
                         modifier = Modifier
                             .size(86.dp)
@@ -224,7 +220,6 @@ fun EditProfileScreen(
                             }
                         }
 
-                        // Edit pen badge
                         Box(
                             modifier = Modifier
                                 .size(28.dp)
@@ -259,7 +254,6 @@ fun EditProfileScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 3. EDIT FORM FIELDS
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
@@ -271,7 +265,6 @@ fun EditProfileScreen(
                         .fillMaxWidth()
                         .padding(20.dp)
                 ) {
-                    // FIELD 1: DISPLAY NAME (Editable)
                     Text(
                         text = "DISPLAY NAME *",
                         fontSize = 11.sp,
@@ -319,7 +312,6 @@ fun EditProfileScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // FIELD 2: "ABOUT" (Renamed from status/focus tagline, editable multiline)
                     Text(
                         text = "ABOUT",
                         fontSize = 11.sp,
@@ -349,7 +341,6 @@ fun EditProfileScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // FIELD 3: EMAIL ADDRESS (Strictly READ-ONLY / UNEDITABLE)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = "EMAIL ADDRESS",
@@ -376,7 +367,7 @@ fun EditProfileScreen(
 
                     OutlinedTextField(
                         value = state.email,
-                        onValueChange = { /* Read only */ },
+                        onValueChange = {  },
                         readOnly = true,
                         enabled = false,
                         leadingIcon = {
@@ -408,7 +399,6 @@ fun EditProfileScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // 4. SAVE CHANGES ACTION BUTTON
             Button(
                 onClick = {
                     viewModel.saveProfile(context) {
@@ -459,7 +449,6 @@ fun EditProfileScreen(
             Spacer(modifier = Modifier.height(40.dp))
         }
 
-        // 5. AVATAR & GALLERY PHOTO PICKER BOTTOM SHEET
         if (showAvatarPickerSheet) {
             val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
             ModalBottomSheet(
@@ -507,7 +496,6 @@ fun EditProfileScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // OPTION A: CHOOSE PHOTO FROM GALLERY
                     Surface(
                         onClick = {
                             galleryLauncher.launch("image/*")
@@ -559,7 +547,6 @@ fun EditProfileScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // OPTION B: CHOOSE DEFAULT ICON AVATAR
                     Text(
                         text = "OR CHOOSE DEFAULT ICON AVATAR",
                         fontSize = 11.sp,

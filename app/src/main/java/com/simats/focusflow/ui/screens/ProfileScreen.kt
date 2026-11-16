@@ -155,7 +155,6 @@ fun ProfileScreen(
         ) {
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 1. TOP HEADER & TITLE
             Text(
                 text = "PROFILE & SETTINGS",
                 fontSize = 12.sp,
@@ -173,7 +172,6 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 2. USER PROFILE HERO CARD
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -189,7 +187,6 @@ fun ProfileScreen(
                         .padding(20.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Circular Avatar with edit pen badge
                     Box(
                         modifier = Modifier.size(76.dp),
                         contentAlignment = Alignment.BottomEnd
@@ -237,7 +234,6 @@ fun ProfileScreen(
                             }
                         }
 
-                        // Edit pen badge
                         Box(
                             modifier = Modifier
                                 .size(26.dp)
@@ -290,12 +286,10 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 3. STATS SUMMARY ROW
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Focus Hours Stat
                 StatSummaryCard(
                     icon = Icons.Default.Timer,
                     value = String.format(Locale.US, "%.1fh", profile.totalFocusHours),
@@ -305,7 +299,6 @@ fun ProfileScreen(
                     modifier = Modifier.weight(1f)
                 )
 
-                // Tasks Done Stat
                 StatSummaryCard(
                     icon = Icons.Default.CheckCircle,
                     value = "${profile.completedTasksCount}",
@@ -315,7 +308,6 @@ fun ProfileScreen(
                     modifier = Modifier.weight(1f)
                 )
 
-                // Current Streak Stat
                 StatSummaryCard(
                     icon = Icons.Default.Star,
                     value = "${profile.currentStreak}d",
@@ -328,7 +320,6 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // 4. MENU SECTION: PREFERENCES & FOCUS SETTINGS
             Text(
                 text = "PREFERENCES & FOCUS SETTINGS",
                 fontSize = 11.sp,
@@ -355,7 +346,6 @@ fun ProfileScreen(
                     )
                     HorizontalDivider(color = colors.border, thickness = 1.dp)
 
-                    // Dynamic Theme Selector Row
                     ProfileMenuRow(
                         icon = Icons.Default.Palette,
                         title = "Appearance & Theme",
@@ -364,7 +354,6 @@ fun ProfileScreen(
                     )
                     HorizontalDivider(color = colors.border, thickness = 1.dp)
 
-                    // Notifications & Reminders Screen Entry Point
                     ProfileMenuRow(
                         icon = Icons.Default.Notifications,
                         title = "Notifications & Reminders",
@@ -376,7 +365,6 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 5. MENU SECTION: DATA & SYSTEM
             Text(
                 text = "DATA & SYSTEM",
                 fontSize = 11.sp,
@@ -424,7 +412,6 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // 6. LOG OUT BUTTON
             Button(
                 onClick = { showLogoutDialog = true },
                 modifier = Modifier
@@ -456,7 +443,6 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(110.dp))
         }
 
-        // 7. FOCUS TARGET & PREFERENCES BOTTOM SHEET
         if (showPreferencesSheet) {
             ModalBottomSheet(
                 onDismissRequest = { showPreferencesSheet = false },
@@ -486,7 +472,6 @@ fun ProfileScreen(
             }
         }
 
-        // 8. THEME SELECTION DIALOG
         if (showThemeDialog) {
             ThemeSelectionDialog(
                 currentTheme = state.themeMode,
@@ -497,7 +482,6 @@ fun ProfileScreen(
             )
         }
 
-        // 9. RESET STATS CONFIRMATION DIALOG
         if (state.showResetDialog) {
             AlertDialog(
                 onDismissRequest = { viewModel.setResetDialogOpen(false) },
@@ -536,7 +520,6 @@ fun ProfileScreen(
             )
         }
 
-        // 10. LOGOUT CONFIRMATION DIALOG
         if (showLogoutDialog) {
             AlertDialog(
                 onDismissRequest = { showLogoutDialog = false },
@@ -577,7 +560,6 @@ fun ProfileScreen(
             )
         }
 
-        // 11. FOCUS TIME DETAIL SHEET
         if (showFocusDetailSheet) {
             ModalBottomSheet(
                 onDismissRequest = { showFocusDetailSheet = false },
@@ -610,7 +592,6 @@ fun ProfileScreen(
             }
         }
 
-        // 12. TASKS DONE DETAIL SHEET
         if (showTasksDetailSheet) {
             ModalBottomSheet(
                 onDismissRequest = { showTasksDetailSheet = false },
@@ -639,7 +620,6 @@ fun ProfileScreen(
             }
         }
 
-        // 13. STREAK DETAIL SHEET
         if (showStreakDetailSheet) {
             ModalBottomSheet(
                 onDismissRequest = { showStreakDetailSheet = false },
@@ -704,7 +684,6 @@ private fun ThemeSelectionDialog(
                     fontSize = 13.sp,
                     color = colors.textMuted
                 )
-                // Default Dark Option Card
                 Surface(
                     onClick = {
                         onSelectTheme("dark")
@@ -764,7 +743,6 @@ private fun ThemeSelectionDialog(
                     }
                 }
 
-                // Clean Light Option Card
                 Surface(
                     onClick = {
                         onSelectTheme("light")
@@ -870,7 +848,6 @@ private fun FocusPreferencesSheetContent(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // DAILY TARGET SLIDER (1 - 12 HOURS)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -909,7 +886,6 @@ private fun FocusPreferencesSheetContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // PREFERRED SESSION RHYTHM (25, 45, 60 MINS)
         Text(
             text = "PREFERRED SESSION RHYTHM",
             fontSize = 11.sp,
@@ -1033,7 +1009,6 @@ private fun FocusTimeDetailSheetContent(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Hero Metric Card
         Surface(
             shape = RoundedCornerShape(18.dp),
             color = colors.surfaceVariant,

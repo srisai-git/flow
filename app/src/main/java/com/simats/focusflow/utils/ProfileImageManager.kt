@@ -14,34 +14,28 @@ import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
-/**
- * Utility handling profile picture persistence, internal storage caching,
- * Base64 encoding for backend sync, and Coil model resolution.
- */
+
+
 object ProfileImageManager {
 
     private const val AVATAR_FILE_PREFIX = "user_avatar_"
     private const val AVATAR_FILE_EXTENSION = ".jpg"
 
-    /**
-     * Resolves the canonical internal storage avatar file for a user.
-     */
+    
+
     fun getAvatarFile(context: Context, userId: Int): File {
         return File(context.filesDir, "${AVATAR_FILE_PREFIX}${userId}${AVATAR_FILE_EXTENSION}")
     }
 
-    /**
-     * Checks if a persistent internal avatar file exists and is non-empty.
-     */
+    
+
     fun getAvatarPathIfExists(context: Context, userId: Int): String? {
         val file = getAvatarFile(context, userId)
         return if (file.exists() && file.length() > 0) file.absolutePath else null
     }
 
-    /**
-     * Copies an image from a transient content/gallery Uri into app-private internal storage.
-     * Returns the permanent absolute file path.
-     */
+    
+
     suspend fun saveAvatarToInternalStorage(
         context: Context,
         uri: Uri,
@@ -51,14 +45,12 @@ object ProfileImageManager {
             val targetFile = getAvatarFile(context, userId)
 
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                // Decode bounds to check dimensions
                 val options = BitmapFactory.Options().apply {
                     inJustDecodeBounds = true
                 }
                 val buffer = inputStream.readBytes()
                 BitmapFactory.decodeByteArray(buffer, 0, buffer.size, options)
 
-                // Calculate inSampleSize to prevent huge memory spikes (max 1200x1200)
                 var inSampleSize = 1
                 val maxDim = 1200
                 if (options.outHeight > maxDim || options.outWidth > maxDim) {
@@ -81,7 +73,6 @@ object ProfileImageManager {
                     }
                     targetFile.absolutePath
                 } else {
-                    // Fallback to direct byte copy if bitmap decoding fails
                     targetFile.outputStream().use { out ->
                         out.write(buffer)
                         out.flush()
@@ -95,9 +86,8 @@ object ProfileImageManager {
         }
     }
 
-    /**
-     * Saves raw image byte array into persistent internal storage.
-     */
+    
+
     suspend fun saveBytesToInternalStorage(
         context: Context,
         bytes: ByteArray,
@@ -116,9 +106,8 @@ object ProfileImageManager {
         }
     }
 
-    /**
-     * Reads the internal avatar file and encodes it as Base64 JPEG data URL for backend synchronization.
-     */
+    
+
     suspend fun getBase64FromInternalAvatar(
         context: Context,
         userId: Int
@@ -127,7 +116,6 @@ object ProfileImageManager {
             val file = getAvatarFile(context, userId)
             if (!file.exists() || file.length() == 0L) return@withContext null
 
-            // Read, scale down to max 600x600 for network payload efficiency
             val options = BitmapFactory.Options().apply {
                 inJustDecodeBounds = true
             }
@@ -159,9 +147,8 @@ object ProfileImageManager {
         }
     }
 
-    /**
-     * Downloads a remote HTTP/HTTPS avatar URL or decodes a Base64 data URI into internal storage.
-     */
+    
+
     suspend fun cacheRemoteAvatarToInternalStorage(
         context: Context,
         avatarSource: String,
@@ -201,10 +188,8 @@ object ProfileImageManager {
         }
     }
 
-    /**
-     * Checks if the given avatar string represents a renderable image (file path, URI, or URL),
-     * rather than an icon preset token (e.g. "avatar:person").
-     */
+    
+
     fun isImageAvatar(avatarStr: String?): Boolean {
         if (avatarStr.isNullOrBlank()) return false
         val trimmed = avatarStr.trim()
@@ -219,10 +204,8 @@ object ProfileImageManager {
                 File(trimmed).exists()
     }
 
-    /**
-     * Resolves the appropriate data model to pass to Coil's ImageRequest.
-     * Handles local file paths, file://, content://, and remote URLs.
-     */
+    
+
     fun resolveImageModel(context: Context, avatarStr: String?, userId: Int = 1): Any? {
         if (avatarStr.isNullOrBlank()) {
             val localFile = getAvatarFile(context, userId)

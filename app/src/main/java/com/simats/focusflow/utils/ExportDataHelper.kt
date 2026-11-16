@@ -36,7 +36,6 @@ object ExportDataHelper {
             val prodRepo = ProductivityRepository()
             val profRepo = ProfileRepository()
 
-            // 1. Fetch real database metrics
             val profileRes = profRepo.getProfile(userId).getOrNull()
             val totalHours = profileRes?.totalFocusHours ?: 0f
             val streakDays = profileRes?.currentStreak ?: 0
@@ -60,7 +59,6 @@ object ExportDataHelper {
             val exportTimestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
             val dateSlug = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
 
-            // 2. Build Structured Markdown / Text
             val textContent = buildStructuredText(
                 userName = resolvedName,
                 exportDate = exportTimestamp,
@@ -74,7 +72,6 @@ object ExportDataHelper {
                 incTasks = incTasks
             )
 
-            // 3. Build Structured CSV
             val csvContent = buildStructuredCsv(
                 userName = resolvedName,
                 exportDate = exportTimestamp,
@@ -88,7 +85,6 @@ object ExportDataHelper {
                 incTasks = incTasks
             )
 
-            // 4. Build Clean Share Message without emojis
             val shareMessageText = buildString {
                 appendLine("FOCUSFLOW PRODUCTIVITY EXPORT")
                 appendLine("User: $resolvedName")
@@ -144,7 +140,6 @@ object ExportDataHelper {
                 appendLine("Empowering mindful deep work with FocusFlow.")
             }
 
-            // 5. Write files to internal cache directory
             val exportDir = File(context.cacheDir, "exports").apply { mkdirs() }
             val txtFile = File(exportDir, "focusflow_export_$dateSlug.txt").apply {
                 writeText(textContent)
@@ -153,7 +148,6 @@ object ExportDataHelper {
                 writeText(csvContent)
             }
 
-            // 6. Build Content URIs via FileProvider
             val authority = "${context.packageName}.fileprovider"
             val txtUri = FileProvider.getUriForFile(context, authority, txtFile)
             val csvUri = FileProvider.getUriForFile(context, authority, csvFile)

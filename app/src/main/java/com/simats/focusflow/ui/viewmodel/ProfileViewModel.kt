@@ -202,7 +202,6 @@ class ProfileViewModel(
             withContext(Dispatchers.Main) {
                 result.fold(
                     onSuccess = { data ->
-                        // If remote avatar is a URL/base64 and no local file exists, cache in background
                         appContext?.let { ctx ->
                             if (!data.avatar.isNullOrBlank() && !data.avatar.startsWith("avatar:") && (data.avatar.startsWith("http") || data.avatar.startsWith("data:"))) {
                                 viewModelScope.launch(Dispatchers.IO) {

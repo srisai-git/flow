@@ -69,7 +69,6 @@ fun SetupProfileScreen(
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        // Avatar Section Card
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -139,7 +138,6 @@ fun SetupProfileScreen(
         )
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Profile Details Card
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -150,7 +148,6 @@ fun SetupProfileScreen(
                 modifier = Modifier.padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Full Name
                 Column {
                     Text("Full Name", fontSize = 13.sp, color = colors.textMuted, fontWeight = FontWeight.Medium)
                     Spacer(modifier = Modifier.height(6.dp))
@@ -172,7 +169,6 @@ fun SetupProfileScreen(
                     )
                 }
 
-                // Bio / Status
                 Column {
                     Text("Bio / Status", fontSize = 13.sp, color = colors.textMuted, fontWeight = FontWeight.Medium)
                     Spacer(modifier = Modifier.height(6.dp))
@@ -204,7 +200,6 @@ fun SetupProfileScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Primary Action Button
         Button(
             onClick = {
                 if (viewModel != null) {
@@ -236,7 +231,6 @@ fun SetupProfileScreen(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Secondary Text Button: Skip for now
         Box(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center

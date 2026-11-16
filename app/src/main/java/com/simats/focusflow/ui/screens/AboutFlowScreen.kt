@@ -56,7 +56,6 @@ fun AboutFlowScreen(
         ) {
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 1. TOP HEADER WITH BACK BUTTON
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -99,7 +98,6 @@ fun AboutFlowScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // 2. HERO APP BRANDING CARD
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
@@ -167,7 +165,6 @@ fun AboutFlowScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 3. CORE PHILOSOPHY CARD
             InfoSectionCard(
                 icon = Icons.Default.Psychology,
                 title = "Core Philosophy",
@@ -176,7 +173,6 @@ fun AboutFlowScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 4. ARCHITECTURE OVERVIEW CARD
             InfoSectionCard(
                 icon = Icons.Default.Layers,
                 title = "Architecture & Engineering",
@@ -185,7 +181,6 @@ fun AboutFlowScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 5. TECH STACK SPECIFICATION CARD
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
@@ -222,7 +217,6 @@ fun AboutFlowScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 6. PRIVACY & DATA GUARANTEE CARD
             InfoSectionCard(
                 icon = Icons.Default.Security,
                 title = "Privacy & Data Sovereignity",
@@ -231,7 +225,6 @@ fun AboutFlowScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 7. ABOUT GROOT AI SECTION
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),

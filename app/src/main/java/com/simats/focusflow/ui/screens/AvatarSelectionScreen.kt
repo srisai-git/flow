@@ -79,7 +79,6 @@ fun AvatarSelectionScreen(
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        // Large Circular Preview
         Box(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center
@@ -102,7 +101,6 @@ fun AvatarSelectionScreen(
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        // Two Action Buttons: Take Photo & Choose Gallery
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -159,7 +157,6 @@ fun AvatarSelectionScreen(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Grid of Preset Avatar Icons
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -238,7 +235,6 @@ fun AvatarSelectionScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Save & Continue Action Button
         Button(
             onClick = {
                 if (avatarViewModel != null) {
@@ -264,7 +260,6 @@ fun AvatarSelectionScreen(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Skip for now Text Button
         Box(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center

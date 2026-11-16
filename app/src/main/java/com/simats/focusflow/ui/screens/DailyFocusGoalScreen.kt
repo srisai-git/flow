@@ -54,7 +54,6 @@ fun DailyFocusGoalScreen(onBack: () -> Unit = {}, onSave: () -> Unit = {}) {
         ) {
             Spacer(modifier = Modifier.height(20.dp))
 
-            // TOP BAR
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -106,7 +105,6 @@ fun DailyFocusGoalScreen(onBack: () -> Unit = {}, onSave: () -> Unit = {}) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // DAILY TARGET CARD
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
@@ -139,7 +137,6 @@ fun DailyFocusGoalScreen(onBack: () -> Unit = {}, onSave: () -> Unit = {}) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // SESSION CADENCE CARD
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
@@ -194,7 +191,6 @@ fun DailyFocusGoalScreen(onBack: () -> Unit = {}, onSave: () -> Unit = {}) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // ACTIVE WORK DAYS
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
@@ -239,7 +235,6 @@ fun DailyFocusGoalScreen(onBack: () -> Unit = {}, onSave: () -> Unit = {}) {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // SAVE BUTTON
             Button(
                 onClick = onSave,
                 modifier = Modifier
