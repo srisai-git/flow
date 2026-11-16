@@ -5,6 +5,8 @@ import com.simats.focusflow.data.api.RetrofitClient
 import com.simats.focusflow.data.models.AiRequest
 import com.simats.focusflow.data.models.AiResponse
 import com.simats.focusflow.data.models.ChatHistoryMessage
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -28,8 +30,8 @@ class AiRepository(
         prompt: String? = null,
         history: List<ChatHistoryMessage>? = null
     ): Result<AiResponse> = withContext(Dispatchers.IO) {
+        val userPrompt = prompt ?: ""
         try {
-            val userPrompt = prompt ?: ""
             val activeHistory = history ?: synchronized(_history) { _history.toList() }
 
             val response = apiService.getAiInsights(
@@ -66,14 +68,67 @@ class AiRepository(
                 )
             }
         } catch (e: Exception) {
-            Result.success(
-                AiResponse(
-                    status = "offline",
-                    insight = "I am Groot, your FocusFlow assistant. I am ready to help, but my local deep-reasoning engine (port 8000) is currently offline. Please ensure 'python server.py' is running in the groot_ai directory.",
-                    message = e.localizedMessage
+            val directReply = tryDirectFastApiCall(userPrompt)
+            if (!directReply.isNullOrBlank()) {
+                if (userPrompt.isNotBlank()) {
+                    synchronized(_history) {
+                        _history.add(ChatHistoryMessage(role = "user", content = userPrompt))
+                        _history.add(ChatHistoryMessage(role = "assistant", content = directReply))
+                    }
+                }
+                Result.success(
+                    AiResponse(
+                        status = "success",
+                        insight = directReply,
+                        message = directReply
+                    )
                 )
-            )
+            } else {
+                Result.success(
+                    AiResponse(
+                        status = "offline",
+                        insight = "I am Groot, your FocusFlow assistant. I am ready to help, but my local deep-reasoning engine (port 8000) is currently offline. Please ensure 'python server.py' is running in the groot_ai directory.",
+                        message = e.localizedMessage
+                    )
+                )
+            }
         }
+    }
+
+    private fun tryDirectFastApiCall(promptText: String): String? {
+        val client = okhttp3.OkHttpClient.Builder()
+            .connectTimeout(3, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+            .build()
+        val jsonPayload = com.google.gson.Gson().toJson(mapOf("message" to promptText, "prompt" to promptText))
+        val mediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
+        val body = jsonPayload.toRequestBody(mediaType)
+
+        val urls = listOf(
+            "http://10.0.2.2:8000/ask_groot",
+            "http://127.0.0.1:8000/ask_groot"
+        )
+        for (url in urls) {
+            try {
+                val request = okhttp3.Request.Builder()
+                    .url(url)
+                    .post(body)
+                    .build()
+                val resp = client.newCall(request).execute()
+                if (resp.isSuccessful) {
+                    val respStr = resp.body?.string() ?: ""
+                    val json = com.google.gson.JsonParser.parseString(respStr).asJsonObject
+                    val reply = json.get("response")?.asString
+                        ?: json.get("reply")?.asString
+                        ?: json.get("insight")?.asString
+                        ?: json.get("message")?.asString
+                    if (!reply.isNullOrBlank()) {
+                        return reply
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+        return null
     }
 
     suspend fun getHabitInsights(userId: Int): Result<String> = withContext(Dispatchers.IO) {
