@@ -12,6 +12,7 @@ import com.simats.focusflow.data.repository.StreakRepository
 import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.utils.ProfileImageManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -41,6 +42,9 @@ class ProfileViewModel(
 
     private var currentUserId: Int = 1
     private var appContext: Context? = null
+    private var themeModeJob: Job? = null
+    private var avatarPathJob: Job? = null
+    private var userSessionJob: Job? = null
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
@@ -83,70 +87,29 @@ class ProfileViewModel(
 
     fun initSessionManager(context: Context, manager: SessionManager) {
         this.appContext = context.applicationContext
-        this.sessionManager = manager
-
-        // Fast cold-start check: immediately load local avatar from disk if present
         val existingAvatar = ProfileImageManager.getAvatarPathIfExists(context, currentUserId)
         if (!existingAvatar.isNullOrBlank()) {
             _uiState.update { current ->
                 current.copy(profile = current.profile.copy(avatar = existingAvatar))
             }
         }
-
-        viewModelScope.launch(Dispatchers.IO) {
-            manager.themeModeFlow.collect { mode ->
-                withContext(Dispatchers.Main) {
-                    _uiState.update { it.copy(themeMode = mode) }
-                }
-            }
-        }
-
-        viewModelScope.launch(Dispatchers.IO) {
-            manager.userAvatarPath.collect { path ->
-                if (!path.isNullOrBlank()) {
-                    withContext(Dispatchers.Main) {
-                        _uiState.update { current ->
-                            current.copy(profile = current.profile.copy(avatar = path))
-                        }
-                    }
-                }
-            }
-        }
-
-        viewModelScope.launch(Dispatchers.IO) {
-            manager.userSessionFlow.collect { session ->
-                if (session.userId != null && session.userId > 0) {
-                    currentUserId = session.userId
-                }
-                val av = session.userAvatarUri ?: session.userAvatar ?: ""
-                withContext(Dispatchers.Main) {
-                    _uiState.update { current ->
-                        current.copy(
-                            profile = current.profile.copy(
-                                name = session.userName?.takeIf { it.isNotBlank() } ?: current.profile.name,
-                                email = session.userEmail?.takeIf { it.isNotBlank() } ?: current.profile.email,
-                                bio = session.userBio ?: current.profile.bio,
-                                avatar = if (av.isNotBlank()) av else current.profile.avatar
-                            )
-                        )
-                    }
-                }
-            }
-        }
-        loadProfile()
+        initSessionManager(manager)
     }
 
-    // Compatibility overload
     fun initSessionManager(manager: SessionManager) {
         this.sessionManager = manager
-        viewModelScope.launch(Dispatchers.IO) {
+        themeModeJob?.cancel()
+        avatarPathJob?.cancel()
+        userSessionJob?.cancel()
+
+        themeModeJob = viewModelScope.launch(Dispatchers.IO) {
             manager.themeModeFlow.collect { mode ->
                 withContext(Dispatchers.Main) {
                     _uiState.update { it.copy(themeMode = mode) }
                 }
             }
         }
-        viewModelScope.launch(Dispatchers.IO) {
+        avatarPathJob = viewModelScope.launch(Dispatchers.IO) {
             manager.userAvatarPath.collect { path ->
                 if (!path.isNullOrBlank()) {
                     withContext(Dispatchers.Main) {
@@ -157,7 +120,7 @@ class ProfileViewModel(
                 }
             }
         }
-        viewModelScope.launch(Dispatchers.IO) {
+        userSessionJob = viewModelScope.launch(Dispatchers.IO) {
             manager.userSessionFlow.collect { session ->
                 if (session.userId != null && session.userId > 0) {
                     currentUserId = session.userId
