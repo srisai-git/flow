@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.simats.focusflow.data.models.HabitItem
 import com.simats.focusflow.data.models.TaskItem
@@ -175,6 +176,8 @@ fun DashboardScreen(
                             model = ImageRequest.Builder(context)
                                 .data(imageModel)
                                 .crossfade(true)
+                                .memoryCachePolicy(CachePolicy.ENABLED)
+                                .diskCachePolicy(CachePolicy.ENABLED)
                                 .build(),
                             contentDescription = "Profile Picture",
                             contentScale = ContentScale.Crop,
@@ -994,9 +997,8 @@ private fun AbstractGeometricClock(
     val border = colors.border
     val textPrimary = colors.textPrimary
 
-    // Subtle gentle pulse for inner time rhythm node
     val infiniteTransition = rememberInfiniteTransition(label = "clockPulse")
-    val pulseScale by infiniteTransition.animateFloat(
+    val pulseScaleState = infiniteTransition.animateFloat(
         initialValue = 0.85f,
         targetValue = 1.15f,
         animationSpec = infiniteRepeatable(
@@ -1090,7 +1092,7 @@ private fun AbstractGeometricClock(
 
         drawCircle(
             color = primary,
-            radius = 4.dp.toPx() * pulseScale,
+            radius = 4.dp.toPx() * pulseScaleState.value,
             center = center
         )
 
