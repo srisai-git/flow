@@ -35,6 +35,20 @@ data class TaskItem(
     val createdAt: String? = null
 )
 
+@Immutable
+data class TaskBreakdownRequest(
+    @SerializedName("task_title") val taskTitle: String = "",
+    @SerializedName("title") val title: String = ""
+)
+
+@Immutable
+data class TaskBreakdownResponse(
+    @SerializedName("status") val status: String = "",
+    @SerializedName("success") val success: Boolean = false,
+    @SerializedName("task") val task: String = "",
+    @SerializedName("subtasks") val subtasks: List<String> = emptyList()
+)
+
 
 
 @Immutable
