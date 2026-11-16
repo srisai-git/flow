@@ -436,19 +436,12 @@ class MainActivity : ComponentActivity() {
                             ActivitiesScreen(
                                 initialTab = "Tasks",
                                 onNavigateToHome = {
-                                    try {
-                                        navController.navigate(Screen.Dashboard.route) {
-                                            popUpTo(navController.graph.findStartDestination().id) {
-                                                saveState = true
-                                            }
-                                            launchSingleTop = true
-                                            restoreState = true
+                                    navController.navigate(Screen.Home.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
                                         }
-                                    } catch (_: Exception) {
-                                        val popped = navController.popBackStack(Screen.Dashboard.route, inclusive = false)
-                                        if (!popped) {
-                                            navController.navigate(Screen.Dashboard.route) { launchSingleTop = true }
-                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
                                 },
                                 onNavigateToInsights = { navController.navigate("insights") },
@@ -462,19 +455,12 @@ class MainActivity : ComponentActivity() {
                             ActivitiesScreen(
                                 initialTab = "Tasks",
                                 onNavigateToHome = {
-                                    try {
-                                        navController.navigate(Screen.Dashboard.route) {
-                                            popUpTo(navController.graph.findStartDestination().id) {
-                                                saveState = true
-                                            }
-                                            launchSingleTop = true
-                                            restoreState = true
+                                    navController.navigate(Screen.Home.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
                                         }
-                                    } catch (_: Exception) {
-                                        val popped = navController.popBackStack(Screen.Dashboard.route, inclusive = false)
-                                        if (!popped) {
-                                            navController.navigate(Screen.Dashboard.route) { launchSingleTop = true }
-                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
                                 },
                                 onNavigateToInsights = { navController.navigate("insights") },
@@ -493,19 +479,12 @@ class MainActivity : ComponentActivity() {
                             ActivitiesScreen(
                                 initialTab = "Habits",
                                 onNavigateToHome = {
-                                    try {
-                                        navController.navigate(Screen.Dashboard.route) {
-                                            popUpTo(navController.graph.findStartDestination().id) {
-                                                saveState = true
-                                            }
-                                            launchSingleTop = true
-                                            restoreState = true
+                                    navController.navigate(Screen.Home.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
                                         }
-                                    } catch (_: Exception) {
-                                        val popped = navController.popBackStack(Screen.Dashboard.route, inclusive = false)
-                                        if (!popped) {
-                                            navController.navigate(Screen.Dashboard.route) { launchSingleTop = true }
-                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
                                 },
                                 onNavigateToInsights = { navController.navigate("insights") },
@@ -522,25 +501,18 @@ class MainActivity : ComponentActivity() {
 
                             ProfileScreen(
                                 onNavigateToHome = {
-                                    try {
-                                        navController.navigate(Screen.Dashboard.route) {
-                                            popUpTo(navController.graph.findStartDestination().id) {
-                                                saveState = true
-                                            }
-                                            launchSingleTop = true
-                                            restoreState = true
+                                    navController.navigate(Screen.Home.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
                                         }
-                                    } catch (_: Exception) {
-                                        val popped = navController.popBackStack(Screen.Dashboard.route, inclusive = false)
-                                        if (!popped) {
-                                            navController.navigate(Screen.Dashboard.route) { launchSingleTop = true }
-                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
                                 },
                                 onNavigateToTasks = { navController.navigate(Screen.Tasks.route) },
                                 onNavigateToTimer = {
                                     navController.navigate(Screen.Timer.route) {
-                                        popUpTo(navController.graph.startDestinationId) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
                                             saveState = true
                                         }
                                         launchSingleTop = true
@@ -604,8 +576,8 @@ class MainActivity : ComponentActivity() {
                             SessionSummaryScreen(
                                 onBack = { navController.popBackStack() },
                                 onSave = {
-                                    navController.navigate(Screen.Dashboard.route) {
-                                        popUpTo(Screen.Dashboard.route) { inclusive = true }
+                                    navController.navigate(Screen.Home.route) {
+                                        popUpTo(Screen.Home.route) { inclusive = true }
                                     }
                                 },
                                 onViewInsights = { navController.navigate("insights") },
@@ -635,13 +607,12 @@ class MainActivity : ComponentActivity() {
                         composable("insights") {
                             InsightsScreen(
                                 onNavigateToHome = {
-                                    navController.navigate(Screen.Dashboard.route) {
-                                        popUpTo(Screen.Dashboard.route) {
-                                            inclusive = false
-                                            saveState = false
+                                    navController.navigate(Screen.Home.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
                                         }
                                         launchSingleTop = true
-                                        restoreState = false
+                                        restoreState = true
                                     }
                                 },
                                 onNavigateToTasks = { navController.navigate(Screen.Tasks.route) },
