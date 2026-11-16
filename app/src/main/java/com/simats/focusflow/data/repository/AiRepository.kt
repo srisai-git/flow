@@ -144,4 +144,62 @@ class AiRepository(
         val res = getAiInsights(userId = userId, queryType = "chat", prompt = userQuestion)
         res.map { it.insight ?: it.message ?: "I am Groot. Focus on what matters most today." }
     }
+
+    suspend fun breakdownTask(taskTitle: String): List<String> = withContext(Dispatchers.IO) {
+        val trimmed = taskTitle.trim()
+        if (trimmed.isBlank()) return@withContext emptyList()
+
+        val fastApiResult = tryFastApiBreakdown(trimmed)
+        if (fastApiResult.isNotEmpty()) {
+            return@withContext fastApiResult
+        }
+
+        try {
+            val response = apiService.breakdownTask(com.simats.focusflow.data.models.TaskBreakdownRequest(taskTitle = trimmed, title = trimmed))
+            if (response.isSuccessful && response.body() != null) {
+                val list = response.body()!!.subtasks
+                if (list.isNotEmpty()) return@withContext list
+            }
+        } catch (_: Exception) {}
+
+        listOf(
+            "Define requirements and scope for $trimmed",
+            "Draft initial implementation for $trimmed",
+            "Review, test and verify $trimmed",
+            "Finalize and mark $trimmed complete"
+        )
+    }
+
+    private fun tryFastApiBreakdown(taskTitle: String): List<String> {
+        val client = okhttp3.OkHttpClient.Builder()
+            .connectTimeout(3, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(8, java.util.concurrent.TimeUnit.SECONDS)
+            .build()
+        val jsonPayload = com.google.gson.Gson().toJson(mapOf("task_title" to taskTitle, "title" to taskTitle))
+        val mediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
+        val body = jsonPayload.toRequestBody(mediaType)
+
+        val urls = listOf(
+            "http://10.0.2.2:8000/breakdown_task",
+            "http://127.0.0.1:8000/breakdown_task"
+        )
+        for (url in urls) {
+            try {
+                val request = okhttp3.Request.Builder()
+                    .url(url)
+                    .post(body)
+                    .build()
+                val resp = client.newCall(request).execute()
+                if (resp.isSuccessful) {
+                    val respStr = resp.body?.string() ?: ""
+                    val json = com.google.gson.JsonParser.parseString(respStr).asJsonObject
+                    val subtasksArr = json.getAsJsonArray("subtasks")
+                    if (subtasksArr != null && subtasksArr.size() > 0) {
+                        return subtasksArr.map { it.asString }
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+        return emptyList()
+    }
 }
