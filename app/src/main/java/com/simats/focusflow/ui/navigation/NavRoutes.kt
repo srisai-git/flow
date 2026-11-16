@@ -34,17 +34,17 @@ sealed class Screen(
         fun isMainScreen(route: String?): Boolean {
             if (route == null) return false
             val mainRoutes = listOf(
-                Screen.Home.route,
+                "home",
+                "dashboard",
                 Screen.Timer.route,
                 Screen.Habits.route,
                 Screen.Insights.route,
                 Screen.Profile.route,
-                Screen.Dashboard.route,
                 Screen.Activities.route,
                 Screen.Tasks.route
             )
             return mainRoutes.any { mainRoute ->
-                route.startsWith(mainRoute)
+                route == mainRoute || route.startsWith("$mainRoute/")
             }
         }
     }
