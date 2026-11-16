@@ -548,8 +548,39 @@ data class GrootRequest(
 
 data class GrootResponse(
     @SerializedName("success") val success: Boolean = false,
+    @SerializedName("status") val status: String? = null,
     @SerializedName("message") val message: String = "",
-    @SerializedName("response") val response: String? = null
+    @SerializedName("response") val response: String? = null,
+    @SerializedName("insight") val insight: String? = null
+)
+
+@Immutable
+data class DistractionLogItem(
+    @SerializedName("id") val id: Int = 0,
+    @SerializedName("user_id") val userId: Int = 0,
+    @SerializedName("reason") val reason: String = "",
+    @SerializedName("category") val category: String = "Other",
+    @SerializedName("duration_seconds") val durationSeconds: Int = 0,
+    @SerializedName("created_at") val createdAt: String = ""
+)
+
+data class LogDistractionRequest(
+    @SerializedName("user_id") val userId: Int,
+    @SerializedName("reason") val reason: String,
+    @SerializedName("category") val category: String = "Other",
+    @SerializedName("duration_seconds") val durationSeconds: Int = 0
+)
+
+data class DistractionsResponse(
+    @SerializedName("status") val status: Boolean = false,
+    @SerializedName("message") val message: String = "",
+    @SerializedName("data") val data: List<DistractionLogItem> = emptyList()
+)
+
+data class LogDistractionResponse(
+    @SerializedName("status") val status: Boolean = false,
+    @SerializedName("message") val message: String = "",
+    @SerializedName("id") val id: Int? = null
 )
 
 @Immutable
