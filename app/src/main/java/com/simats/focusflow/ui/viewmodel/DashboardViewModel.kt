@@ -13,6 +13,7 @@ import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.data.TokenSyncHelper
 import com.simats.focusflow.utils.ProfileImageManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -41,6 +42,9 @@ class DashboardViewModel(
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
     private var currentUserId: Int = 1
+    private var avatarPathJob: Job? = null
+    private var avatarFlowJob: Job? = null
+    private var sessionFlowJob: Job? = null
 
     init {
         // Automatically reload dashboard whenever a focus session completes or is logged
@@ -64,7 +68,10 @@ class DashboardViewModel(
 
     fun initSessionManager(manager: SessionManager) {
         this.sessionManager = manager
-        viewModelScope.launch(Dispatchers.IO) {
+        avatarPathJob?.cancel()
+        avatarFlowJob?.cancel()
+        sessionFlowJob?.cancel()
+        avatarPathJob = viewModelScope.launch(Dispatchers.IO) {
             manager.userAvatarPath.collect { path ->
                 if (!path.isNullOrBlank()) {
                     withContext(Dispatchers.Main) {
@@ -73,7 +80,7 @@ class DashboardViewModel(
                 }
             }
         }
-        viewModelScope.launch(Dispatchers.IO) {
+        avatarFlowJob = viewModelScope.launch(Dispatchers.IO) {
             manager.userAvatarFlow.collect { avatar ->
                 if (!avatar.isNullOrBlank()) {
                     withContext(Dispatchers.Main) {
@@ -82,7 +89,7 @@ class DashboardViewModel(
                 }
             }
         }
-        viewModelScope.launch(Dispatchers.IO) {
+        sessionFlowJob = viewModelScope.launch(Dispatchers.IO) {
             manager.userSessionFlow.collect { session ->
                 if (session.userId != null && session.userId > 0) {
                     currentUserId = session.userId
