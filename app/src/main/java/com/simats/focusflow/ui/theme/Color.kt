@@ -3,7 +3,6 @@ package com.simats.focusflow.ui.theme
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 
-// Default Dark Palette
 val DarkBackground = Color(0xFF0F0F14)
 val DarkSurface = Color(0xFF181722)
 val DarkSurfaceVariant = Color(0xFF201F2D)
@@ -13,7 +12,6 @@ val DarkPrimaryLight = Color(0xFFC4B5FD)
 val DarkTextPrimary = Color(0xFFF1F1F5)
 val DarkTextMuted = Color(0xFF9CA3AF)
 
-// Clean Light Palette
 val LightBackground = Color(0xFFF8F9FA)
 val LightSurface = Color(0xFFFFFFFF)
 val LightSurfaceVariant = Color(0xFFF3F4F6)
@@ -23,12 +21,10 @@ val LightPrimaryLight = Color(0xFF8B5CF6)
 val LightTextPrimary = Color(0xFF111827)
 val LightTextMuted = Color(0xFF6B7280)
 
-// Semantic Accents
 val SuccessGreen = Color(0xFF10B981)
 val WarningAmber = Color(0xFFF59E0B)
 val DangerRed = Color(0xFFEF4444)
 
-// Legacy Material Tokens (kept for compatibility)
 val Purple80 = DarkPrimaryLight
 val PurpleGrey80 = DarkTextMuted
 val Pink80 = Color(0xFFEFB8C8)

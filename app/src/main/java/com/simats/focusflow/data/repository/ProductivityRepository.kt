@@ -18,10 +18,8 @@ import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 
-/**
- * Repository handling data caching, network dispatching,
- * and error fallbacks for Dashboard, Tasks, Timer, and Habits.
- */
+
+
 class ProductivityRepository(
     private val apiService: FlowApiService = RetrofitClient.flowApiService
 ) {
@@ -139,7 +137,6 @@ class ProductivityRepository(
                 Result.failure(Exception(response.body()?.message ?: "Failed to create task"))
             }
         } catch (e: Exception) {
-            // Local fallback
             Result.success(
                 TaskItem(
                     id = (System.currentTimeMillis() % 100000).toInt(),
@@ -200,7 +197,6 @@ class ProductivityRepository(
         lastLogSessionTime = now
         lastLogSessionParams = paramKey
 
-        // 1. Immediately persist to local SQLite focus_sessions table
         appContext?.let { ctx ->
             try {
                 FocusSessionDatabase.getInstance(ctx).insertSession(
@@ -216,11 +212,9 @@ class ProductivityRepository(
                     sessionUuid = sessionUuid
                 )
             } catch (e: Exception) {
-                // Ignore local database insertion errors
             }
         }
 
-        // 2. Synchronize with remote backend API
         val result = try {
             val request = LogSessionRequest(
                 userId = userId,
@@ -277,10 +271,8 @@ class ProductivityRepository(
         }
     }
 
-    /**
-     * Queries habits for the given user from the remote API.
-     * Guarantees an empty habits list without seeded defaults for new user accounts.
-     */
+    
+
     fun calculateCurrentStreak(completedDates: List<String>): Int {
         if (completedDates.isEmpty()) return 0
         val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())

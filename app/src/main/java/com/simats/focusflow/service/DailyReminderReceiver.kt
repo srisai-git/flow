@@ -66,7 +66,6 @@ class DailyReminderReceiver : BroadcastReceiver() {
             return
         }
 
-        // Action is ACTION_DAILY_REMINDER - Wall clock reached user's custom reminder time
         NotificationHelper.createNotificationChannels(context)
         NotificationHelper.showNotification(
             context = context,
@@ -78,7 +77,6 @@ class DailyReminderReceiver : BroadcastReceiver() {
         )
         Log.d(TAG, "Daily reminder notification fired successfully.")
 
-        // Automatically reschedule for the next day at the exact same custom time
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val sessionManager = SessionManager.getInstance(context)

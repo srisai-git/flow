@@ -2,9 +2,8 @@ package com.simats.focusflow.data.models
 
 import com.google.gson.annotations.SerializedName
 
-/**
- * User data payload returned by the authentication endpoints.
- */
+
+
 data class User(
     @SerializedName("id")
     val id: Int = 0,
@@ -25,9 +24,8 @@ data class User(
     val bio: String = ""
 )
 
-/**
- * Request payload for logging in to flow_backend.
- */
+
+
 data class LoginRequest(
     @SerializedName("email")
     val email: String,
@@ -36,9 +34,8 @@ data class LoginRequest(
     val password: String
 )
 
-/**
- * Request payload for registering a new user in flow_backend.
- */
+
+
 data class RegisterRequest(
     @SerializedName("name")
     val name: String,
@@ -50,9 +47,8 @@ data class RegisterRequest(
     val password: String
 )
 
-/**
- * Response payload returned from flow_backend auth endpoints.
- */
+
+
 data class AuthResponse(
     @SerializedName("status")
     val status: Boolean = false,
@@ -73,9 +69,8 @@ data class AuthResponse(
         get() = status
 }
 
-/**
- * Request payload for saving user preferences from the onboarding customization screen.
- */
+
+
 data class SavePreferencesRequest(
     @SerializedName("user_id")
     val userId: Int,
@@ -96,9 +91,8 @@ data class SavePreferencesRequest(
     val reminderTime: String = "09:00 AM"
 )
 
-/**
- * Response payload returned when saving preferences.
- */
+
+
 data class PreferencesResponse(
     @SerializedName("status")
     val status: Boolean = false,
@@ -107,9 +101,8 @@ data class PreferencesResponse(
     val message: String = ""
 )
 
-/**
- * Request payload for synchronizing Firebase Cloud Messaging (FCM) registration token.
- */
+
+
 data class UpdateTokenRequest(
     @SerializedName("user_id")
     val userId: Int,
@@ -118,9 +111,8 @@ data class UpdateTokenRequest(
     val fcmToken: String
 )
 
-/**
- * Response payload returned when updating FCM registration token.
- */
+
+
 data class UpdateTokenResponse(
     @SerializedName("status")
     val status: String? = null,

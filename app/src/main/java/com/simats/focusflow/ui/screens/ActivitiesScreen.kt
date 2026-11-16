@@ -8,10 +8,8 @@ import androidx.compose.ui.unit.dp
 import com.simats.focusflow.ui.components.SegmentedControl
 import com.simats.focusflow.ui.theme.FocusFlowTheme
 
-/**
- * Consolidated Activities Screen combining Task Management and Habit Tracking
- * with a dual-tab toggle at the top (Requirement 11).
- */
+
+
 @Composable
 fun ActivitiesScreen(
     initialTab: String = "Tasks",

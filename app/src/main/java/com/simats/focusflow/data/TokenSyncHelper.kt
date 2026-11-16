@@ -18,10 +18,8 @@ import java.net.URL
 object TokenSyncHelper {
     private const val TAG = "FlowTokenSync"
 
-    /**
-     * Sends a request to update_token.php using RetrofitClient's configured baseUrl.
-     * Logs success or failure with tag "FlowTokenSync".
-     */
+    
+
     suspend fun syncFcmToken(token: String, userId: Int): Boolean {
         if (token.isBlank()) {
             Log.w(TAG, "Empty FCM token provided, skipping token sync.")
@@ -33,7 +31,6 @@ object TokenSyncHelper {
         }
 
         return withContext(Dispatchers.IO) {
-            // 1. Primary approach: Use RetrofitClient with constant baseUrl
             try {
                 Log.d(TAG, "Attempting Retrofit token sync to ${RetrofitClient.baseUrl}update_token.php for user $userId")
                 val response = RetrofitClient.flowApiService.updateFcmToken(
@@ -50,12 +47,10 @@ object TokenSyncHelper {
                 Log.e(TAG, "Retrofit token sync failed: ${e.message}", e)
             }
 
-            // 2. Secondary approach: Direct POST to RetrofitClient.baseUrl + update_token.php
             val retrofitTargetUrl = "${RetrofitClient.baseUrl}update_token.php"
             val success = postToken(token, userId, retrofitTargetUrl)
             if (success) return@withContext true
 
-            // 3. Fallbacks: Local LAN / Emulator endpoints if reachable
             val fallbackUrls = listOf(
                 "http://10.0.2.2/flow_backend/update_token.php",
                 "http://172.23.176.89/flow_backend/update_token.php",
@@ -72,10 +67,8 @@ object TokenSyncHelper {
         }
     }
 
-    /**
-     * Resolves the active user ID from SessionManager and the active FCM registration token,
-     * then dispatches synchronization to the backend.
-     */
+    
+
     suspend fun syncForCurrentUser(context: Context, tokenOverride: String? = null): Boolean {
         return withContext(Dispatchers.IO) {
             try {

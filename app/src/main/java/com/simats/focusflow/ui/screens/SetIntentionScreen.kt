@@ -88,7 +88,6 @@ fun SetIntentionScreen(
         
         Spacer(modifier = Modifier.height(36.dp))
         
-        // Circular Duration Indicator
         Box(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center

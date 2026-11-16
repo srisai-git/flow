@@ -14,10 +14,8 @@ import kotlinx.coroutines.withContext
 import retrofit2.Response
 import java.io.IOException
 
-/**
- * Concrete implementation of AuthRepository handling API calls,
- * thread-switching via Coroutines Dispatchers.IO, and graceful error parsing.
- */
+
+
 class AuthRepositoryImpl(
     private val apiService: AuthApiService = RetrofitClient.instance,
     private val gson: Gson = Gson()
@@ -61,9 +59,8 @@ class AuthRepositoryImpl(
         emit(register(request))
     }.flowOn(Dispatchers.IO)
 
-    /**
-     * Inspects HTTP response, deserializing JSON error bodies when status code is 4xx or 5xx.
-     */
+    
+
     private fun handleResponse(response: Response<AuthResponse>): Result<AuthResponse> {
         if (response.isSuccessful) {
             val body = response.body()
@@ -74,7 +71,6 @@ class AuthRepositoryImpl(
                 Result.failure(Exception(errorMsg))
             }
         } else {
-            // Parse error response payload from PHP (e.g. {"status": false, "message": "Email already registered."})
             val errorMessage = try {
                 val rawJson = response.errorBody()?.string()
                 if (!rawJson.isNullOrBlank()) {

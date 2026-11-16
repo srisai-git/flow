@@ -10,10 +10,8 @@ import com.simats.focusflow.data.session.SessionManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/**
- * Repository handling user profile data retrieval, live updates,
- * local DataStore synchronization, and stats management.
- */
+
+
 class ProfileRepository(
     private val apiService: FlowApiService = RetrofitClient.flowApiService
 ) {
@@ -59,7 +57,6 @@ class ProfileRepository(
                 sessionManager?.updateProfile(name, email, bio, avatar)
                 Result.success(updated)
             } else {
-                // Graceful fallback to update session locally
                 sessionManager?.updateProfile(name, email, bio, avatar)
                 Result.success(
                     ProfileData(

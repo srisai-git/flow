@@ -115,7 +115,7 @@ object NotificationHelper {
 
         val notification = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_stat_flow)
-            .setColor(0xFF8B5CF6.toInt()) // Primary violet brand color
+            .setColor(0xFF8B5CF6.toInt())
             .setContentTitle(cleanTitle)
             .setContentText(cleanBody)
             .setStyle(NotificationCompat.BigTextStyle().bigText(cleanBody))
@@ -131,10 +131,8 @@ object NotificationHelper {
         notificationManager.notify(notificationId, notification)
     }
 
-    /**
-     * Schedules a high-importance deadline alert exactly 1 hour and 15 minutes (75 minutes)
-     * prior to the task due timestamp using exact alarm scheduling.
-     */
+    
+
     fun scheduleDeadlineNotification(
         context: Context,
         taskId: Int,
@@ -143,7 +141,7 @@ object NotificationHelper {
     ) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
         val dueMillis = parseDueDateTime(dueDateStr) ?: return
-        val alertMillis = dueMillis - (75L * 60 * 1000) // 1 hr 15 mins before due date
+        val alertMillis = dueMillis - (75L * 60 * 1000)
 
         if (alertMillis <= System.currentTimeMillis()) {
             Log.d(TAG, "Task deadline alert time has already passed for task: $taskTitle")
@@ -183,9 +181,8 @@ object NotificationHelper {
         }
     }
 
-    /**
-     * Dispatches an immediate mindful breather notification after deep work sessions.
-     */
+    
+
     fun sendBreatherNotification(context: Context) {
         showNotification(
             context = context,
@@ -197,9 +194,8 @@ object NotificationHelper {
         )
     }
 
-    /**
-     * Schedules a breather prompt after consecutive focus intervals or when idle period exceeds threshold.
-     */
+    
+
     fun scheduleBreatherReminder(context: Context, delayMinutes: Long = 30) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
         val triggerMillis = System.currentTimeMillis() + (delayMinutes * 60 * 1000)

@@ -3,9 +3,8 @@ package com.simats.focusflow.data.models
 import androidx.compose.runtime.Immutable
 import com.google.gson.annotations.SerializedName
 
-/**
- * Task item data model.
- */
+
+
 @Immutable
 data class TaskItem(
     @SerializedName("id")
@@ -24,7 +23,7 @@ data class TaskItem(
     val category: String = "General",
 
     @SerializedName("priority")
-    val priority: String = "medium", // "low", "medium", "high"
+    val priority: String = "medium",
 
     @SerializedName("due_date")
     val dueDate: String = "",
@@ -36,9 +35,8 @@ data class TaskItem(
     val createdAt: String? = null
 )
 
-/**
- * Habit item data model.
- */
+
+
 @Immutable
 data class HabitItem(
     @SerializedName("id")
@@ -96,9 +94,8 @@ data class HabitUserStats(
     @SerializedName("monthly_chart_data") val monthlyChartData: List<HabitMonthlyChartItem> = emptyList()
 )
 
-/**
- * Dashboard aggregate payload model.
- */
+
+
 @Immutable
 data class DashboardData(
     @SerializedName("user_name")
@@ -138,7 +135,6 @@ data class DashboardData(
     val habits: List<HabitItem> = emptyList()
 )
 
-// API Responses
 data class DashboardResponse(
     @SerializedName("status")
     val status: Boolean = false,
@@ -373,9 +369,8 @@ data class DeleteHabitRequest(
     val action: String = "delete"
 )
 
-/**
- * Profile and user management data models.
- */
+
+
 @Immutable
 data class ProfileData(
     @SerializedName("id")

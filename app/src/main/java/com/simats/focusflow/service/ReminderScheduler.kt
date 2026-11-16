@@ -14,11 +14,8 @@ object ReminderScheduler {
     private const val TAG = "ReminderScheduler"
     private const val REQUEST_CODE = 4401
 
-    /**
-     * Schedules or cancels the daily focus reminder alarm at the specified custom time.
-     * Uses AlarmManager with exact RTC_WAKEUP alarms so the notification fires reliably
-     * even when the device is idle or in doze mode.
-     */
+    
+
     fun scheduleDailyReminder(context: Context, timeStr: String, enabled: Boolean) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager
         if (alarmManager == null) {
@@ -118,10 +115,8 @@ object ReminderScheduler {
         Log.d(TAG, "Daily reminder alarm cancelled.")
     }
 
-    /**
-     * Parses the custom time string (e.g. "08:35 AM", "02:15 PM") and calculates
-     * the next occurrence timestamp. If the time has already passed today, schedules for tomorrow.
-     */
+    
+
     private fun calculateTargetTime(timeStr: String): Calendar {
         val now = Calendar.getInstance()
         val target = Calendar.getInstance()
@@ -148,7 +143,6 @@ object ReminderScheduler {
             target.set(Calendar.MILLISECOND, 0)
         }
 
-        // If the custom target time is within the past 10 seconds of today or earlier, schedule for tomorrow
         if (target.timeInMillis <= now.timeInMillis + 5000) {
             target.add(Calendar.DAY_OF_YEAR, 1)
         }

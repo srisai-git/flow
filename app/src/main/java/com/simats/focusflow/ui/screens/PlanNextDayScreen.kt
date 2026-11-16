@@ -123,7 +123,6 @@ fun PlanNextDayScreen(onBack: () -> Unit = {}, onReviewTasks: () -> Unit = {}) {
                 }
             }
         } else {
-            // Likelihood card
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -147,7 +146,6 @@ fun PlanNextDayScreen(onBack: () -> Unit = {}, onReviewTasks: () -> Unit = {}) {
             
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Inputs card
             Box(
                 modifier = Modifier
                     .fillMaxWidth()

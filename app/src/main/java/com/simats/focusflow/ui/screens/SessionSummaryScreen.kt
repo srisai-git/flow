@@ -84,7 +84,6 @@ fun SessionSummaryScreen(
         
         Spacer(modifier = Modifier.height(28.dp))
         
-        // Summary Card
         Box(
             modifier = Modifier
                 .fillMaxWidth()

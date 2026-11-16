@@ -16,12 +16,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.io.IOException
 
-// Application-scoped DataStore delegate
 private val Context.sessionDataStore: DataStore<Preferences> by preferencesDataStore(name = "focusflow_session_prefs")
 
-/**
- * Immutable data holder representing the active user session.
- */
+
+
 data class UserSession(
     val isLoggedIn: Boolean = false,
     val userId: Int? = null,
@@ -33,9 +31,8 @@ data class UserSession(
     val isOnboardingCompleted: Boolean = false
 )
 
-/**
- * Singleton repository managing authentication and session persistence using Jetpack DataStore Preferences.
- */
+
+
 class SessionManager private constructor(
     private val dataStore: DataStore<Preferences>
 ) {
@@ -73,45 +70,40 @@ class SessionManager private constructor(
         }
     }
 
-    /**
-     * Emits whether the user is actively logged in.
-     */
+    
+
     val isLoggedInFlow: Flow<Boolean> = dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { preferences ->
             preferences[KEY_IS_LOGGED_IN] ?: false
         }
 
-    /**
-     * Emits the authenticated user's numeric ID or null.
-     */
+    
+
     val userIdFlow: Flow<Int?> = dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { preferences ->
             preferences[KEY_USER_ID]
         }
 
-    /**
-     * Emits the cached user avatar uri/url directly.
-     */
+    
+
     val userAvatarFlow: Flow<String?> = dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { preferences ->
             preferences[KEY_USER_AVATAR_PATH] ?: preferences[KEY_USER_AVATAR_URI] ?: preferences[KEY_USER_AVATAR]
         }
 
-    /**
-     * Emits the persistent local avatar file path directly.
-     */
+    
+
     val userAvatarPath: Flow<String?> = dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { preferences ->
             preferences[KEY_USER_AVATAR_PATH] ?: preferences[KEY_USER_AVATAR_URI] ?: preferences[KEY_USER_AVATAR]
         }
 
-    /**
-     * Emits the entire composite UserSession.
-     */
+    
+
     val userSessionFlow: Flow<UserSession> = dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { preferences ->
@@ -128,9 +120,8 @@ class SessionManager private constructor(
             )
         }
 
-    /**
-     * Saves user credentials and activates logged-in status.
-     */
+    
+
     suspend fun saveSession(
         userId: Int,
         name: String,
@@ -145,7 +136,6 @@ class SessionManager private constructor(
             preferences[KEY_USER_NAME] = name
             preferences[KEY_USER_EMAIL] = email
 
-            // Restore user-specific avatar path if available
             val storedUserAvatar = preferences[keyAvatarForUser(userId)]
             val finalAvatar = when {
                 !storedUserAvatar.isNullOrBlank() -> storedUserAvatar
@@ -167,9 +157,8 @@ class SessionManager private constructor(
         }
     }
 
-    /**
-     * Updates the user profile name, email, bio, and avatar across the active session.
-     */
+    
+
     suspend fun updateProfile(name: String, email: String, bio: String = "", avatar: String = "", userId: Int? = null) {
         dataStore.edit { preferences ->
             preferences[KEY_USER_NAME] = name
@@ -187,9 +176,8 @@ class SessionManager private constructor(
         }
     }
 
-    /**
-     * Saves the avatar path or URI directly to local DataStore.
-     */
+    
+
     suspend fun saveAvatarPath(path: String, userId: Int? = null) {
         dataStore.edit { preferences ->
             preferences[KEY_USER_AVATAR] = path
@@ -202,34 +190,30 @@ class SessionManager private constructor(
         }
     }
 
-    /**
-     * Saves the avatar URI/URL directly to local DataStore.
-     */
+    
+
     suspend fun saveAvatarUri(uri: String) {
         saveAvatarPath(uri)
     }
 
-    /**
-     * Updates the onboarding flag once the user completes the "Make It Yours" customization.
-     */
+    
+
     suspend fun setOnboardingCompleted(completed: Boolean = true) {
         dataStore.edit { preferences ->
             preferences[KEY_ONBOARDING_COMPLETED] = completed
         }
     }
 
-    /**
-     * Emits the selected theme mode ("dark" or "light"). Defaults to "light".
-     */
+    
+
     val themeModeFlow: Flow<String> = dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { preferences ->
             preferences[KEY_THEME_MODE] ?: "light"
         }
 
-    /**
-     * Updates the persistent theme mode ("dark" or "light").
-     */
+    
+
     suspend fun setThemeMode(mode: String) {
         dataStore.edit { preferences ->
             preferences[KEY_THEME_MODE] = mode
@@ -301,9 +285,8 @@ class SessionManager private constructor(
         }
     }
 
-    /**
-     * Safely reads cached token or user ID, returning null on any error or corruption.
-     */
+    
+
     fun getToken(): String? {
         return try {
             kotlinx.coroutines.runBlocking(Dispatchers.IO) {
@@ -319,9 +302,8 @@ class SessionManager private constructor(
         }
     }
 
-    /**
-     * Clears active session keys upon logout while retaining user-keyed avatar paths.
-     */
+    
+
     suspend fun clearSession() {
         dataStore.edit { preferences ->
             val currentUid = preferences[KEY_USER_ID]

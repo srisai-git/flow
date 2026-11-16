@@ -78,7 +78,6 @@ fun RecommendationsScreen(
     val totalMins = insightsData.weekFocusMinutes
     val hasEnoughData = totalSessions > 0 || totalMins >= 15
 
-    // Dynamically generated recommendations from real database records
     val dynamicRecommendations = remember(insightsData) {
         if (!hasEnoughData) {
             emptyList()
@@ -179,7 +178,6 @@ fun RecommendationsScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         if (!hasEnoughData) {
-            // Clean Empty-State UI (Requirement 1 & 2)
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -236,7 +234,6 @@ fun RecommendationsScreen(
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        // "Why this suggestion?" Action Link
         Surface(
             onClick = onWhySuggestion,
             shape = RoundedCornerShape(16.dp),
@@ -270,7 +267,6 @@ fun RecommendationsScreen(
         
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Dismiss / Close Button (Requirement 7: Removed "Apply" button)
         OutlinedButton(
             onClick = onBack,
             modifier = Modifier

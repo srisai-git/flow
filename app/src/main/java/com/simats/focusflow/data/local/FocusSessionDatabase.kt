@@ -13,11 +13,8 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-/**
- * Local SQLite Database managing the focus_sessions table.
- * Acts as the offline-first single source of truth for timer completions,
- * logged sessions, and reactive profile/analytics aggregations.
- */
+
+
 class FocusSessionDatabase private constructor(context: Context) :
     SQLiteOpenHelper(context.applicationContext, DATABASE_NAME, null, DATABASE_VERSION) {
 
@@ -135,9 +132,8 @@ class FocusSessionDatabase private constructor(context: Context) :
         } catch (_: Exception) {}
     }
 
-    /**
-     * Inserts a completed focus session record and notifies reactive observers.
-     */
+    
+
     fun insertSession(
         userId: Int,
         durationMinutes: Int,
@@ -185,9 +181,8 @@ class FocusSessionDatabase private constructor(context: Context) :
         return rowId
     }
 
-    /**
-     * Queries recent sessions sorted by newest first.
-     */
+    
+
     fun getRecentSessions(userId: Int, limit: Int = 50): List<FocusSessionRecord> {
         val list = mutableListOf<FocusSessionRecord>()
         val query = """
@@ -235,9 +230,8 @@ class FocusSessionDatabase private constructor(context: Context) :
         return list
     }
 
-    /**
-     * Computes total focus minutes for a given user across all recorded sessions.
-     */
+    
+
     fun getTotalFocusMinutes(userId: Int): Int {
         val query = "SELECT COALESCE(SUM($COLUMN_DURATION_MINUTES), 0) FROM $TABLE_FOCUS_SESSIONS WHERE $COLUMN_USER_ID = ?"
         val cursor = readableDatabase.rawQuery(query, arrayOf(userId.toString()))
@@ -246,9 +240,8 @@ class FocusSessionDatabase private constructor(context: Context) :
         }
     }
 
-    /**
-     * Computes focus minutes logged today.
-     */
+    
+
     fun getMonthStartTimestamp(): Long {
         return Calendar.getInstance().apply {
             set(Calendar.DAY_OF_MONTH, 1)
@@ -259,10 +252,8 @@ class FocusSessionDatabase private constructor(context: Context) :
         }.timeInMillis
     }
 
-    /**
-     * Accurately calculates total focus minutes for the current month strictly bounded
-     * between the 1st day of the month 00:00:00.000 and current time with status = 'completed'.
-     */
+    
+
     fun getCurrentMonthFocusMinutes(userId: Int): Int {
         val cal = Calendar.getInstance().apply {
             set(Calendar.DAY_OF_MONTH, 1)
@@ -298,14 +289,12 @@ class FocusSessionDatabase private constructor(context: Context) :
         }
     }
 
-    /**
-     * Returns focus minutes for the past 7 days grouped by date (YYYY-MM-DD).
-     */
+    
+
     fun getDailyMinutesPast7Days(userId: Int): Map<String, Int> {
         val result = mutableMapOf<String, Int>()
         val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
-        // Initialize 7 days with 0
         val cal = Calendar.getInstance()
         cal.add(Calendar.DAY_OF_YEAR, -6)
         val dateKeys = mutableListOf<String>()
@@ -335,9 +324,8 @@ class FocusSessionDatabase private constructor(context: Context) :
         return result
     }
 
-    /**
-     * Queries all focus sessions recorded for today for the given user.
-     */
+    
+
     fun getTodaySessions(userId: Int): List<FocusSessionRecord> {
         val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
         val list = mutableListOf<FocusSessionRecord>()
@@ -383,13 +371,8 @@ class FocusSessionDatabase private constructor(context: Context) :
         return list
     }
 
-    /**
-     * Calculates focus minutes for each of the 4 weeks of the current month.
-     * Week 1: Days 1-7
-     * Week 2: Days 8-14
-     * Week 3: Days 15-21
-     * Week 4: Days 22-end of month
-     */
+    
+
     fun getMonthWeeklyMinutes(userId: Int): List<Int> {
         val cal = Calendar.getInstance()
         val currentYear = cal.get(Calendar.YEAR)
@@ -424,18 +407,15 @@ class FocusSessionDatabase private constructor(context: Context) :
         return weekMinutes.toList()
     }
 
-    /**
-     * Verifies that all returned sessions strictly belong to the specified user,
-     * ensuring complete data isolation between authenticated user sessions.
-     */
+    
+
     fun verifyUserSessionIsolation(userId: Int): Boolean {
         val userSessions = getRecentSessions(userId, 100)
         return userSessions.all { it.userId == userId }
     }
 
-    /**
-     * Clears all session data for a user (used during stats reset).
-     */
+    
+
     fun clearUserData(userId: Int) {
         writableDatabase.delete(TABLE_FOCUS_SESSIONS, "$COLUMN_USER_ID = ?", arrayOf(userId.toString()))
         notifyTableChanged()
