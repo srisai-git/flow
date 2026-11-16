@@ -8,6 +8,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -59,6 +60,7 @@ fun InsightsScreen(
 
     var insightsData by remember { mutableStateOf(InsightsData()) }
     var monthlyFocusMinutes by remember { mutableStateOf(0) }
+    var weeklyDistractionsByDay by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
@@ -78,6 +80,20 @@ fun InsightsScreen(
             try {
                 val localDb = com.simats.focusflow.data.local.FocusSessionDatabase.getInstance(context)
                 monthlyFocusMinutes = localDb.getCurrentMonthFocusMinutes(userId)
+                val distList = localDb.getDistractions(userId, 100)
+                val dayFmt = SimpleDateFormat("EEE", Locale.US)
+                val parseFmt = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
+                val counts = mutableMapOf<String, Int>()
+                distList.forEach { d ->
+                    try {
+                        val parsed = parseFmt.parse(d.createdAt)
+                        if (parsed != null) {
+                            val dayStr = dayFmt.format(parsed)
+                            counts[dayStr] = (counts[dayStr] ?: 0) + 1
+                        }
+                    } catch (_: Exception) {}
+                }
+                weeklyDistractionsByDay = counts
             } catch (_: Exception) {}
         }
     }
@@ -219,7 +235,25 @@ fun InsightsScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    if (selectedTab == "Week") {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF10B981)))
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text("Focus (min)", fontSize = 10.5.sp, color = colors.textMuted)
+                            Spacer(modifier = Modifier.width(14.dp))
+                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFF59E0B)))
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text("Distractions", fontSize = 10.5.sp, color = colors.textMuted)
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.height(24.dp))
+                    }
 
                     val chartItems = insightsData.dailyChartData
                     val dataPoints = if (chartItems.isNotEmpty() && selectedTab == "Week") {
@@ -239,7 +273,12 @@ fun InsightsScreen(
                         listOf("W1", "W2", "W3", "W4")
                     }
 
-                    val maxVal = (dataPoints.maxOrNull() ?: 60).coerceAtLeast(60).toFloat()
+                    val distractionPoints = labels.map { day ->
+                        weeklyDistractionsByDay[day] ?: (weeklyDistractionsByDay[day.take(3)] ?: 0)
+                    }
+
+                    val maxFocus = (dataPoints.maxOrNull() ?: 60).coerceAtLeast(45).toFloat()
+                    val maxDistract = (distractionPoints.maxOrNull() ?: 5).coerceAtLeast(5).toFloat()
                     val primaryColor = colors.primary
                     val primaryLight = colors.primaryLight
                     val surfaceVariant = colors.surfaceVariant
@@ -250,35 +289,96 @@ fun InsightsScreen(
                             .height(140.dp)
                     ) {
                         Canvas(modifier = Modifier.fillMaxSize()) {
-                            val barWidth = if (selectedTab == "Week") 22.dp.toPx() else 42.dp.toPx()
-                            val totalBars = dataPoints.size
-                            val spacing = (size.width - (barWidth * totalBars)) / (totalBars + 1)
-                            val chartH = size.height - 24.dp.toPx()
+                            val chartH = size.height - 18.dp.toPx()
+                            if (selectedTab == "Week") {
+                                val totalDays = labels.size
+                                val groupWidth = 34.dp.toPx()
+                                val totalGroupWidth = groupWidth * totalDays
+                                val spacing = (size.width - totalGroupWidth) / (totalDays + 1)
+                                val subBarWidth = (groupWidth - 4.dp.toPx()) / 2f
 
-                            dataPoints.forEachIndexed { index, value ->
-                                val x = spacing + index * (barWidth + spacing)
-                                val ratio = if (value > 0) (value / maxVal).coerceIn(0.05f, 1f) else 0f
-                                val barH = chartH * ratio
-                                val y = chartH - barH
+                                labels.forEachIndexed { index, _ ->
+                                    val groupX = spacing + index * (groupWidth + spacing)
+                                    val focusVal = dataPoints.getOrElse(index) { 0 }
+                                    val distractVal = distractionPoints.getOrElse(index) { 0 }
 
-                                drawRoundRect(
-                                    color = surfaceVariant,
-                                    topLeft = Offset(x, 0f),
-                                    size = Size(barWidth, chartH),
-                                    cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
-                                )
+                                    val focusRatio = if (focusVal > 0) (focusVal / maxFocus).coerceIn(0.06f, 1f) else 0f
+                                    val focusH = chartH * focusRatio
+                                    val focusY = chartH - focusH
 
-                                if (ratio > 0f) {
                                     drawRoundRect(
-                                        brush = Brush.verticalGradient(
-                                            colors = listOf(primaryLight, primaryColor),
-                                            startY = y,
-                                            endY = chartH
-                                        ),
-                                        topLeft = Offset(x, y),
-                                        size = Size(barWidth, maxOf(barH, 4.dp.toPx())),
+                                        color = surfaceVariant,
+                                        topLeft = Offset(groupX, 0f),
+                                        size = Size(subBarWidth, chartH),
+                                        cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())
+                                    )
+                                    if (focusRatio > 0f) {
+                                        drawRoundRect(
+                                            brush = Brush.verticalGradient(
+                                                colors = listOf(Color(0xFF34D399), Color(0xFF10B981)),
+                                                startY = focusY,
+                                                endY = chartH
+                                            ),
+                                            topLeft = Offset(groupX, focusY),
+                                            size = Size(subBarWidth, maxOf(focusH, 4.dp.toPx())),
+                                            cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())
+                                        )
+                                    }
+
+                                    val distractX = groupX + subBarWidth + 4.dp.toPx()
+                                    val distractRatio = if (distractVal > 0) (distractVal / maxDistract).coerceIn(0.06f, 1f) else 0f
+                                    val distractH = chartH * distractRatio
+                                    val distractY = chartH - distractH
+
+                                    drawRoundRect(
+                                        color = surfaceVariant,
+                                        topLeft = Offset(distractX, 0f),
+                                        size = Size(subBarWidth, chartH),
+                                        cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())
+                                    )
+                                    if (distractRatio > 0f) {
+                                        drawRoundRect(
+                                            brush = Brush.verticalGradient(
+                                                colors = listOf(Color(0xFFFBBF24), Color(0xFFF59E0B)),
+                                                startY = distractY,
+                                                endY = chartH
+                                            ),
+                                            topLeft = Offset(distractX, distractY),
+                                            size = Size(subBarWidth, maxOf(distractH, 4.dp.toPx())),
+                                            cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())
+                                        )
+                                    }
+                                }
+                            } else {
+                                val barWidth = 42.dp.toPx()
+                                val totalBars = dataPoints.size
+                                val spacing = (size.width - (barWidth * totalBars)) / (totalBars + 1)
+
+                                dataPoints.forEachIndexed { index, value ->
+                                    val x = spacing + index * (barWidth + spacing)
+                                    val ratio = if (value > 0) (value / maxFocus).coerceIn(0.05f, 1f) else 0f
+                                    val barH = chartH * ratio
+                                    val y = chartH - barH
+
+                                    drawRoundRect(
+                                        color = surfaceVariant,
+                                        topLeft = Offset(x, 0f),
+                                        size = Size(barWidth, chartH),
                                         cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
                                     )
+
+                                    if (ratio > 0f) {
+                                        drawRoundRect(
+                                            brush = Brush.verticalGradient(
+                                                colors = listOf(primaryLight, primaryColor),
+                                                startY = y,
+                                                endY = chartH
+                                            ),
+                                            topLeft = Offset(x, y),
+                                            size = Size(barWidth, maxOf(barH, 4.dp.toPx())),
+                                            cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -391,7 +491,6 @@ fun InsightsScreen(
                     )
                 }
             }
-
             }
 
             Spacer(modifier = Modifier.height(100.dp))
