@@ -79,6 +79,15 @@ fun rememberDarkShimmerBrush(): Brush {
     )
 }
 
+@Composable
+fun DarkShimmerSkeletonItem(
+    modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(12.dp)
+) {
+    val brush = rememberDarkShimmerBrush()
+    Spacer(modifier = modifier.background(brush, shape))
+}
+
 
 @Composable
 fun ShimmerSkeletonItem(
