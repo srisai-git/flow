@@ -12,9 +12,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/**
- * UI State holding user selections on the "Make It Yours" onboarding screen.
- */
+
+
 data class MakeItYoursState(
     val selectedFocusArea: String = "Coding & Projects",
     val dailyGoalHours: Int = 4,
@@ -25,10 +24,8 @@ data class MakeItYoursState(
     val errorMessage: String? = null
 )
 
-/**
- * ViewModel orchestrating user customization options after Signup,
- * exposing StateFlow and handling saving preferences to flow_backend.
- */
+
+
 class MakeItYoursViewModel(
     private val apiService: AuthApiService = RetrofitClient.instance,
     private var sessionManager: SessionManager? = null
@@ -84,10 +81,8 @@ class MakeItYoursViewModel(
             try {
                 apiService.savePreferences(request)
             } catch (e: Exception) {
-                // Fail-safe fallback for offline / disconnected situations
             }
 
-            // Mark onboarding as completed in DataStore session
             sessionManager?.setOnboardingCompleted(true)
 
             _uiState.update { it.copy(isLoading = false, isComplete = true) }

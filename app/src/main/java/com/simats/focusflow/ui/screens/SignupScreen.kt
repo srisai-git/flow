@@ -52,11 +52,8 @@ import com.simats.focusflow.ui.viewmodel.AuthUiState
 import com.simats.focusflow.ui.viewmodel.AuthViewModel
 import com.simats.focusflow.utils.AuthValidator
 
-/**
- * Modern minimalist Signup Screen for FocusFlow.
- * Styled in dark canvas (#0F0F14), elevated surface card (#181722), and violet accents (#8B5CF6).
- * Connected to flow_backend via MVVM architecture and StateFlow.
- */
+
+
 @Composable
 fun SignupScreen(
     onBack: () -> Unit = {},
@@ -128,7 +125,6 @@ fun SignupScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // App Brand Logo & Name
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
@@ -170,7 +166,6 @@ fun SignupScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Error Banner Display
             if (uiState.errorMessage != null) {
                 Surface(
                     modifier = Modifier
@@ -212,7 +207,6 @@ fun SignupScreen(
                 }
             }
 
-            // Elevated Form Card
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
@@ -224,7 +218,6 @@ fun SignupScreen(
                         .fillMaxWidth()
                         .padding(20.dp)
                 ) {
-                    // Name Field
                     Text(
                         text = "Full Name",
                         fontSize = 13.sp,
@@ -291,7 +284,6 @@ fun SignupScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Email Field
                     Text(
                         text = "Email Address",
                         fontSize = 13.sp,
@@ -358,7 +350,6 @@ fun SignupScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Password Field
                     Text(
                         text = "Password",
                         fontSize = 13.sp,
@@ -441,7 +432,6 @@ fun SignupScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Confirm Password Field
                     Text(
                         text = "Confirm Password",
                         fontSize = 13.sp,
@@ -535,7 +525,6 @@ fun SignupScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Terms & Privacy Checkbox
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
@@ -561,7 +550,6 @@ fun SignupScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // Signup Action Button (Solid violet #8B5CF6 with rounded corners)
                     Button(
                         onClick = {
                             focusManager.clearFocus()
@@ -608,7 +596,6 @@ fun SignupScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // Navigation link back to Login
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -642,9 +629,8 @@ fun SignupScreen(
     }
 }
 
-/**
- * Backward compatibility alias for CreateAccountScreen.
- */
+
+
 @Composable
 fun CreateAccountScreen(
     onBack: () -> Unit = {},

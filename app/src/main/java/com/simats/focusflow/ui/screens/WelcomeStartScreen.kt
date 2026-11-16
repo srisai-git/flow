@@ -49,11 +49,8 @@ import com.simats.focusflow.ui.theme.DarkSurfaceVariant
 import com.simats.focusflow.ui.theme.DarkTextMuted
 import com.simats.focusflow.ui.theme.DarkTextPrimary
 
-/**
- * Branded dark Welcome / Get Started Screen for FocusFlow.
- * Adheres strictly to the unified dark theme (#0F0F14 canvas, #181722 surface cards,
- * #262433 borders, #8B5CF6 violet buttons, and zero emojis).
- */
+
+
 @Composable
 fun WelcomeStartScreen(
     onBack: () -> Unit = {},
@@ -70,7 +67,6 @@ fun WelcomeStartScreen(
             .padding(top = 44.dp, bottom = 24.dp, start = 24.dp, end = 24.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        // Subtle Brand Header
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
@@ -124,7 +120,6 @@ fun WelcomeStartScreen(
 
         Spacer(modifier = Modifier.height(36.dp))
 
-        // Abstract Geometric Centerpiece
         Box(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center
@@ -137,21 +132,18 @@ fun WelcomeStartScreen(
                     val center = Offset(size.width / 2f, size.height / 2f)
                     val radius = size.minDimension / 2f - 16.dp.toPx()
 
-                    // Background orbit track
                     drawCircle(
                         color = Color(0xFF1E1C2B),
                         radius = radius,
                         style = Stroke(width = 8.dp.toPx())
                     )
 
-                    // Secondary inner track
                     drawCircle(
                         color = Color(0xFF181722),
                         radius = radius - 20.dp.toPx(),
                         style = Stroke(width = 4.dp.toPx())
                     )
 
-                    // Gradient active arc
                     drawArc(
                         brush = Brush.sweepGradient(
                             listOf(DarkPrimary, DarkPrimaryLight, Color(0xFF6366F1), DarkPrimary)
@@ -162,7 +154,6 @@ fun WelcomeStartScreen(
                         style = Stroke(width = 8.dp.toPx(), cap = StrokeCap.Round)
                     )
 
-                    // Accent tick marker
                     drawCircle(
                         color = DarkPrimaryLight,
                         radius = 5.dp.toPx(),
@@ -173,7 +164,6 @@ fun WelcomeStartScreen(
                     )
                 }
 
-                // Center Icon / Emblem
                 Box(
                     modifier = Modifier
                         .size(80.dp)
@@ -193,7 +183,6 @@ fun WelcomeStartScreen(
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        // Feature Highlight Card
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -238,7 +227,6 @@ fun WelcomeStartScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Action Buttons
         Button(
             onClick = {
                 coroutineScope.launch {

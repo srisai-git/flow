@@ -85,7 +85,6 @@ fun ForgotPasswordScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // Email Input
             SmartTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -96,7 +95,6 @@ fun ForgotPasswordScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // New Password Input
             Text("New Password", fontSize = 13.sp, color = colors.textMuted, fontWeight = FontWeight.Medium)
             Spacer(modifier = Modifier.height(6.dp))
             OutlinedTextField(
@@ -133,7 +131,6 @@ fun ForgotPasswordScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Confirm Password Input
             Text("Confirm New Password", fontSize = 13.sp, color = colors.textMuted, fontWeight = FontWeight.Medium)
             Spacer(modifier = Modifier.height(6.dp))
             OutlinedTextField(

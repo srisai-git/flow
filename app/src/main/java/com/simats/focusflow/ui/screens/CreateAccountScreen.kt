@@ -5,9 +5,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.simats.focusflow.ui.viewmodel.AuthViewModel
 
-/**
- * CreateAccountScreen implementation delegating to the production-ready SignupScreen.
- */
+
+
 @Composable
 fun CreateAccountScreen(
     onBack: () -> Unit = {},

@@ -22,19 +22,16 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/**
- * High-level authentication states for cold/warm startup and route routing.
- */
+
+
 sealed interface AuthState {
     object Loading : AuthState
     data class Authenticated(val userId: Int, val name: String) : AuthState
     object Unauthenticated : AuthState
 }
 
-/**
- * UI State for authentication screens holding loading status, success indicator,
- * error/success messages, and the authenticated user or token.
- */
+
+
 data class AuthUiState(
     val isLoading: Boolean = false,
     val isSuccess: Boolean = false,
@@ -44,10 +41,8 @@ data class AuthUiState(
     val token: String? = null
 )
 
-/**
- * ViewModel orchestrating authentication logic, input validation,
- * state hoisting, session persistence via DataStore, and network dispatches.
- */
+
+
 class AuthViewModel(
     private val repository: AuthRepository = AuthRepositoryImpl(),
     private val apiService: AuthApiService = RetrofitClient.instance,
@@ -62,26 +57,23 @@ class AuthViewModel(
 
     private var appContext: Context? = null
 
-    /**
-     * Binds the SessionManager singleton for persistence with context for avatar caching.
-     */
+    
+
     fun initSessionManager(context: Context, manager: SessionManager) {
         this.appContext = context.applicationContext
         this.sessionManager = manager
         checkCachedSession(manager)
     }
 
-    /**
-     * Binds the SessionManager singleton for persistence.
-     */
+    
+
     fun initSessionManager(manager: SessionManager) {
         this.sessionManager = manager
         checkCachedSession(manager)
     }
 
-    /**
-     * Checks local cached session credentials on Dispatchers.IO without network blocking.
-     */
+    
+
     fun checkCachedSession(manager: SessionManager) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -100,26 +92,22 @@ class AuthViewModel(
         }
     }
 
-    /**
-     * Clears transient error messages from state.
-     */
+    
+
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
     }
 
-    /**
-     * Resets authentication state to its initial idle state.
-     */
+    
+
     fun resetState() {
         _uiState.value = AuthUiState()
     }
 
-    // Alias for backwards compatibility
     fun resetUiState() = resetState()
 
-    /**
-     * Validates input, triggers user login, and persists session in DataStore upon success.
-     */
+    
+
     fun onLogin(
         email: String,
         password: String,
@@ -127,7 +115,6 @@ class AuthViewModel(
     ) {
         val trimmedEmail = email.trim()
 
-        // Validation
         if (trimmedEmail.isEmpty()) {
             _uiState.update { it.copy(errorMessage = "Please enter your email address.", isSuccess = false) }
             return
@@ -161,7 +148,6 @@ class AuthViewModel(
                         email = trimmedEmail
                     )
 
-                    // Persist session to DataStore (returning users are considered onboarded)
                     val effectiveAvatar = authenticatedUser.avatarUrl.ifBlank { authenticatedUser.avatar }
                     sessionManager?.saveSession(
                         userId = authenticatedUser.id,
@@ -172,7 +158,6 @@ class AuthViewModel(
                         isOnboardingCompleted = true
                     )
 
-                    // If remote avatar exists, cache it to internal storage in background
                     appContext?.let { ctx ->
                         if (effectiveAvatar.isNotBlank() && !effectiveAvatar.startsWith("avatar:") && (effectiveAvatar.startsWith("http") || effectiveAvatar.startsWith("data:"))) {
                             viewModelScope.launch(Dispatchers.IO) {
@@ -182,7 +167,6 @@ class AuthViewModel(
                                 }
                             }
                         }
-                        // Synchronize FCM Token for this authenticated user
                         viewModelScope.launch(Dispatchers.IO) {
                             TokenSyncHelper.syncForCurrentUser(ctx)
                         }
@@ -214,9 +198,8 @@ class AuthViewModel(
         }
     }
 
-    /**
-     * Validates input, registers a new account, and persists initial session in DataStore.
-     */
+    
+
     fun onRegister(
         name: String,
         email: String,
@@ -227,7 +210,6 @@ class AuthViewModel(
         val trimmedName = name.trim()
         val trimmedEmail = email.trim()
 
-        // Validation
         if (trimmedName.isEmpty()) {
             _uiState.update { it.copy(errorMessage = "Please enter your full name.", isSuccess = false) }
             return
@@ -282,7 +264,6 @@ class AuthViewModel(
                         email = trimmedEmail
                     )
 
-                    // Persist initial session (new users still need to complete onboarding)
                     sessionManager?.saveSession(
                         userId = newUser.id,
                         name = newUser.name,
@@ -290,7 +271,6 @@ class AuthViewModel(
                         isOnboardingCompleted = false
                     )
 
-                    // Synchronize FCM Token for the newly registered user
                     appContext?.let { ctx ->
                         viewModelScope.launch(Dispatchers.IO) {
                             TokenSyncHelper.syncForCurrentUser(ctx)
@@ -322,16 +302,14 @@ class AuthViewModel(
         }
     }
 
-    /**
-     * Backward compatibility helper for existing login callers.
-     */
+    
+
     fun login(email: String, password: String, onSuccess: () -> Unit) {
         onLogin(email = email, password = password, onSuccess = onSuccess)
     }
 
-    /**
-     * Clears user session from DataStore and resets UI state.
-     */
+    
+
     fun logout(onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             _authState.value = AuthState.Unauthenticated
@@ -341,9 +319,8 @@ class AuthViewModel(
         }
     }
 
-    /**
-     * Password reset feature helper used by ForgotPasswordScreen.
-     */
+    
+
     fun resetPassword(
         email: String,
         newPassword: String,

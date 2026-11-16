@@ -57,7 +57,6 @@ fun SetupScreen(onNavigateNext: () -> Unit = {}, onBack: () -> Unit = {}) {
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        // Name Input
         Text(text = "Name", fontSize = 13.sp, color = colors.textMuted, fontWeight = FontWeight.Medium)
         Spacer(modifier = Modifier.height(6.dp))
         OutlinedTextField(
@@ -79,7 +78,6 @@ fun SetupScreen(onNavigateNext: () -> Unit = {}, onBack: () -> Unit = {}) {
         
         Spacer(modifier = Modifier.height(20.dp))
         
-        // Primary Goal Input
         Text(text = "Primary goal", fontSize = 13.sp, color = colors.textMuted, fontWeight = FontWeight.Medium)
         Spacer(modifier = Modifier.height(6.dp))
         OutlinedTextField(
@@ -100,7 +98,6 @@ fun SetupScreen(onNavigateNext: () -> Unit = {}, onBack: () -> Unit = {}) {
         
         Spacer(modifier = Modifier.height(20.dp))
         
-        // Preferred focus duration
         Text(text = "Preferred focus duration", fontSize = 13.sp, color = colors.textMuted, fontWeight = FontWeight.Medium)
         Spacer(modifier = Modifier.height(8.dp))
         Row(
@@ -138,7 +135,6 @@ fun SetupScreen(onNavigateNext: () -> Unit = {}, onBack: () -> Unit = {}) {
         
         Spacer(modifier = Modifier.height(20.dp))
         
-        // Daily focus goal Input
         Text(text = "Daily focus goal", fontSize = 13.sp, color = colors.textMuted, fontWeight = FontWeight.Medium)
         Spacer(modifier = Modifier.height(6.dp))
         OutlinedTextField(
@@ -159,7 +155,6 @@ fun SetupScreen(onNavigateNext: () -> Unit = {}, onBack: () -> Unit = {}) {
         
         Spacer(modifier = Modifier.height(20.dp))
         
-        // Reminders
         Text(text = "Reminders", fontSize = 13.sp, color = colors.textMuted, fontWeight = FontWeight.Medium)
         Spacer(modifier = Modifier.height(8.dp))
         Surface(

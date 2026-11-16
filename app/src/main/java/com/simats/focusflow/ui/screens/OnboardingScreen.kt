@@ -46,12 +46,8 @@ import com.simats.focusflow.ui.theme.DarkSurfaceVariant
 import com.simats.focusflow.ui.theme.DarkTextMuted
 import com.simats.focusflow.ui.theme.DarkTextPrimary
 
-/**
- * Modern minimalist Onboarding Screen for FocusFlow.
- * Aligned with official dark canvas (#0F0F14), elevated surface (#181722),
- * crisp light typography (#F1F1F5), and violet accents (#8B5CF6).
- * Zero emojis.
- */
+
+
 @Composable
 fun OnboardingScreen(onNavigateToLogin: () -> Unit) {
     Column(
@@ -63,7 +59,6 @@ fun OnboardingScreen(onNavigateToLogin: () -> Unit) {
     ) {
         Spacer(modifier = Modifier.height(36.dp))
 
-        // App Brand Header
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
@@ -98,7 +93,6 @@ fun OnboardingScreen(onNavigateToLogin: () -> Unit) {
 
         Spacer(modifier = Modifier.height(36.dp))
 
-        // Hero Abstract Time-Flow Geometry
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -109,7 +103,6 @@ fun OnboardingScreen(onNavigateToLogin: () -> Unit) {
                 val center = Offset(size.width / 2f, size.height / 2f)
                 val strokeW = 6.dp.toPx()
 
-                // Outer geometric ring
                 drawCircle(
                     color = DarkBorder,
                     radius = size.width * 0.45f,
@@ -117,7 +110,6 @@ fun OnboardingScreen(onNavigateToLogin: () -> Unit) {
                     style = Stroke(strokeW)
                 )
 
-                // Vibrant sweep arc
                 drawArc(
                     brush = Brush.sweepGradient(
                         listOf(DarkPrimary, DarkPrimaryLight, DarkPrimary),
@@ -129,7 +121,6 @@ fun OnboardingScreen(onNavigateToLogin: () -> Unit) {
                     style = Stroke(strokeW, cap = StrokeCap.Round)
                 )
 
-                // Secondary inner orbital ring
                 drawCircle(
                     color = DarkSurfaceVariant,
                     radius = size.width * 0.32f,
@@ -137,7 +128,6 @@ fun OnboardingScreen(onNavigateToLogin: () -> Unit) {
                     style = Stroke(3.dp.toPx())
                 )
 
-                // Core pulse node
                 drawCircle(
                     color = DarkPrimary.copy(alpha = 0.25f),
                     radius = size.width * 0.18f,
@@ -172,7 +162,6 @@ fun OnboardingScreen(onNavigateToLogin: () -> Unit) {
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        // Elevated Feature Cards
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             OnboardingFeatureCard(
                 icon = Icons.Default.HourglassBottom,
@@ -188,7 +177,6 @@ fun OnboardingScreen(onNavigateToLogin: () -> Unit) {
 
         Spacer(modifier = Modifier.height(36.dp))
 
-        // Get Started Action Button
         Button(
             onClick = onNavigateToLogin,
             modifier = Modifier
@@ -222,7 +210,6 @@ fun OnboardingScreen(onNavigateToLogin: () -> Unit) {
 
         Spacer(modifier = Modifier.height(18.dp))
 
-        // Privacy Footer
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -295,9 +282,8 @@ private fun OnboardingFeatureCard(
     }
 }
 
-/**
- * Backward compatibility alias for GetStartedScreen.
- */
+
+
 @Composable
 fun GetStartedScreen(onNavigateToLogin: () -> Unit) {
     OnboardingScreen(onNavigateToLogin = onNavigateToLogin)

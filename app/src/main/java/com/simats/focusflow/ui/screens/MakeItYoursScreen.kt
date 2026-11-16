@@ -33,7 +33,6 @@ import com.simats.focusflow.ui.viewmodel.MakeItYoursState
 import com.simats.focusflow.ui.viewmodel.MakeItYoursViewModel
 import kotlin.math.roundToInt
 
-// Custom Dark Minimalist Colors
 private val BackgroundDark = Color(0xFF0F0F14)
 private val SurfaceCard = Color(0xFF181722)
 private val SurfaceCardActive = Color(0xFF221F33)
@@ -43,10 +42,8 @@ private val VioletMuted = Color(0xFFC4B5FD)
 private val TextPrimary = Color(0xFFF9FAFB)
 private val TextSecondary = Color(0xFFA1A1AA)
 
-/**
- * "Make It Yours" Onboarding Customization Screen for FocusFlow.
- * Captures user focus areas, daily target slider (1-12h), and session rhythm.
- */
+
+
 @Composable
 fun MakeItYoursScreen(
     userId: Int = 1,
@@ -102,7 +99,6 @@ fun MakeItYoursScreen(
         ) {
             Spacer(modifier = Modifier.height(28.dp))
 
-            // Step Badge
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
@@ -121,7 +117,6 @@ fun MakeItYoursScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Main Header
             Text(
                 text = "MAKE IT YOURS",
                 fontSize = 28.sp,
@@ -141,7 +136,6 @@ fun MakeItYoursScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // 1. PRIMARY FOCUS AREA SECTION
             SectionLabel(title = "PRIMARY FOCUS AREA")
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -166,7 +160,6 @@ fun MakeItYoursScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // 2. DAILY TARGET HOURS SLIDER SECTION
             SectionLabel(title = "DAILY TARGET HOURS")
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -177,7 +170,6 @@ fun MakeItYoursScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // 3. SESSION RHYTHM SECTION
             SectionLabel(title = "SESSION RHYTHM")
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -194,7 +186,6 @@ fun MakeItYoursScreen(
 
             Spacer(modifier = Modifier.height(36.dp))
 
-            // CTA Action Button
             Button(
                 onClick = {
                     viewModel.onSavePreferences {
@@ -498,7 +489,6 @@ private fun FocusStyleCard(
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Radio indicator
             Box(
                 modifier = Modifier
                     .size(22.dp)

@@ -24,9 +24,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-/**
- * Branded dark splash screen inspecting DataStore session for cold-launch auto-routing.
- */
+
+
 @Composable
 fun SplashScreen(
     sessionManager: SessionManager? = null,
@@ -57,9 +56,8 @@ fun SplashScreen(
             )
         }
 
-        // Check persistent session in background concurrently
         val session = manager.userSessionFlow.first()
-        delay(300) // Fast and seamless transition into the app
+        delay(300)
 
         if (session.isLoggedIn) {
             if (session.isOnboardingCompleted) {
