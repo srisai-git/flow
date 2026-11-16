@@ -64,6 +64,7 @@ import coil.request.ImageRequest
 import com.simats.focusflow.data.models.HabitItem
 import com.simats.focusflow.data.models.TaskItem
 import com.simats.focusflow.data.session.SessionManager
+import com.simats.focusflow.ui.components.DashboardSkeleton
 import com.simats.focusflow.ui.components.GrootAvatar
 import com.simats.focusflow.ui.components.PriorityBadge
 import com.simats.focusflow.ui.components.bounceClick
@@ -144,6 +145,9 @@ fun DashboardScreen(
     ) {
         Spacer(modifier = Modifier.height(24.dp))
 
+        if (uiState.isLoading && data.userName.isBlank()) {
+            DashboardSkeleton()
+        } else {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -913,6 +917,7 @@ fun DashboardScreen(
                     }
                 }
             }
+        }
         }
 
         Spacer(modifier = Modifier.height(96.dp))
