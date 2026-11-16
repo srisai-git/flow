@@ -9,14 +9,8 @@ import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.ui.graphics.vector.ImageVector
 
-/**
- * Sealed class representing application screens and main bottom navigation items.
- * Configured with exactly 4 primary root tabs (Requirement 11):
- * 1. Home (Dashboard)
- * 2. Activities (Tasks + Habits)
- * 3. Insights
- * 4. Profile
- */
+
+
 sealed class Screen(
     val route: String,
     val title: String,
@@ -28,7 +22,6 @@ sealed class Screen(
     object Insights : Screen("insights", "Insights", Icons.Outlined.Insights)
     object Profile : Screen("profile", "Profile", Icons.Outlined.Person)
 
-    // Legacy screen objects maintained for direct deep-link and programmatic routing
     object Tasks : Screen("tasks", "Tasks", Icons.Outlined.Checklist)
     object Habits : Screen("habits", "Habits", Icons.Outlined.Repeat)
 

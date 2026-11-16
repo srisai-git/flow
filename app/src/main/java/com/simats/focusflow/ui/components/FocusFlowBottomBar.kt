@@ -22,10 +22,8 @@ import androidx.compose.ui.unit.sp
 import com.simats.focusflow.ui.navigation.Screen
 import com.simats.focusflow.ui.theme.FocusFlowTheme
 
-/**
- * Custom minimalist Bottom Navigation Bar for FocusFlow with sleek Material3 vector icons.
- * Adapts dynamically to Dark & Light themes.
- */
+
+
 @Composable
 fun FocusFlowBottomBar(
     currentRoute: String?,
@@ -69,9 +67,7 @@ fun FocusFlowBottomBar(
                         .clip(RoundedCornerShape(16.dp))
                         .background(pillAlpha)
                         .clickable {
-                            if (screen.route == Screen.Dashboard.route || !isSelected) {
-                                onNavigate(screen.route)
-                            }
+                            onNavigate(screen.route)
                         }
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                     contentAlignment = Alignment.Center
