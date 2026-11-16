@@ -66,10 +66,8 @@ data class TimerServiceState(
     }
 }
 
-/**
- * Foreground Service for FocusFlow Pomodoro Timer.
- * Manages countdown, silent status updates, and session completion logging.
- */
+
+
 class FocusTimerService : Service() {
 
     companion object {
@@ -166,7 +164,6 @@ class FocusTimerService : Service() {
                     context.startService(intent)
                 }
             } catch (e: Exception) {
-                // Ignore service start failures under OS background limits
             }
         }
     }
@@ -188,7 +185,6 @@ class FocusTimerService : Service() {
                     _timerStateFlow.update { it.copy(activeUserId = session.userId) }
                 }
             } catch (e: Exception) {
-                // Retain default user ID
             }
         }
     }
@@ -273,7 +269,6 @@ class FocusTimerService : Service() {
         val elapsedSeconds = current.totalSeconds - current.remainingSeconds
         val elapsedMinutes = elapsedSeconds / 60
 
-        // If user intentionally stopped an active focus interval that ran for at least 1 min, dispatch to save_session.php
         if (current.currentMode == TimerMode.FOCUS && elapsedMinutes >= 1) {
             val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
             val now = Date()
@@ -575,9 +570,9 @@ class FocusTimerService : Service() {
         return NotificationCompat.Builder(this, RUNNING_CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(contentText)
-            .setSmallIcon(R.drawable.ic_stat_flow) // Monochrome padded vector
+            .setSmallIcon(R.drawable.ic_stat_flow)
             .setLargeIcon(android.graphics.Bitmap.createBitmap(1, 1, android.graphics.Bitmap.Config.ARGB_8888))
-            .setColor(0xFF8B5CF6.toInt())                 // Violet badge tint
+            .setColor(0xFF8B5CF6.toInt())
             .setContentIntent(pendingIntent)
             .setOngoing(state.isRunning)
             .setOnlyAlertOnce(true)
@@ -639,7 +634,6 @@ class FocusTimerService : Service() {
                 vibrator?.vibrate(500L)
             }
         } catch (e: Exception) {
-            // Ignore vibration failure
         }
     }
 }

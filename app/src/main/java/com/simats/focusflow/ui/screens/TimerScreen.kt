@@ -8,6 +8,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,13 +17,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.HourglassBottom
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
@@ -92,7 +95,6 @@ fun TimerScreen(
         ) {
             Spacer(modifier = Modifier.height(24.dp))
 
-            // HEADER ROW
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -118,7 +120,6 @@ fun TimerScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 1. MODE TABS (Focus, Short Break, Long Break) with configured minutes
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -162,7 +163,6 @@ fun TimerScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // PROMINENT CENTERED TIME INTERVAL SELECTOR & QUICK CHIPS
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -278,7 +278,6 @@ fun TimerScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 2. CENTRAL TIMER CIRCLE WITH ISOLATED COUNTDOWN DIAL
             TimerCountdownDial(
                 remainingSeconds = state.remainingSeconds,
                 totalSeconds = state.totalSeconds,
@@ -292,13 +291,11 @@ fun TimerScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // 3. CONTROLS ROW (Reset, Start/Pause, Skip)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Reset Button
                 IconButton(
                     onClick = { viewModel.resetTimer() },
                     modifier = Modifier
@@ -318,7 +315,6 @@ fun TimerScreen(
 
                 Spacer(modifier = Modifier.width(20.dp))
 
-                // Primary Start / Pause Action Button
                 Button(
                     onClick = { viewModel.toggleStartPause() },
                     modifier = Modifier
@@ -349,7 +345,6 @@ fun TimerScreen(
 
                 Spacer(modifier = Modifier.width(20.dp))
 
-                // Skip Session Button
                 IconButton(
                     onClick = { viewModel.skipSession() },
                     modifier = Modifier
@@ -370,7 +365,6 @@ fun TimerScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Sessions Completed Pill
             Surface(
                 shape = RoundedCornerShape(20.dp),
                 color = colors.surface,
@@ -387,7 +381,6 @@ fun TimerScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // RECENT FOCUS SESSIONS INLINE SECTION (Requirement 10)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -452,7 +445,6 @@ fun TimerScreen(
             Spacer(modifier = Modifier.height(96.dp))
         }
 
-        // 4. CUSTOMIZE DURATIONS BOTTOM SHEET (Allows 5 to 90 mins)
         if (state.isSettingsOpen) {
             ModalBottomSheet(
                 onDismissRequest = { viewModel.setSettingsOpen(false) },
@@ -482,7 +474,6 @@ fun TimerScreen(
             }
         }
 
-        // 5. SESSION HISTORY BOTTOM SHEET (Requirement 10)
         if (state.isHistoryOpen) {
             ModalBottomSheet(
                 onDismissRequest = { viewModel.setHistoryOpen(false) },
@@ -520,9 +511,8 @@ fun TimerScreen(
     }
 }
 
-/**
- * Bottom Sheet displaying authenticated focus sessions history queried from focus_sessions table.
- */
+
+
 @Composable
 private fun SessionHistorySheet(
     sessions: List<FocusSessionRecord>,
@@ -678,9 +668,8 @@ private fun FocusSessionItemCard(session: FocusSessionRecord) {
     }
 }
 
-/**
- * Customize timer durations allowing interval from 5 to 90 minutes.
- */
+
+
 @Composable
 private fun CustomizeDurationsSheet(
     currentFocus: Int,
@@ -718,7 +707,6 @@ private fun CustomizeDurationsSheet(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 1. Focus duration slider (5 - 90 mins)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
@@ -740,7 +728,6 @@ private fun CustomizeDurationsSheet(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // 2. Short Break slider (1 - 15 mins)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
@@ -762,7 +749,6 @@ private fun CustomizeDurationsSheet(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // 3. Long Break slider (10 - 30 mins)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
@@ -805,10 +791,8 @@ private fun CustomizeDurationsSheet(
     }
 }
 
-/**
- * Isolated Timer Countdown Dial composable that localizes 1-second recompositions
- * to eliminate whole-screen UI re-rendering during active focus sessions.
- */
+
+
 @Composable
 private fun TimerCountdownDial(
     remainingSeconds: Int,
@@ -913,7 +897,7 @@ private fun ClockTimePickerDialog(
 ) {
     val colors = FocusFlowTheme.colors
     var hours by remember { mutableIntStateOf((initialMinutes / 60).coerceIn(0, 3)) }
-    var minutes by remember { mutableIntStateOf((initialMinutes % 60).coerceIn(1, 59)) }
+    var minutes by remember { mutableIntStateOf((initialMinutes % 60).coerceIn(0, 59)) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -931,7 +915,7 @@ private fun ClockTimePickerDialog(
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = "Focus Timer Duration",
-                    fontSize = 20.sp,
+                    fontSize = 19.sp,
                     fontWeight = FontWeight.Bold,
                     color = colors.textPrimary
                 )
@@ -942,74 +926,98 @@ private fun ClockTimePickerDialog(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "Hours",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = colors.textMuted
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = colors.background,
+                        border = BorderStroke(1.dp, colors.border),
+                        modifier = Modifier.width(96.dp)
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(vertical = 8.dp)
                         ) {
+                            Text(
+                                text = "HOURS",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.primaryLight,
+                                letterSpacing = 0.8.sp
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
                             IconButton(
-                                onClick = { if (hours > 0) hours-- },
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(colors.surfaceVariant)
+                                onClick = { if (hours < 3) hours++ },
+                                modifier = Modifier.size(32.dp)
                             ) {
-                                Icon(Icons.Default.Remove, contentDescription = "Minus hour", tint = colors.textPrimary)
+                                Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Plus hour", tint = colors.textPrimary)
                             }
                             Text(
                                 text = String.format(Locale.US, "%02d", hours),
-                                fontSize = 32.sp,
+                                fontSize = 28.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = colors.primaryLight
+                                color = colors.textPrimary
                             )
                             IconButton(
-                                onClick = { if (hours < 3) hours++ },
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(colors.surfaceVariant)
+                                onClick = { if (hours > 0) hours-- },
+                                modifier = Modifier.size(32.dp)
                             ) {
-                                Icon(Icons.Default.Add, contentDescription = "Plus hour", tint = colors.textPrimary)
+                                Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Minus hour", tint = colors.textPrimary)
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.width(16.dp))
                     Text(
                         text = ":",
-                        fontSize = 32.sp,
+                        fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
-                        color = colors.textMuted,
-                        modifier = Modifier.padding(top = 16.dp)
+                        color = colors.primaryLight,
+                        modifier = Modifier.padding(horizontal = 12.dp)
                     )
-                    Spacer(modifier = Modifier.width(16.dp))
 
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "Minutes",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = colors.textMuted
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = colors.background,
+                        border = BorderStroke(1.dp, colors.border),
+                        modifier = Modifier.width(96.dp)
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(vertical = 8.dp)
                         ) {
+                            Text(
+                                text = "MINUTES",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.primaryLight,
+                                letterSpacing = 0.8.sp
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            IconButton(
+                                onClick = {
+                                    if (hours * 60 + minutes < 180) {
+                                        if (minutes < 55) minutes += 5
+                                        else if (hours < 3) {
+                                            hours++
+                                            minutes = 0
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Plus minutes", tint = colors.textPrimary)
+                            }
+                            Text(
+                                text = String.format(Locale.US, "%02d", minutes),
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textPrimary
+                            )
                             IconButton(
                                 onClick = {
                                     val currentTotal = hours * 60 + minutes
@@ -1023,35 +1031,9 @@ private fun ClockTimePickerDialog(
                                         }
                                     }
                                 },
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(colors.surfaceVariant)
+                                modifier = Modifier.size(32.dp)
                             ) {
-                                Icon(Icons.Default.Remove, contentDescription = "Minus minutes", tint = colors.textPrimary)
-                            }
-                            Text(
-                                text = String.format(Locale.US, "%02d", minutes),
-                                fontSize = 32.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.primaryLight
-                            )
-                            IconButton(
-                                onClick = {
-                                    if (hours * 60 + minutes < 180) {
-                                        if (minutes <= 50) minutes += 5
-                                        else if (hours < 3) {
-                                            hours++
-                                            minutes = 0
-                                        }
-                                    }
-                                },
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(colors.surfaceVariant)
-                            ) {
-                                Icon(Icons.Default.Add, contentDescription = "Plus minutes", tint = colors.textPrimary)
+                                Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Minus minutes", tint = colors.textPrimary)
                             }
                         }
                     }
@@ -1060,10 +1042,12 @@ private fun ClockTimePickerDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    listOf(15, 25, 45, 60, 90).forEach { preset ->
+                    listOf(15, 25, 45, 60, 90, 120).forEach { preset ->
                         val pHours = preset / 60
                         val pMins = preset % 60
                         val isSelected = (hours * 60 + minutes) == preset
@@ -1072,7 +1056,7 @@ private fun ClockTimePickerDialog(
                                 hours = pHours
                                 minutes = pMins
                             },
-                            shape = RoundedCornerShape(8.dp),
+                            shape = RoundedCornerShape(10.dp),
                             color = if (isSelected) colors.primary.copy(alpha = 0.2f) else colors.surfaceVariant,
                             border = BorderStroke(1.dp, if (isSelected) colors.primary else Color.Transparent),
                             modifier = Modifier.bounceClick()
@@ -1080,9 +1064,9 @@ private fun ClockTimePickerDialog(
                             Text(
                                 text = "${preset}m",
                                 fontSize = 12.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                 color = if (isSelected) colors.primaryLight else colors.textMuted,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                             )
                         }
                     }
@@ -1093,7 +1077,7 @@ private fun ClockTimePickerDialog(
                 val totalMins = (hours * 60 + minutes).coerceIn(1, 180)
                 Text(
                     text = "Total Focus Time: $totalMins minutes",
-                    fontSize = 12.5.sp,
+                    fontSize = 12.sp,
                     color = colors.textMuted
                 )
             }

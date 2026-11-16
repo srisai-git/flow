@@ -124,7 +124,6 @@ class TimerViewModel(
         }
     }
 
-    // Compatibility overload
     fun initSessionManager(manager: SessionManager) {
         this.sessionManager = manager
         viewModelScope.launch(Dispatchers.IO) {
@@ -192,7 +191,7 @@ class TimerViewModel(
                             )
                         }
                     },
-                    onFailure = { /* retain local */ }
+                    onFailure = {  }
                 )
             }
         }
@@ -303,10 +302,8 @@ class TimerViewModel(
         _uiState.update { it.copy(toastMessage = null) }
     }
 
-    /**
-     * Manually or programmatically records a completed focus session and propagates
-     * updates to local database, remote API (save_session.php), timer history, and profile stats.
-     */
+    
+
     fun recordCompletedSession(
         durationMinutes: Int,
         sessionType: String = "pomodoro",
