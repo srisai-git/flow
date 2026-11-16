@@ -35,7 +35,7 @@ fun FlowLoadingIndicator(
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "FlowLoadingTransition")
 
-    val rotation by infiniteTransition.animateFloat(
+    val rotationState = infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
@@ -45,7 +45,7 @@ fun FlowLoadingIndicator(
         label = "Rotation"
     )
 
-    val pulseAlpha by infiniteTransition.animateFloat(
+    val pulseAlphaState = infiniteTransition.animateFloat(
         initialValue = 0.35f,
         targetValue = 0.85f,
         animationSpec = infiniteRepeatable(
@@ -64,7 +64,6 @@ fun FlowLoadingIndicator(
             val radius = (size.toPx() - strokePx) / 2f
             val centerOffset = center
 
-            // Subtle background ring
             drawCircle(
                 color = color.copy(alpha = 0.12f),
                 radius = radius,
@@ -72,18 +71,17 @@ fun FlowLoadingIndicator(
                 style = Stroke(width = strokePx)
             )
 
-            // Animated sweeping violet gradient arc
             val gradientBrush = Brush.sweepGradient(
                 colors = listOf(
                     color.copy(alpha = 0.05f),
-                    color.copy(alpha = pulseAlpha),
+                    color.copy(alpha = pulseAlphaState.value),
                     color
                 )
             )
 
             drawArc(
                 brush = gradientBrush,
-                startAngle = rotation,
+                startAngle = rotationState.value,
                 sweepAngle = 270f,
                 useCenter = false,
                 topLeft = androidx.compose.ui.geometry.Offset(strokePx / 2f, strokePx / 2f),
