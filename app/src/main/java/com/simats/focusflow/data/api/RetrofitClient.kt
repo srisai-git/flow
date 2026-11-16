@@ -1,8 +1,12 @@
 package com.simats.focusflow.data.api
 
+import com.simats.focusflow.data.repository.ProductivityRepository
+import okhttp3.Cache
+import okhttp3.ConnectionPool
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.io.File
 import java.util.concurrent.TimeUnit
 
 /**
@@ -38,12 +42,19 @@ object RetrofitClient {
     }
 
     private val okHttpClient: OkHttpClient by lazy {
-        OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(45, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
+        val builder = OkHttpClient.Builder()
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(20, TimeUnit.SECONDS)
+            .writeTimeout(15, TimeUnit.SECONDS)
+            .connectionPool(ConnectionPool(5, 5, TimeUnit.MINUTES))
             .retryOnConnectionFailure(true)
-            .build()
+        ProductivityRepository.appContext?.cacheDir?.let { cacheDir ->
+            try {
+                builder.cache(Cache(File(cacheDir, "http_cache"), 10L * 1024 * 1024))
+            } catch (_: Exception) {
+            }
+        }
+        builder.build()
     }
 
     @Volatile
