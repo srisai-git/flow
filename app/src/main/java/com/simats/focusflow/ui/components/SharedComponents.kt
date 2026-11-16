@@ -176,6 +176,45 @@ fun DashboardSkeleton() {
     }
 }
 
+@Composable
+fun TasksSkeleton() {
+    val brush = rememberDarkShimmerBrush()
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        repeat(4) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().height(88.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = Color(0xFF19162A),
+                border = BorderStroke(1.dp, Color(0xFF282342))
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxSize().padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Spacer(modifier = Modifier.size(22.dp).background(brush, RoundedCornerShape(6.dp)))
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Spacer(modifier = Modifier.fillMaxWidth(0.65f).height(15.dp).background(brush, RoundedCornerShape(4.dp)))
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.fillMaxWidth(0.4f).height(11.dp).background(brush, RoundedCornerShape(4.dp)))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Spacer(modifier = Modifier.width(50.dp).height(16.dp).background(brush, RoundedCornerShape(4.dp)))
+                            Spacer(modifier = Modifier.width(42.dp).height(16.dp).background(brush, RoundedCornerShape(4.dp)))
+                        }
+                    }
+                    Spacer(modifier = Modifier.size(24.dp).background(brush, CircleShape))
+                }
+            }
+        }
+    }
+}
+
 
 @Composable
 fun ShimmerSkeletonItem(
