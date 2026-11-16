@@ -46,6 +46,9 @@ class FocusSessionDatabase private constructor(context: Context) :
         private val _sessionTableChangedFlow = MutableSharedFlow<Unit>(replay = 1, extraBufferCapacity = 10)
         val sessionTableChangedFlow: SharedFlow<Unit> = _sessionTableChangedFlow.asSharedFlow()
 
+        private val _distractionTableChangedFlow = MutableSharedFlow<Unit>(replay = 1, extraBufferCapacity = 10)
+        val distractionTableChangedFlow: SharedFlow<Unit> = _distractionTableChangedFlow.asSharedFlow()
+
         fun getInstance(context: Context): FocusSessionDatabase {
             return instance ?: synchronized(this) {
                 instance ?: FocusSessionDatabase(context).also { instance = it }
@@ -55,7 +58,17 @@ class FocusSessionDatabase private constructor(context: Context) :
         fun notifyTableChanged() {
             _sessionTableChangedFlow.tryEmit(Unit)
         }
+
+        fun notifyDistractionTableChanged() {
+            _distractionTableChangedFlow.tryEmit(Unit)
+        }
     }
+
+    val sessionTableChangedFlow: SharedFlow<Unit>
+        get() = FocusSessionDatabase.sessionTableChangedFlow
+
+    val distractionTableChangedFlow: SharedFlow<Unit>
+        get() = FocusSessionDatabase.distractionTableChangedFlow
 
     override fun onCreate(db: SQLiteDatabase) {
         val createTableSql = """
@@ -76,10 +89,24 @@ class FocusSessionDatabase private constructor(context: Context) :
             )
         """.trimIndent()
         db.execSQL(createTableSql)
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_focus_user_id ON $TABLE_FOCUS_SESSIONS($COLUMN_USER_ID)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_focus_created_at ON $TABLE_FOCUS_SESSIONS($COLUMN_CREATED_AT)")
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS distraction_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                reason TEXT NOT NULL,
+                category TEXT NOT NULL DEFAULT 'Other',
+                duration_seconds INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL
+            )
+        """.trimIndent())
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_distraction_user_id ON distraction_logs(user_id)")
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         db.execSQL("DROP TABLE IF EXISTS $TABLE_FOCUS_SESSIONS")
+        db.execSQL("DROP TABLE IF EXISTS distraction_logs")
         onCreate(db)
     }
 
@@ -88,6 +115,23 @@ class FocusSessionDatabase private constructor(context: Context) :
         try {
             db.execSQL("ALTER TABLE $TABLE_FOCUS_SESSIONS ADD COLUMN $COLUMN_SESSION_UUID TEXT")
             db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS idx_focus_session_uuid ON $TABLE_FOCUS_SESSIONS($COLUMN_SESSION_UUID)")
+        } catch (_: Exception) {}
+        try {
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_focus_user_id ON $TABLE_FOCUS_SESSIONS($COLUMN_USER_ID)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_focus_created_at ON $TABLE_FOCUS_SESSIONS($COLUMN_CREATED_AT)")
+        } catch (_: Exception) {}
+        try {
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS distraction_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    reason TEXT NOT NULL,
+                    category TEXT NOT NULL DEFAULT 'Other',
+                    duration_seconds INTEGER NOT NULL DEFAULT 0,
+                    created_at TEXT NOT NULL
+                )
+            """.trimIndent())
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_distraction_user_id ON distraction_logs(user_id)")
         } catch (_: Exception) {}
     }
 
@@ -395,6 +439,60 @@ class FocusSessionDatabase private constructor(context: Context) :
     fun clearUserData(userId: Int) {
         writableDatabase.delete(TABLE_FOCUS_SESSIONS, "$COLUMN_USER_ID = ?", arrayOf(userId.toString()))
         notifyTableChanged()
+    }
+
+    fun insertDistraction(
+        userId: Int,
+        reason: String,
+        category: String = "Other",
+        durationSeconds: Int = 0
+    ): Long {
+        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        val nowStr = sdf.format(Date())
+        val values = ContentValues().apply {
+            put("user_id", userId)
+            put("reason", reason)
+            put("category", category)
+            put("duration_seconds", durationSeconds)
+            put("created_at", nowStr)
+        }
+        val rowId = writableDatabase.insert("distraction_logs", null, values)
+        notifyDistractionTableChanged()
+        return rowId
+    }
+
+    fun getDistractions(userId: Int, limit: Int = 50): List<com.simats.focusflow.data.models.DistractionLogItem> {
+        val list = mutableListOf<com.simats.focusflow.data.models.DistractionLogItem>()
+        val query = """
+            SELECT id, user_id, reason, category, duration_seconds, created_at
+            FROM distraction_logs
+            WHERE user_id = ?
+            ORDER BY id DESC
+            LIMIT ?
+        """.trimIndent()
+        val cursor = readableDatabase.rawQuery(query, arrayOf(userId.toString(), limit.toString()))
+        cursor.use { c ->
+            val idIdx = c.getColumnIndexOrThrow("id")
+            val uidIdx = c.getColumnIndexOrThrow("user_id")
+            val rIdx = c.getColumnIndexOrThrow("reason")
+            val catIdx = c.getColumnIndexOrThrow("category")
+            val durIdx = c.getColumnIndexOrThrow("duration_seconds")
+            val caIdx = c.getColumnIndexOrThrow("created_at")
+
+            while (c.moveToNext()) {
+                list.add(
+                    com.simats.focusflow.data.models.DistractionLogItem(
+                        id = c.getInt(idIdx),
+                        userId = c.getInt(uidIdx),
+                        reason = c.getString(rIdx) ?: "",
+                        category = c.getString(catIdx) ?: "Other",
+                        durationSeconds = c.getInt(durIdx),
+                        createdAt = c.getString(caIdx) ?: ""
+                    )
+                )
+            }
+        }
+        return list
     }
 }
 
