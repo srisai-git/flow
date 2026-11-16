@@ -88,6 +88,94 @@ fun DarkShimmerSkeletonItem(
     Spacer(modifier = modifier.background(brush, shape))
 }
 
+@Composable
+fun DashboardSkeleton() {
+    val brush = rememberDarkShimmerBrush()
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Spacer(modifier = Modifier.width(100.dp).height(14.dp).background(brush, RoundedCornerShape(6.dp)))
+                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.width(160.dp).height(24.dp).background(brush, RoundedCornerShape(6.dp)))
+            }
+            Spacer(modifier = Modifier.size(44.dp).background(brush, CircleShape))
+        }
+
+        Surface(
+            modifier = Modifier.fillMaxWidth().height(150.dp),
+            shape = RoundedCornerShape(22.dp),
+            color = Color(0xFF19162A),
+            border = BorderStroke(1.dp, Color(0xFF282342))
+        ) {
+            Row(
+                modifier = Modifier.fillMaxSize().padding(18.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Spacer(modifier = Modifier.width(70.dp).height(12.dp).background(brush, RoundedCornerShape(4.dp)))
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.width(120.dp).height(28.dp).background(brush, RoundedCornerShape(6.dp)))
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.width(90.dp).height(14.dp).background(brush, RoundedCornerShape(4.dp)))
+                }
+                Spacer(modifier = Modifier.size(100.dp).background(brush, CircleShape))
+            }
+        }
+
+        Surface(
+            modifier = Modifier.fillMaxWidth().height(80.dp),
+            shape = RoundedCornerShape(18.dp),
+            color = Color(0xFF19162A),
+            border = BorderStroke(1.dp, Color(0xFF282342))
+        ) {
+            Row(
+                modifier = Modifier.fillMaxSize().padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Spacer(modifier = Modifier.size(42.dp).background(brush, CircleShape))
+                Spacer(modifier = Modifier.width(14.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Spacer(modifier = Modifier.width(140.dp).height(16.dp).background(brush, RoundedCornerShape(4.dp)))
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.width(90.dp).height(12.dp).background(brush, RoundedCornerShape(4.dp)))
+                }
+            }
+        }
+
+        repeat(2) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().height(68.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = Color(0xFF19162A),
+                border = BorderStroke(1.dp, Color(0xFF282342))
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxSize().padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Spacer(modifier = Modifier.size(22.dp).background(brush, RoundedCornerShape(6.dp)))
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Spacer(modifier = Modifier.fillMaxWidth(0.6f).height(14.dp).background(brush, RoundedCornerShape(4.dp)))
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.fillMaxWidth(0.35f).height(10.dp).background(brush, RoundedCornerShape(4.dp)))
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 @Composable
 fun ShimmerSkeletonItem(
