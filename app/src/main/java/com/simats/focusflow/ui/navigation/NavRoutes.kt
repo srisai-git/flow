@@ -16,7 +16,8 @@ sealed class Screen(
     val title: String,
     val icon: ImageVector
 ) {
-    object Dashboard : Screen("dashboard", "Home", Icons.Outlined.Home)
+    object Home : Screen("home", "Home", Icons.Outlined.Home)
+    object Dashboard : Screen("home", "Home", Icons.Outlined.Home)
     object Activities : Screen("activities", "Activities", Icons.Outlined.Checklist)
     object Timer : Screen("timer", "Timer", Icons.Outlined.Timer)
     object Insights : Screen("insights", "Insights", Icons.Outlined.Insights)
@@ -26,10 +27,8 @@ sealed class Screen(
     object Habits : Screen("habits", "Habits", Icons.Outlined.Repeat)
 
     companion object {
-        val Home: Screen get() = Dashboard
-
         val bottomNavScreens: List<Screen> by lazy {
-            listOfNotNull(Dashboard, Activities, Timer, Insights, Profile)
+            listOfNotNull(Home, Activities, Timer, Insights, Profile)
         }
 
         fun isMainScreen(route: String?): Boolean {
