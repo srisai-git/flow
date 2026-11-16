@@ -55,6 +55,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -903,7 +904,7 @@ private fun AiProductivityInsightsCard(
 
             if (isLoading) {
                 val infiniteTransition = rememberInfiniteTransition(label = "skeleton")
-                val alphaAnim by infiniteTransition.animateFloat(
+                val alphaAnimState = infiniteTransition.animateFloat(
                     initialValue = 0.3f,
                     targetValue = 0.8f,
                     animationSpec = infiniteRepeatable(
@@ -913,27 +914,30 @@ private fun AiProductivityInsightsCard(
                     label = "alpha"
                 )
 
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    modifier = Modifier.graphicsLayer { alpha = alphaAnimState.value },
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(0.95f)
                             .height(14.dp)
                             .clip(RoundedCornerShape(4.dp))
-                            .background(colors.surfaceVariant.copy(alpha = alphaAnim))
+                            .background(colors.surfaceVariant)
                     )
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(0.80f)
                             .height(14.dp)
                             .clip(RoundedCornerShape(4.dp))
-                            .background(colors.surfaceVariant.copy(alpha = alphaAnim))
+                            .background(colors.surfaceVariant)
                     )
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(0.60f)
                             .height(14.dp)
                             .clip(RoundedCornerShape(4.dp))
-                            .background(colors.surfaceVariant.copy(alpha = alphaAnim))
+                            .background(colors.surfaceVariant)
                     )
                 }
             } else {
