@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
@@ -273,8 +274,10 @@ fun TasksScreen(
                     items(filteredTasks, key = { it.id }) { task ->
                         TaskItemCard(
                             task = task,
+                            isBreakingDown = state.breakingDownTaskId == task.id,
                             onToggle = { viewModel.toggleTask(task.id) },
-                            onDelete = { viewModel.deleteTask(task.id) }
+                            onDelete = { viewModel.deleteTask(task.id) },
+                            onBreakdown = { viewModel.breakdownTaskWithGroot(task) }
                         )
                     }
                 }
@@ -314,8 +317,10 @@ fun TasksScreen(
 @Composable
 private fun TaskItemCard(
     task: TaskItem,
+    isBreakingDown: Boolean = false,
     onToggle: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onBreakdown: () -> Unit = {}
 ) {
     val colors = FocusFlowTheme.colors
     val priorityColor = when (task.priority.lowercase()) {
@@ -428,6 +433,45 @@ private fun TaskItemCard(
                             fontWeight = FontWeight.Bold,
                             color = priorityColor
                         )
+                    }
+                }
+
+                if (!task.isCompleted) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Surface(
+                        onClick = onBreakdown,
+                        enabled = !isBreakingDown,
+                        shape = RoundedCornerShape(8.dp),
+                        color = colors.primary.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, colors.primary.copy(alpha = 0.35f)),
+                        modifier = Modifier.bounceClick()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp)
+                        ) {
+                            if (isBreakingDown) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(12.dp),
+                                    strokeWidth = 2.dp,
+                                    color = colors.primaryLight
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = colors.primaryLight,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                            }
+                            Text(
+                                text = if (isBreakingDown) "Breaking down..." else "Break down with Groot AI",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colors.primaryLight
+                            )
+                        }
                     }
                 }
             }
