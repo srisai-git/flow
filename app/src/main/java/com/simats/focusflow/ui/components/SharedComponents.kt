@@ -1,6 +1,7 @@
 package com.simats.focusflow.ui.components
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -8,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -52,6 +54,31 @@ fun Modifier.bounceClick() = composed {
             }
         }
 }
+
+@Composable
+fun rememberDarkShimmerBrush(): Brush {
+    val transition = rememberInfiniteTransition(label = "darkShimmer")
+    val translateAnim by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1200f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1100, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "darkShimmerTranslate"
+    )
+
+    return Brush.linearGradient(
+        colors = listOf(
+            Color(0xFF19162A),
+            Color(0xFF282342),
+            Color(0xFF19162A)
+        ),
+        start = Offset(translateAnim - 300f, translateAnim - 300f),
+        end = Offset(translateAnim, translateAnim)
+    )
+}
+
 
 @Composable
 fun ShimmerSkeletonItem(
