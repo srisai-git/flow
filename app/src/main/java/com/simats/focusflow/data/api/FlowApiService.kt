@@ -83,6 +83,9 @@ interface FlowApiService {
     @GET("distractions.php")
     suspend fun getDistractions(@Query("user_id") userId: Int): Response<DistractionsResponse>
 
+    @POST("task_breakdown.php")
+    suspend fun breakdownTask(@Body request: TaskBreakdownRequest): Response<TaskBreakdownResponse>
+
     @POST("update_token.php")
     suspend fun updateFcmToken(@Body request: UpdateTokenRequest): Response<UpdateTokenResponse>
 }
