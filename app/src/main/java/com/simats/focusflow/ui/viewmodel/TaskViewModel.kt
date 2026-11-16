@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.simats.focusflow.data.models.TaskItem
+import com.simats.focusflow.data.repository.AiRepository
 import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.session.SessionManager
 import kotlinx.coroutines.Dispatchers
@@ -30,7 +31,8 @@ data class TaskUiState(
     val selectedFilter: TaskFilter = TaskFilter.TODAY,
     val searchQuery: String = "",
     val errorMessage: String? = null,
-    val isBottomSheetOpen: Boolean = false
+    val isBottomSheetOpen: Boolean = false,
+    val breakingDownTaskId: Int? = null
 ) {
     val filteredTasks: List<TaskItem>
         get() {
@@ -191,6 +193,43 @@ class TaskViewModel(
                         _uiState.update { it.copy(errorMessage = err.localizedMessage) }
                     }
                 )
+            }
+        }
+    }
+
+    fun breakdownTaskWithGroot(task: TaskItem) {
+        if (_uiState.value.breakingDownTaskId != null) return
+        viewModelScope.launch(Dispatchers.IO) {
+            withContext(Dispatchers.Main) {
+                _uiState.update { it.copy(breakingDownTaskId = task.id) }
+            }
+            try {
+                val aiRepo = AiRepository()
+                val subtasks = aiRepo.breakdownTask(task.title)
+                for (subtask in subtasks) {
+                    val result = repository.createTask(
+                        userId = currentUserId,
+                        title = subtask,
+                        description = "Subtask of: ${task.title}",
+                        priority = task.priority.ifBlank { "medium" },
+                        dueDate = task.dueDate.ifBlank { "Today" },
+                        category = task.category.ifBlank { "General" }
+                    )
+                    result.onSuccess { createdTask ->
+                        withContext(Dispatchers.Main) {
+                            val updated = _uiState.value.tasks.toMutableList().apply { add(0, createdTask) }
+                            _uiState.update { it.copy(tasks = updated) }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    _uiState.update { it.copy(errorMessage = "Groot AI breakdown: ${e.localizedMessage}") }
+                }
+            } finally {
+                withContext(Dispatchers.Main) {
+                    _uiState.update { it.copy(breakingDownTaskId = null) }
+                }
             }
         }
     }
