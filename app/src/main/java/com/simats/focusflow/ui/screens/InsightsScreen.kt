@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import com.simats.focusflow.data.models.InsightsData
 import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.session.SessionManager
+import com.simats.focusflow.ui.components.InsightsSkeleton
 import com.simats.focusflow.ui.components.bounceClick
 import com.simats.focusflow.ui.theme.FocusFlowTheme
 import kotlinx.coroutines.flow.first
@@ -136,6 +137,9 @@ fun InsightsScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
+            if (isLoading) {
+                InsightsSkeleton()
+            } else {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -386,6 +390,8 @@ fun InsightsScreen(
                         onClick = onNavigateToProgressConsistency
                     )
                 }
+            }
+
             }
 
             Spacer(modifier = Modifier.height(100.dp))
