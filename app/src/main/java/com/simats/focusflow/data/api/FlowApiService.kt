@@ -79,6 +79,12 @@ interface FlowApiService {
     @POST("ask_groot.php")
     suspend fun getAiInsights(@Body request: AiRequest): Response<AiResponse>
 
+    @POST("distractions.php")
+    suspend fun logDistraction(@Body request: LogDistractionRequest): Response<LogDistractionResponse>
+
+    @GET("distractions.php")
+    suspend fun getDistractions(@Query("user_id") userId: Int): Response<DistractionsResponse>
+
     @POST("update_token.php")
     suspend fun updateFcmToken(@Body request: UpdateTokenRequest): Response<UpdateTokenResponse>
 }
