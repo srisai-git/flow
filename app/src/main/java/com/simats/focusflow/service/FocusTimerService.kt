@@ -42,6 +42,7 @@ data class TimerServiceState(
     val totalSeconds: Int = 25 * 60,
     val remainingSeconds: Int = 25 * 60,
     val isRunning: Boolean = false,
+    val isStrictFocus: Boolean = false,
     val completedSessions: Int = 0,
     val targetEndTimeMillis: Long = 0L,
     val activeUserId: Int = 1,
@@ -83,10 +84,12 @@ class FocusTimerService : Service() {
         const val ACTION_SKIP = "com.simats.focusflow.action.SKIP"
         const val ACTION_SELECT_MODE = "com.simats.focusflow.action.SELECT_MODE"
         const val ACTION_SET_DURATIONS = "com.simats.focusflow.action.SET_DURATIONS"
+        const val ACTION_SET_STRICT_FOCUS = "com.simats.focusflow.action.SET_STRICT_FOCUS"
         const val ACTION_STOP_SERVICE = "com.simats.focusflow.action.STOP_SERVICE"
 
         const val EXTRA_USER_ID = "extra_user_id"
         const val EXTRA_MODE = "extra_mode"
+        const val EXTRA_STRICT_FOCUS = "extra_strict_focus"
         const val EXTRA_FOCUS_MINUTES = "extra_focus_minutes"
         const val EXTRA_SHORT_BREAK_MINUTES = "extra_short_break_minutes"
         const val EXTRA_LONG_BREAK_MINUTES = "extra_long_break_minutes"
@@ -156,6 +159,15 @@ class FocusTimerService : Service() {
             startServiceCompat(context, intent)
         }
 
+        fun setStrictFocus(context: Context, enabled: Boolean) {
+            _timerStateFlow.update { it.copy(isStrictFocus = enabled) }
+            val intent = Intent(context, FocusTimerService::class.java).apply {
+                action = ACTION_SET_STRICT_FOCUS
+                putExtra(EXTRA_STRICT_FOCUS, enabled)
+            }
+            startServiceCompat(context, intent)
+        }
+
         private fun startServiceCompat(context: Context, intent: Intent) {
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -173,6 +185,7 @@ class FocusTimerService : Service() {
     private var tickerJob: Job? = null
     private val repository = ProductivityRepository()
     private var isForegroundActive = false
+    private var lastDistractionLogTime = 0L
 
     override fun onCreate() {
         super.onCreate()
@@ -217,6 +230,10 @@ class FocusTimerService : Service() {
                 val shortBreak = intent.getIntExtra(EXTRA_SHORT_BREAK_MINUTES, 5)
                 val longBreak = intent.getIntExtra(EXTRA_LONG_BREAK_MINUTES, 15)
                 handleSetDurations(focus, shortBreak, longBreak)
+            }
+            ACTION_SET_STRICT_FOCUS -> {
+                val enabled = intent.getBooleanExtra(EXTRA_STRICT_FOCUS, false)
+                _timerStateFlow.update { it.copy(isStrictFocus = enabled) }
             }
             ACTION_STOP_SERVICE -> handleStopService()
         }
@@ -390,11 +407,45 @@ class FocusTimerService : Service() {
                 _timerStateFlow.update { it.copy(remainingSeconds = remainingSecs) }
                 updateOngoingNotification()
 
+                if (_timerStateFlow.value.currentMode == TimerMode.FOCUS && _timerStateFlow.value.isStrictFocus) {
+                    checkStrictFocusForegroundApp()
+                }
+
                 if (remainingSecs <= 0) {
                     onTimerFinished()
                     break
                 }
                 delay(1000)
+            }
+        }
+    }
+
+    private fun checkStrictFocusForegroundApp() {
+        val fgPkg = com.simats.focusflow.utils.UsageStatsHelper.getForegroundPackageName(applicationContext) ?: return
+        if (com.simats.focusflow.utils.UsageStatsHelper.isBlockedDistractingApp(applicationContext, fgPkg)) {
+            val appLabel = com.simats.focusflow.utils.UsageStatsHelper.getAppLabel(applicationContext, fgPkg)
+            try {
+                val shieldIntent = Intent(applicationContext, com.simats.focusflow.ui.screens.FocusShieldActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    putExtra("EXTRA_BLOCKED_APP", appLabel)
+                    putExtra("EXTRA_PACKAGE_NAME", fgPkg)
+                }
+                applicationContext.startActivity(shieldIntent)
+            } catch (_: Exception) {}
+
+            val currentTimestamp = System.currentTimeMillis()
+            if (currentTimestamp - lastDistractionLogTime > 15000L) {
+                lastDistractionLogTime = currentTimestamp
+                val activeUid = _timerStateFlow.value.activeUserId
+                val cat = com.simats.focusflow.utils.UsageStatsHelper.categorizePackage(fgPkg, appLabel, applicationContext)
+                serviceScope.launch {
+                    repository.logDistraction(
+                        userId = activeUid,
+                        reason = "Opened $appLabel during strict focus",
+                        category = cat,
+                        durationSeconds = 0
+                    )
+                }
             }
         }
     }
