@@ -44,10 +44,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -113,6 +116,9 @@ fun TimerScreen(
 
     DisposableEffect(lifecycleOwner, isStrictFocus, state.isRunning) {
         val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                refreshPermissions()
+            }
             if (isStrictFocus && state.isRunning) {
                 if (event == Lifecycle.Event.ON_STOP) {
                     backgroundJob?.cancel()
@@ -337,37 +343,6 @@ fun TimerScreen(
                                 )
                             }
                         }
-                        Surface(
-                            onClick = { viewModel.setSettingsOpen(true) },
-                            shape = RoundedCornerShape(10.dp),
-                            color = if (state.focusMinutes !in listOf(5, 15, 25, 45, 60)) colors.primary.copy(alpha = 0.18f) else colors.surface,
-                            border = BorderStroke(
-                                1.dp,
-                                if (state.focusMinutes !in listOf(5, 15, 25, 45, 60)) colors.primary else colors.border
-                            ),
-                            modifier = Modifier
-                                .padding(horizontal = 3.dp)
-                                .bounceClick()
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Tune,
-                                    contentDescription = null,
-                                    tint = colors.primaryLight,
-                                    modifier = Modifier.size(12.dp)
-                                )
-                                Spacer(modifier = Modifier.width(3.dp))
-                                Text(
-                                    text = if (state.focusMinutes !in listOf(5, 15, 25, 45, 60)) "${state.focusMinutes}m" else "Custom",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = if (state.focusMinutes !in listOf(5, 15, 25, 45, 60)) colors.primaryLight else colors.textMuted
-                                )
-                            }
-                        }
                     }
                 }
             }
@@ -490,14 +465,26 @@ fun TimerScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
+            val strictBorder = if (isStrictFocus) {
+                BorderStroke(
+                    1.5.dp,
+                    Brush.linearGradient(
+                        listOf(Color(0xFF8B5CF6), Color(0xFFF59E0B), Color(0xFF8B5CF6))
+                    )
+                )
+            } else {
+                BorderStroke(1.dp, colors.border)
+            }
+
             Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = if (isStrictFocus) colors.primary.copy(alpha = 0.12f) else colors.surface,
-                border = BorderStroke(1.dp, if (isStrictFocus) colors.primary.copy(alpha = 0.45f) else colors.border),
+                shape = RoundedCornerShape(18.dp),
+                color = if (isStrictFocus) Color(0xFF1E1735) else colors.surface,
+                border = strictBorder,
+                shadowElevation = if (isStrictFocus) 8.dp else 0.dp,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -507,31 +494,51 @@ fun TimerScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(36.dp)
+                                .size(40.dp)
                                 .clip(CircleShape)
-                                .background(if (isStrictFocus) colors.primary.copy(alpha = 0.2f) else colors.surfaceVariant),
+                                .background(if (isStrictFocus) Color(0xFF8B5CF6).copy(alpha = 0.25f) else colors.surfaceVariant),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Security,
                                 contentDescription = null,
-                                tint = if (isStrictFocus) colors.primaryLight else colors.textMuted,
-                                modifier = Modifier.size(18.dp)
+                                tint = if (isStrictFocus) Color(0xFFF59E0B) else colors.textMuted,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
-                            Text(
-                                text = "Strict Focus Mode",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = colors.textPrimary
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "Strict Focus Mode",
+                                    fontSize = 14.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isStrictFocus) Color.White else colors.textPrimary
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                if (isStrictFocus) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(Color(0xFF10B981).copy(alpha = 0.2f))
+                                            .border(1.dp, Color(0xFF10B981).copy(alpha = 0.5f), RoundedCornerShape(6.dp))
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = "SHIELD ACTIVE",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = Color(0xFF34D399),
+                                            letterSpacing = 0.8.sp
+                                        )
+                                    }
+                                }
+                            }
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "Auto-detect distractions if app is closed",
-                                fontSize = 11.sp,
-                                color = colors.textMuted
+                                text = "Auto-detect distractions & shield your workflow",
+                                fontSize = 11.5.sp,
+                                color = if (isStrictFocus) Color(0xFFCBD5E1) else colors.textMuted
                             )
                         }
                     }
@@ -562,7 +569,7 @@ fun TimerScreen(
                 }
             }
 
-            if (isStrictFocus) {
+            if (isStrictFocus && (!hasAccessibilityPermission || !hasOverlayPermission)) {
                 Spacer(modifier = Modifier.height(14.dp))
                 Surface(
                     shape = RoundedCornerShape(16.dp),
@@ -1201,6 +1208,24 @@ private fun TimerCountdownDial(
         ),
         label = "pulseGlowAlpha"
     )
+    val wavePhase by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 2f * Math.PI.toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(2400, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "wavePhase"
+    )
+    val ringRotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(6000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "ringRotation"
+    )
 
     val formattedTime = remember(remainingSeconds) {
         val mins = remainingSeconds / 60
@@ -1249,15 +1274,54 @@ private fun TimerCountdownDial(
             val glowStroke = remember(glowWidthPx) { Stroke(width = glowWidthPx, cap = StrokeCap.Round) }
 
             Canvas(modifier = Modifier.fillMaxSize()) {
+                val pad = strokeWidthPx / 2f
+                val innerDiameter = size.minDimension - strokeWidthPx * 2f
+
+                clipPath(
+                    Path().apply {
+                        addOval(Rect(strokeWidthPx, strokeWidthPx, size.width - strokeWidthPx, size.height - strokeWidthPx))
+                    }
+                ) {
+                    val progressVal = animatedProgressState.value.coerceIn(0f, 1f)
+                    val liquidLevelY = size.height - (size.height - strokeWidthPx * 2f) * progressVal - strokeWidthPx
+                    val wavePath = Path()
+                    val amplitude = if (isRunning) 6.dp.toPx() else 2.5.dp.toPx()
+                    val waveLen = size.width * 0.75f
+                    wavePath.moveTo(0f, size.height)
+                    wavePath.lineTo(0f, liquidLevelY)
+                    var wx = 0f
+                    while (wx <= size.width) {
+                        val wy = liquidLevelY + kotlin.math.sin((wx / waveLen) * 2 * Math.PI.toFloat() + wavePhase) * amplitude
+                        wavePath.lineTo(wx, wy)
+                        wx += 4f
+                    }
+                    wavePath.lineTo(size.width, size.height)
+                    wavePath.close()
+
+                    drawPath(
+                        path = wavePath,
+                        brush = Brush.verticalGradient(
+                            listOf(
+                                Color(0xFF06B6D4).copy(alpha = 0.16f),
+                                Color(0xFF8B5CF6).copy(alpha = 0.32f),
+                                Color(0xFF10B981).copy(alpha = 0.42f)
+                            ),
+                            startY = liquidLevelY,
+                            endY = size.height
+                        )
+                    )
+                }
+
                 drawCircle(
                     color = surfaceVariant,
                     style = bgStroke
                 )
 
                 if (totalSeconds > 0) {
+                    val currentStartAngle = -90f + if (isRunning) (ringRotation * 0.1f) else 0f
                     drawArc(
                         brush = sweepBrush,
-                        startAngle = -90f,
+                        startAngle = currentStartAngle,
                         sweepAngle = animatedProgressState.value * 360f,
                         useCenter = false,
                         style = glowStroke,
@@ -1266,7 +1330,7 @@ private fun TimerCountdownDial(
 
                     drawArc(
                         brush = sweepBrush,
-                        startAngle = -90f,
+                        startAngle = currentStartAngle,
                         sweepAngle = animatedProgressState.value * 360f,
                         useCenter = false,
                         style = arcStroke
