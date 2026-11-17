@@ -412,49 +412,131 @@ fun InsightsScreen(
                 border = BorderStroke(1.dp, colors.border)
             ) {
                 Column(modifier = Modifier.padding(18.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = colors.primaryLight,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "PRODUCTIVITY INTELLIGENCE",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.primaryLight,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = insightsData.bestWindow.ifBlank { "09:00 - 11:30" },
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textPrimary,
+                                maxLines = 1
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text("Peak Window", fontSize = 11.sp, color = colors.textMuted)
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = insightsData.distractionsSummary.topCategory.ifBlank { "Social Media" },
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFF59E0B),
+                                maxLines = 1
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text("Top Distraction", fontSize = 11.sp, color = colors.textMuted)
+                        }
+
+                        Column(modifier = Modifier.weight(0.8f)) {
+                            Text(
+                                text = "${insightsData.dailyGoalProgressPercent.toInt()}%",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF10B981)
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text("Goal Attained", fontSize = 11.sp, color = colors.textMuted)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    val topDistract = insightsData.distractionsSummary.topCategory.ifBlank { "Social Media" }
+                    val peakWin = insightsData.bestWindow.ifBlank { "09:00 - 11:30 AM" }
+                    val goalPct = insightsData.dailyGoalProgressPercent.toInt()
+                    val recommendationText = when {
+                        goalPct >= 100 -> "Daily goal reached. Preserve momentum during $peakWin and keep $topDistract blocked."
+                        goalPct >= 50 -> "On track for today. Schedule your next deep session during $peakWin to hit 100%."
+                        else -> "Target your next focus sprint during $peakWin. Enable Strict Focus Mode to mitigate $topDistract."
+                    }
+
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = colors.surfaceVariant.copy(alpha = 0.6f),
+                        border = BorderStroke(1.dp, colors.border.copy(alpha = 0.5f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = recommendationText,
+                                fontSize = 12.sp,
+                                color = colors.textPrimary,
+                                lineHeight = 16.sp
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    HorizontalDivider(color = colors.border, thickness = 1.dp)
+                    Spacer(modifier = Modifier.height(14.dp))
+
                     Row(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "${insightsData.currentStreakDays}d",
-                                fontSize = 24.sp,
+                                fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFFF59E0B)
                             )
-                            Text("Current Focus Streak", fontSize = 11.sp, color = colors.textMuted)
-
-                            Spacer(modifier = Modifier.height(14.dp))
-
-                            Text(
-                                text = "${insightsData.tasksSummary.completionRatePercent.toInt()}%",
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF10B981)
-                            )
-                            Text(
-                                text = "Tasks (${insightsData.tasksSummary.completedTasks}/${insightsData.tasksSummary.totalTasks} Done)",
-                                fontSize = 11.sp,
-                                color = colors.textMuted
-                            )
+                            Text("Current Streak", fontSize = 11.sp, color = colors.textMuted)
                         }
 
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "${insightsData.todayFocusMinutes}m",
-                                fontSize = 24.sp,
+                                fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = colors.textPrimary
                             )
-                            Text("Today's Focus Time", fontSize = 11.sp, color = colors.textMuted)
+                            Text("Today's Focus", fontSize = 11.sp, color = colors.textMuted)
+                        }
 
-                            Spacer(modifier = Modifier.height(14.dp))
-
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "${insightsData.dailyGoalProgressPercent.toInt()}%",
-                                fontSize = 24.sp,
+                                text = "${insightsData.tasksSummary.completedTasks}/${insightsData.tasksSummary.totalTasks}",
+                                fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = colors.primaryLight
+                                color = Color(0xFF10B981)
                             )
-                            Text("Daily Goal Attained", fontSize = 11.sp, color = colors.textMuted)
+                            Text("Tasks Completed", fontSize = 11.sp, color = colors.textMuted)
                         }
                     }
                 }

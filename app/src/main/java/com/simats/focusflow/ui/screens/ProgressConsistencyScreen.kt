@@ -353,51 +353,33 @@ fun ProgressConsistencyScreen(onBack: () -> Unit = {}) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(170.dp)
+                            .height(180.dp)
                     ) {
                         Canvas(modifier = Modifier.fillMaxSize()) {
                             val w = size.width
                             val h = size.height
-                            val barWidth = 24.dp.toPx()
-                            val spacing = (w - (barWidth * displayDays.size)) / (displayDays.size + 1)
+                            val bottomPadding = 30.dp.toPx()
+                            val topPadding = 16.dp.toPx()
+                            val availableH = h - bottomPadding - topPadding
+                            val spacing = w / (displayDays.size + 1)
                             val points = mutableListOf<Offset>()
+
+                            for (gridLine in 0..3) {
+                                val gy = topPadding + (availableH * (gridLine / 3f))
+                                drawLine(
+                                    color = Color(0xFF334155).copy(alpha = 0.25f),
+                                    start = Offset(spacing * 0.5f, gy),
+                                    end = Offset(w - spacing * 0.5f, gy),
+                                    strokeWidth = 1.dp.toPx()
+                                )
+                            }
 
                             for (i in displayDays.indices) {
                                 val item = displayDays[i]
-                                val barHeight = if (maxDayMinutes > 0) {
-                                    (item.focusMinutes.toFloat() / maxDayMinutes.toFloat()) * (h - 36.dp.toPx())
-                                } else 0f
-                                val x = spacing + (i * (barWidth + spacing))
-                                val y = h - 24.dp.toPx() - barHeight
-
-                                points.add(Offset(x + barWidth / 2f, y))
-
-                                drawRoundRect(
-                                    color = Color(0xFF334155).copy(alpha = 0.4f),
-                                    topLeft = Offset(x, 10.dp.toPx()),
-                                    size = Size(barWidth, h - 34.dp.toPx()),
-                                    cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
-                                )
-
-                                val isSelected = i == selectedDayIndex
-                                val barGradient = if (isSelected) {
-                                    Brush.verticalGradient(
-                                        listOf(Color(0xFF38BDF8), Color(0xFF8B5CF6))
-                                    )
-                                } else {
-                                    Brush.verticalGradient(
-                                        listOf(Color(0xFF06B6D4), Color(0xFF6366F1).copy(alpha = 0.8f))
-                                    )
-                                }
-
-                                if (barHeight > 4f) {
-                                    drawRoundRect(
-                                        brush = barGradient,
-                                        topLeft = Offset(x, y),
-                                        size = Size(barWidth, barHeight),
-                                        cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
-                                    )
-                                }
+                                val ratio = if (maxDayMinutes > 0) (item.focusMinutes.toFloat() / maxDayMinutes.toFloat()).coerceIn(0f, 1f) else 0f
+                                val x = spacing * (i + 1)
+                                val y = topPadding + availableH * (1f - ratio)
+                                points.add(Offset(x, y))
                             }
 
                             if (points.size >= 2) {
@@ -411,16 +393,45 @@ fun ProgressConsistencyScreen(onBack: () -> Unit = {}) {
                                     }
                                 }
 
+                                val fillPath = Path().apply {
+                                    addPath(linePath)
+                                    lineTo(points.last().x, topPadding + availableH)
+                                    lineTo(points.first().x, topPadding + availableH)
+                                    close()
+                                }
+
                                 drawPath(
-                                    path = linePath,
-                                    color = Color(0xFF38BDF8).copy(alpha = 0.7f),
-                                    style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round)
+                                    path = fillPath,
+                                    brush = Brush.verticalGradient(
+                                        listOf(
+                                            Color(0xFF38BDF8).copy(alpha = 0.4f),
+                                            Color(0xFF8B5CF6).copy(alpha = 0.12f),
+                                            Color.Transparent
+                                        ),
+                                        startY = topPadding,
+                                        endY = topPadding + availableH
+                                    )
                                 )
 
-                                for (p in points) {
+                                drawPath(
+                                    path = linePath,
+                                    brush = Brush.horizontalGradient(
+                                        listOf(Color(0xFF38BDF8), Color(0xFF8B5CF6), Color(0xFF10B981))
+                                    ),
+                                    style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+                                )
+
+                                for (i in points.indices) {
+                                    val p = points[i]
+                                    val isSelected = i == selectedDayIndex
                                     drawCircle(
-                                        color = Color.White,
-                                        radius = 3.5.dp.toPx(),
+                                        color = if (isSelected) Color(0xFFF59E0B).copy(alpha = 0.4f) else Color(0xFF38BDF8).copy(alpha = 0.3f),
+                                        radius = if (isSelected) 9.dp.toPx() else 6.dp.toPx(),
+                                        center = p
+                                    )
+                                    drawCircle(
+                                        color = if (isSelected) Color(0xFFF59E0B) else Color.White,
+                                        radius = if (isSelected) 4.5.dp.toPx() else 3.5.dp.toPx(),
                                         center = p
                                     )
                                 }
@@ -438,12 +449,12 @@ fun ProgressConsistencyScreen(onBack: () -> Unit = {}) {
                                 val isSelected = idx == selectedDayIndex
                                 Text(
                                     text = dayItem.day,
-                                    fontSize = 11.sp,
+                                    fontSize = 11.5.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) colors.primaryLight else colors.textMuted,
+                                    color = if (isSelected) Color(0xFF38BDF8) else colors.textMuted,
                                     modifier = Modifier
                                         .clickable { selectedDayIndex = idx }
-                                        .padding(horizontal = 4.dp, vertical = 2.dp)
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
                             }
                         }
@@ -579,6 +590,162 @@ fun ProgressConsistencyScreen(onBack: () -> Unit = {}) {
                                         color = colors.textMuted
                                     )
                                 }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = colors.surface.copy(alpha = 0.85f),
+                border = BorderStroke(1.dp, neonBorder),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "BUILD CONSISTENCY TREND",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.primaryLight,
+                                letterSpacing = 1.2.sp
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "4-Week Habit Trajectory",
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFF10B981).copy(alpha = 0.15f))
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "Monthly",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF10B981)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    val weeklyData = insightsData.monthlySummary.weeklyActiveDays.ifEmpty {
+                        listOf(
+                            com.simats.focusflow.data.models.WeeklyActiveDayItem("Wk 1", 3),
+                            com.simats.focusflow.data.models.WeeklyActiveDayItem("Wk 2", 4),
+                            com.simats.focusflow.data.models.WeeklyActiveDayItem("Wk 3", 5),
+                            com.simats.focusflow.data.models.WeeklyActiveDayItem("Wk 4", 6)
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(160.dp)
+                    ) {
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            val w = size.width
+                            val h = size.height
+                            val bottomPad = 26.dp.toPx()
+                            val topPad = 14.dp.toPx()
+                            val availH = h - bottomPad - topPad
+                            val spacing = w / (weeklyData.size + 1)
+                            val points = mutableListOf<Offset>()
+
+                            for (i in weeklyData.indices) {
+                                val item = weeklyData[i]
+                                val ratio = (item.activeDays.toFloat() / 7f).coerceIn(0f, 1f)
+                                val x = spacing * (i + 1)
+                                val y = topPad + availH * (1f - ratio)
+                                points.add(Offset(x, y))
+                            }
+
+                            if (points.size >= 2) {
+                                val linePath = Path().apply {
+                                    moveTo(points[0].x, points[0].y)
+                                    for (i in 1 until points.size) {
+                                        val p0 = points[i - 1]
+                                        val p1 = points[i]
+                                        val midX = (p0.x + p1.x) / 2f
+                                        cubicTo(midX, p0.y, midX, p1.y, p1.x, p1.y)
+                                    }
+                                }
+
+                                val areaFill = Path().apply {
+                                    addPath(linePath)
+                                    lineTo(points.last().x, topPad + availH)
+                                    lineTo(points.first().x, topPad + availH)
+                                    close()
+                                }
+
+                                drawPath(
+                                    path = areaFill,
+                                    brush = Brush.verticalGradient(
+                                        listOf(
+                                            Color(0xFF10B981).copy(alpha = 0.35f),
+                                            Color(0xFF06B6D4).copy(alpha = 0.1f),
+                                            Color.Transparent
+                                        ),
+                                        startY = topPad,
+                                        endY = topPad + availH
+                                    )
+                                )
+
+                                drawPath(
+                                    path = linePath,
+                                    brush = Brush.horizontalGradient(
+                                        listOf(Color(0xFF06B6D4), Color(0xFF10B981))
+                                    ),
+                                    style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+                                )
+
+                                for (p in points) {
+                                    drawCircle(
+                                        color = Color(0xFF10B981).copy(alpha = 0.35f),
+                                        radius = 7.dp.toPx(),
+                                        center = p
+                                    )
+                                    drawCircle(
+                                        color = Color.White,
+                                        radius = 4.dp.toPx(),
+                                        center = p
+                                    )
+                                }
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .align(Alignment.BottomCenter),
+                            horizontalArrangement = Arrangement.SpaceAround
+                        ) {
+                            weeklyData.forEach { wk ->
+                                Text(
+                                    text = "${wk.weekLabel} (${wk.activeDays}d)",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = colors.textMuted
+                                )
                             }
                         }
                     }
