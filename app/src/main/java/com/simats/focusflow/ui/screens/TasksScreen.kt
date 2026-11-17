@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -305,8 +306,8 @@ fun TasksScreen(
             ) {
                 AddTaskBottomSheetContent(
                     onDismiss = { viewModel.setBottomSheetOpen(false) },
-                    onCreateTask = { title, desc, priority, dueDate, category ->
-                        viewModel.createTask(title, desc, priority, dueDate, category)
+                    onCreateTask = { title, desc, priority, dueDate, category, scheduledTime ->
+                        viewModel.createTask(title, desc, priority, dueDate, category, scheduledTime)
                     }
                 )
             }
@@ -421,6 +422,31 @@ private fun TaskItemCard(
                         }
                     }
 
+                    if (!task.scheduledTime.isNullOrBlank()) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color(0xFF8B5CF6).copy(alpha = 0.15f))
+                                .padding(horizontal = 7.dp, vertical = 2.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Schedule,
+                                    contentDescription = null,
+                                    tint = Color(0xFFA78BFA),
+                                    modifier = Modifier.size(11.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = task.scheduledTime,
+                                    fontSize = 10.sp,
+                                    color = Color(0xFFA78BFA),
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+                    }
+
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
@@ -496,17 +522,19 @@ private fun TaskItemCard(
 @Composable
 private fun AddTaskBottomSheetContent(
     onDismiss: () -> Unit,
-    onCreateTask: (title: String, desc: String, priority: String, dueDate: String, category: String) -> Unit
+    onCreateTask: (title: String, desc: String, priority: String, dueDate: String, category: String, scheduledTime: String?) -> Unit
 ) {
     val colors = FocusFlowTheme.colors
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var selectedPriority by remember { mutableStateOf("Medium") }
     var selectedDueDate by remember { mutableStateOf("Today") }
+    var selectedScheduledTime by remember { mutableStateOf<String?>("09:00 AM") }
     var selectedCategory by remember { mutableStateOf("Deep Work") }
 
     val priorities = listOf("Low", "Medium", "High")
     val dueDates = listOf("Today", "Tomorrow", "Next Week")
+    val timePresets = listOf("09:00 AM", "11:30 AM", "02:00 PM", "04:30 PM", "07:00 PM", "No Time")
     val categories = listOf("Deep Work", "Coding", "Study", "Creative", "General")
 
     var showDatePicker by remember { mutableStateOf(false) }
@@ -694,12 +722,65 @@ private fun AddTaskBottomSheetContent(
             }
         }
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("SCHEDULED TIME", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = colors.primaryLight, letterSpacing = 1.sp)
+            if (selectedScheduledTime != null) {
+                Text(
+                    text = selectedScheduledTime!!,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFA78BFA)
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(timePresets, key = { it }) { timeOpt ->
+                val isSelected = (timeOpt == "No Time" && selectedScheduledTime == null) || (timeOpt == selectedScheduledTime)
+                Surface(
+                    onClick = {
+                        selectedScheduledTime = if (timeOpt == "No Time") null else timeOpt
+                    },
+                    shape = RoundedCornerShape(10.dp),
+                    color = if (isSelected) Color(0xFF8B5CF6).copy(alpha = 0.25f) else colors.surfaceVariant,
+                    border = BorderStroke(1.dp, if (isSelected) Color(0xFF8B5CF6) else colors.border)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (timeOpt != "No Time") {
+                            Icon(
+                                imageVector = Icons.Default.Schedule,
+                                contentDescription = null,
+                                tint = if (isSelected) Color(0xFFA78BFA) else colors.textMuted,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                        }
+                        Text(
+                            text = timeOpt,
+                            fontSize = 12.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isSelected) Color(0xFFA78BFA) else colors.textMuted
+                        )
+                    }
+                }
+            }
+        }
+
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
             onClick = {
                 if (title.isNotBlank()) {
-                    onCreateTask(title, description, selectedPriority, selectedDueDate, selectedCategory)
+                    onCreateTask(title, description, selectedPriority, selectedDueDate, selectedCategory, selectedScheduledTime)
                 }
             },
             enabled = title.isNotBlank(),
