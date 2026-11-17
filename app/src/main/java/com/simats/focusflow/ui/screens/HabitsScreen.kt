@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bedtime
@@ -33,7 +34,6 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Insights
-import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Share
@@ -81,7 +81,7 @@ fun resolveHabitIcon(iconKey: String): ImageVector = when (iconKey.lowercase()) 
     "star", "default", "general" -> Icons.Default.Star
     "check", "checkcircle" -> Icons.Rounded.CheckCircle
     "bolt", "flash" -> Icons.Default.FlashOn
-    "book", "read" -> Icons.Default.MenuBook
+    "book", "read" -> Icons.AutoMirrored.Filled.MenuBook
     "code", "laptop" -> Icons.Default.Code
     "water" -> Icons.Default.WaterDrop
     "fitness", "run" -> Icons.Default.FitnessCenter
