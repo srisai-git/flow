@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import com.simats.focusflow.data.models.InsightsData
 import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.session.SessionManager
+import com.simats.focusflow.ui.components.AmbientMeshGlowHeader
 import com.simats.focusflow.ui.components.InsightsSkeleton
 import com.simats.focusflow.ui.components.bounceClick
 import com.simats.focusflow.ui.theme.FocusFlowTheme
@@ -108,17 +109,23 @@ fun InsightsScreen(
     }
 
     Scaffold(
-        containerColor = colors.background,
+        containerColor = Color(0xFF07060D),
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(colors.background)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
+                .background(Color(0xFF07060D))
         ) {
+            AmbientMeshGlowHeader(height = 240.dp)
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp)
+            ) {
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
@@ -193,11 +200,18 @@ fun InsightsScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
+            val hairlineBorder = Brush.verticalGradient(
+                listOf(
+                    Color.White.copy(alpha = 0.14f),
+                    Color.White.copy(alpha = 0.03f)
+                )
+            )
+
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(18.dp),
-                color = colors.surface,
-                border = BorderStroke(1.dp, colors.border)
+                shape = RoundedCornerShape(20.dp),
+                color = Color(0xFF11101C),
+                border = BorderStroke(1.dp, hairlineBorder)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Row(
@@ -215,15 +229,16 @@ fun InsightsScreen(
                             val mins = totalMins % 60
                             Text(
                                 text = "${hours}h ${mins}m",
-                                fontSize = 30.sp,
+                                fontSize = 32.sp,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = colors.textPrimary
+                                color = Color(0xFFF1F1F5),
+                                letterSpacing = (-1.5).sp
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = if (selectedTab == "Week") "recorded focus time this week" else "recorded focus time this month",
                                 fontSize = 12.sp,
-                                color = colors.textMuted
+                                color = Color(0xFF94A3B8)
                             )
                         }
 
@@ -577,6 +592,7 @@ fun InsightsScreen(
             }
 
             Spacer(modifier = Modifier.height(100.dp))
+            }
         }
     }
 }
