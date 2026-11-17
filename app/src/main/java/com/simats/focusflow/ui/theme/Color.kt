@@ -1,16 +1,22 @@
 package com.simats.focusflow.ui.theme
 
 import androidx.compose.runtime.Immutable
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
-val DarkBackground = Color(0xFF0F0F14)
-val DarkSurface = Color(0xFF181722)
-val DarkSurfaceVariant = Color(0xFF201F2D)
-val DarkBorder = Color(0xFF262433)
+val DarkBackground = Color(0xFF07060D)
+val DarkSurface = Color(0xFF11101C)
+val DarkSurfaceVariant = Color(0xFF181628)
+val DarkBorder = Color(0xFF232035)
 val DarkPrimary = Color(0xFF8B5CF6)
 val DarkPrimaryLight = Color(0xFFC4B5FD)
 val DarkTextPrimary = Color(0xFFF1F1F5)
-val DarkTextMuted = Color(0xFF9CA3AF)
+val DarkTextMuted = Color(0xFF94A3B8)
+
+val AccentCyan = Color(0xFF38BDF8)
+val WarmCoral = Color(0xFFFF5A5F)
+val AmbientGlowViolet = Color(0xFF1A103C)
+val AmbientGlowDeepBlue = Color(0xFF0D1B2A)
 
 val LightBackground = Color(0xFFF8F9FA)
 val LightSurface = Color(0xFFFFFFFF)
@@ -42,8 +48,27 @@ data class FocusFlowColors(
     val primaryLight: Color,
     val textPrimary: Color,
     val textMuted: Color,
-    val isDark: Boolean
-)
+    val isDark: Boolean,
+    val accentCyan: Color = AccentCyan,
+    val accentCoral: Color = WarmCoral
+) {
+    val cardBorderBrush: Brush
+        get() = if (isDark) {
+            Brush.verticalGradient(
+                listOf(
+                    Color.White.copy(alpha = 0.14f),
+                    Color.White.copy(alpha = 0.03f)
+                )
+            )
+        } else {
+            Brush.verticalGradient(
+                listOf(
+                    border.copy(alpha = 0.8f),
+                    border.copy(alpha = 0.3f)
+                )
+            )
+        }
+}
 
 val DarkFocusFlowColors = FocusFlowColors(
     background = DarkBackground,
@@ -54,7 +79,9 @@ val DarkFocusFlowColors = FocusFlowColors(
     primaryLight = DarkPrimaryLight,
     textPrimary = DarkTextPrimary,
     textMuted = DarkTextMuted,
-    isDark = true
+    isDark = true,
+    accentCyan = AccentCyan,
+    accentCoral = WarmCoral
 )
 
 val LightFocusFlowColors = FocusFlowColors(
@@ -66,5 +93,7 @@ val LightFocusFlowColors = FocusFlowColors(
     primaryLight = LightPrimaryLight,
     textPrimary = LightTextPrimary,
     textMuted = LightTextMuted,
-    isDark = false
+    isDark = false,
+    accentCyan = AccentCyan,
+    accentCoral = WarmCoral
 )
