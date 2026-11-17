@@ -89,9 +89,9 @@ fun FocusShieldContent(
 
     val bgGradient = Brush.verticalGradient(
         colors = listOf(
-            Color(0xFF0F172A),
-            Color(0xFF1E112A),
-            Color(0xFF0A0F1D)
+            Color(0xFF07060D),
+            Color(0xFF1A103C),
+            Color(0xFF07060D)
         )
     )
 
