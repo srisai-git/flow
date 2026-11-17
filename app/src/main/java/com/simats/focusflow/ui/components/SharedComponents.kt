@@ -7,8 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,32 +29,54 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-fun Modifier.bounceClick() = composed {
+fun Modifier.bouncyClick(
+    enabled: Boolean = true,
+    onClick: (() -> Unit)? = null
+): Modifier = composed {
     var isPressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(if (isPressed) 0.96f else 1f, label = "bounceScale")
+    val haptic = LocalHapticFeedback.current
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && enabled) 0.96f else 1f,
+        animationSpec = spring(
+            dampingRatio = 0.65f,
+            stiffness = 500f
+        ),
+        label = "bouncyScale"
+    )
+
     this
         .graphicsLayer {
             scaleX = scale
             scaleY = scale
         }
-        .pointerInput(isPressed) {
-            awaitPointerEventScope {
-                isPressed = if (isPressed) {
-                    waitForUpOrCancellation()
-                    false
-                } else {
-                    awaitFirstDown()
-                    true
+        .pointerInput(enabled) {
+            if (!enabled) return@pointerInput
+            detectTapGestures(
+                onPress = {
+                    isPressed = true
+                    try {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    } catch (_: Exception) {}
+                    val released = tryAwaitRelease()
+                    isPressed = false
+                    if (released && onClick != null) {
+                        onClick()
+                    }
                 }
-            }
+            )
         }
 }
+
+fun Modifier.bounceClick(): Modifier = bouncyClick()
 
 fun Modifier.noRippleClickable(
     enabled: Boolean = true,
@@ -67,6 +88,90 @@ fun Modifier.noRippleClickable(
         indication = null,
         onClick = onClick
     )
+}
+
+@Composable
+fun AmbientMeshGlowHeader(
+    modifier: Modifier = Modifier,
+    height: Dp = 220.dp
+) {
+    val transition = rememberInfiniteTransition(label = "ambientMesh")
+    val driftX by transition.animateFloat(
+        initialValue = -25f,
+        targetValue = 25f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(12000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "driftX"
+    )
+    val driftY by transition.animateFloat(
+        initialValue = -15f,
+        targetValue = 15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(9000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "driftY"
+    )
+
+    Canvas(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(height)
+    ) {
+        val w = size.width
+        val h = size.height
+
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color(0xFF1A103C).copy(alpha = 0.18f),
+                    Color.Transparent
+                ),
+                center = Offset(w * 0.25f + driftX, h * 0.4f + driftY),
+                radius = w * 0.75f
+            ),
+            radius = w * 0.75f,
+            center = Offset(w * 0.25f + driftX, h * 0.4f + driftY)
+        )
+
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color(0xFF0D1B2A).copy(alpha = 0.18f),
+                    Color.Transparent
+                ),
+                center = Offset(w * 0.8f - driftX, h * 0.3f - driftY),
+                radius = w * 0.65f
+            ),
+            radius = w * 0.65f,
+            center = Offset(w * 0.8f - driftX, h * 0.3f - driftY)
+        )
+    }
+}
+
+@Composable
+fun GlassCard(
+    modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(20.dp),
+    backgroundColor: Color = Color(0xFF11101C),
+    borderBrush: Brush = Brush.verticalGradient(
+        listOf(
+            Color.White.copy(alpha = 0.14f),
+            Color.White.copy(alpha = 0.03f)
+        )
+    ),
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Surface(
+        modifier = modifier,
+        shape = shape,
+        color = backgroundColor,
+        border = BorderStroke(1.dp, borderBrush)
+    ) {
+        Column(content = content)
+    }
 }
 
 @Composable
