@@ -260,11 +260,11 @@ fun InsightsScreen(
                         ) {
                             Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF10B981)))
                             Spacer(modifier = Modifier.width(5.dp))
-                            Text("Focus (min)", fontSize = 10.5.sp, color = colors.textMuted)
+                            Text("Focus (min)", fontSize = 10.5.sp, color = Color(0xFF94A3B8))
                             Spacer(modifier = Modifier.width(14.dp))
                             Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFF59E0B)))
                             Spacer(modifier = Modifier.width(5.dp))
-                            Text("Distractions", fontSize = 10.5.sp, color = colors.textMuted)
+                            Text("Distractions", fontSize = 10.5.sp, color = Color(0xFF94A3B8))
                         }
                     } else {
                         Spacer(modifier = Modifier.height(24.dp))
@@ -421,9 +421,9 @@ fun InsightsScreen(
 
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(18.dp),
-                color = colors.surface,
-                border = BorderStroke(1.dp, colors.border)
+                shape = RoundedCornerShape(20.dp),
+                color = Color(0xFF11101C),
+                border = BorderStroke(1.dp, hairlineBorder)
             ) {
                 Column(modifier = Modifier.padding(18.dp)) {
                     Row(
@@ -560,9 +560,9 @@ fun InsightsScreen(
 
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(18.dp),
-                color = colors.surface,
-                border = BorderStroke(1.dp, colors.border)
+                shape = RoundedCornerShape(20.dp),
+                color = Color(0xFF11101C),
+                border = BorderStroke(1.dp, hairlineBorder)
             ) {
                 Column {
                     InsightNavRow(
