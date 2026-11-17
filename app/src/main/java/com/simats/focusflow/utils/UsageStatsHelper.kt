@@ -849,4 +849,86 @@ object UsageStatsHelper {
             else -> "Utilities"
         }
     }
+
+    fun getForegroundPackageName(context: Context): String? {
+        return try {
+            val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager ?: return null
+            val endTime = System.currentTimeMillis()
+            val startTime = endTime - 10000L
+            val events = usageStatsManager.queryEvents(startTime, endTime)
+            var lastForegroundPkg: String? = null
+            var lastEventTime = 0L
+            val event = android.app.usage.UsageEvents.Event()
+            while (events.hasNextEvent()) {
+                events.getNextEvent(event)
+                if (event.eventType == android.app.usage.UsageEvents.Event.ACTIVITY_RESUMED && event.timeStamp >= lastEventTime) {
+                    val pkg = event.packageName
+                    if (pkg != null && !isSystemProcessOrDaemon(pkg)) {
+                        lastForegroundPkg = pkg
+                        lastEventTime = event.timeStamp
+                    }
+                }
+            }
+            if (lastForegroundPkg != null) {
+                lastForegroundPkg
+            } else {
+                val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
+                stats?.filter { it.packageName != null && !isSystemProcessOrDaemon(it.packageName) }
+                    ?.maxByOrNull { it.lastTimeUsed }
+                    ?.packageName
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    fun isBlockedDistractingApp(context: Context, packageName: String): Boolean {
+        if (packageName == context.packageName) return false
+        if (isSystemProcessOrDaemon(packageName)) return false
+
+        val knownDistracting = setOf(
+            "com.instagram.android",
+            "com.google.android.youtube",
+            "com.snapchat.android",
+            "com.twitter.android",
+            "com.facebook.katana",
+            "com.facebook.lite",
+            "com.facebook.orca",
+            "com.reddit.frontpage",
+            "com.zhiliaoapp.musically",
+            "com.ss.android.ugc.trill",
+            "com.dts.freefireth",
+            "com.dts.freefiremax",
+            "com.pubg.imobile",
+            "com.tencent.ig",
+            "com.netflix.mediaclient",
+            "com.amazon.avod.thirdpartyclient",
+            "tv.twitch.android.app",
+            "com.pinterest",
+            "com.threads.android",
+            "com.valvesoftware.android.steam.community",
+            "com.king.candycrushsaga",
+            "com.supercell.clashofclans",
+            "com.supercell.clashroyale",
+            "com.supercell.brawlstars",
+            "com.roblox.client"
+        )
+        if (knownDistracting.contains(packageName)) return true
+
+        val category = categorizePackage(packageName, "", context)
+        return category == "Social Media" || category == "Games" || category == "Video & Streaming"
+    }
+
+    fun getAppLabel(context: Context, packageName: String): String {
+        getCachedLabel(packageName)?.let { return it }
+        return try {
+            val pm = context.packageManager
+            val info = pm.getApplicationInfo(packageName, 0)
+            val label = pm.getApplicationLabel(info).toString()
+            putCachedLabel(packageName, label)
+            label
+        } catch (_: Exception) {
+            packageName.substringAfterLast('.')
+        }
+    }
 }
