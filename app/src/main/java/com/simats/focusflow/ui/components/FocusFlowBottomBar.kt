@@ -77,12 +77,13 @@ fun FocusFlowBottomBar(
                                 onNavigate(screen.route)
                             } else {
                                 val target = if (screen.route == "dashboard") "home" else screen.route
+                                val isHome = (target == "home")
                                 navController.navigate(target) {
                                     popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
+                                        saveState = !isHome
                                     }
                                     launchSingleTop = true
-                                    restoreState = true
+                                    restoreState = !isHome
                                 }
                             }
                         }

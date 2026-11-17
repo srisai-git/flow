@@ -83,6 +83,7 @@ import com.simats.focusflow.ui.screens.MakeItYoursScreen
 import com.simats.focusflow.ui.screens.NotificationsScreen
 import com.simats.focusflow.ui.screens.OnboardingScreen
 import com.simats.focusflow.ui.screens.PlanNextDayScreen
+import com.simats.focusflow.ui.screens.PomodoroScreen
 import com.simats.focusflow.ui.screens.ProfileScreen
 import com.simats.focusflow.ui.screens.ProgressConsistencyScreen
 import com.simats.focusflow.ui.screens.ReadySetupCompleteScreen
@@ -261,12 +262,13 @@ class MainActivity : ComponentActivity() {
                                         navController = navController,
                                         onNavigate = { route ->
                                             val target = if (route == "dashboard") Screen.Home.route else route
+                                            val isHome = (target == Screen.Home.route || target == "home")
                                             navController.navigate(target) {
                                                 popUpTo(navController.graph.findStartDestination().id) {
-                                                    saveState = true
+                                                    saveState = !isHome
                                                 }
                                                 launchSingleTop = true
-                                                restoreState = true
+                                                restoreState = !isHome
                                             }
                                         }
                                     )
@@ -411,7 +413,8 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToGrootAi = { navController.navigate("groot_ai") },
                                 onNavigateToFocusAnalysis = { navController.navigate("focus_time_analysis") },
                                 onNavigateToDistraction = { navController.navigate("distraction_analysis") },
-                                onNavigateToProgressConsistency = { navController.navigate("progress_consistency") }
+                                onNavigateToProgressConsistency = { navController.navigate("progress_consistency") },
+                                onNavigateToPomodoro = { navController.navigate("pomodoro_screen") }
                             )
                         }
                         composable("dashboard") {
@@ -429,7 +432,8 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToGrootAi = { navController.navigate("groot_ai") },
                                 onNavigateToFocusAnalysis = { navController.navigate("focus_time_analysis") },
                                 onNavigateToDistraction = { navController.navigate("distraction_analysis") },
-                                onNavigateToProgressConsistency = { navController.navigate("progress_consistency") }
+                                onNavigateToProgressConsistency = { navController.navigate("progress_consistency") },
+                                onNavigateToPomodoro = { navController.navigate("pomodoro_screen") }
                             )
                         }
                         composable("activities") {
@@ -503,10 +507,10 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToHome = {
                                     navController.navigate(Screen.Home.route) {
                                         popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
+                                            saveState = false
                                         }
                                         launchSingleTop = true
-                                        restoreState = true
+                                        restoreState = false
                                     }
                                 },
                                 onNavigateToTasks = { navController.navigate(Screen.Tasks.route) },
@@ -609,10 +613,10 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToHome = {
                                     navController.navigate(Screen.Home.route) {
                                         popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
+                                            saveState = false
                                         }
                                         launchSingleTop = true
-                                        restoreState = true
+                                        restoreState = false
                                     }
                                 },
                                 onNavigateToTasks = { navController.navigate(Screen.Tasks.route) },
@@ -667,6 +671,9 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("progress_consistency") {
                             ProgressConsistencyScreen(onBack = { navController.popBackStack() })
+                        }
+                        composable("pomodoro_screen") {
+                            PomodoroScreen(onNavigateBack = { navController.popBackStack() })
                         }
                         composable("edit_profile") {
                             EditProfileScreen(
