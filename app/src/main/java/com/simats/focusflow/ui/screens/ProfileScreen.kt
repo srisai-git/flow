@@ -57,6 +57,7 @@ import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.simats.focusflow.data.models.ProfileData
 import com.simats.focusflow.data.session.SessionManager
+import com.simats.focusflow.ui.components.AmbientMeshGlowHeader
 import com.simats.focusflow.ui.components.bounceClick
 import com.simats.focusflow.ui.theme.FocusFlowTheme
 import com.simats.focusflow.ui.viewmodel.ProfileViewModel
@@ -144,16 +145,23 @@ fun ProfileScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = colors.background
+        containerColor = Color(0xFF07060D),
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(colors.background)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
+                .background(Color(0xFF07060D))
         ) {
+            AmbientMeshGlowHeader(height = 260.dp)
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp)
+            ) {
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
@@ -176,8 +184,8 @@ fun ProfileScreen(
             Surface(
                 onClick = onNavigateToEditProfile,
                 shape = RoundedCornerShape(20.dp),
-                color = colors.surface,
-                border = BorderStroke(1.dp, colors.border),
+                color = Color(0xFF11101C),
+                border = BorderStroke(1.dp, colors.cardBorderBrush),
                 modifier = Modifier
                     .fillMaxWidth()
                     .bounceClick()
@@ -661,6 +669,7 @@ fun ProfileScreen(
                     onDismiss = { showStreakDetailSheet = false }
                 )
             }
+        }
         }
     }
 }
@@ -1444,8 +1453,8 @@ private fun StatSummaryCard(
         onClick = onClick,
         modifier = modifier.bounceClick(),
         shape = RoundedCornerShape(16.dp),
-        color = colors.surface,
-        border = BorderStroke(1.dp, colors.border)
+        color = Color(0xFF11101C),
+        border = BorderStroke(1.dp, colors.cardBorderBrush)
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
