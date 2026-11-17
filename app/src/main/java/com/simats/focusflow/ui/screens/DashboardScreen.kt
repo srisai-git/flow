@@ -1476,6 +1476,9 @@ private fun Sparkline(
     lineColor: Color,
     modifier: Modifier = Modifier
 ) {
+    val path = remember { androidx.compose.ui.graphics.Path() }
+    val fillPath = remember { androidx.compose.ui.graphics.Path() }
+
     Canvas(modifier = modifier) {
         if (dataPoints.size < 2) return@Canvas
         val maxVal = (dataPoints.maxOrNull() ?: 1f).coerceAtLeast(1f)
@@ -1483,8 +1486,11 @@ private fun Sparkline(
         val range = (maxVal - minVal).coerceAtLeast(0.1f)
         val stepX = size.width / (dataPoints.size - 1)
 
-        val path = androidx.compose.ui.graphics.Path()
-        val fillPath = androidx.compose.ui.graphics.Path()
+        path.reset()
+        fillPath.reset()
+
+        var lastX = 0f
+        var lastY = 0f
 
         dataPoints.forEachIndexed { i, v ->
             val x = i * stepX
@@ -1502,6 +1508,10 @@ private fun Sparkline(
                 path.cubicTo(cx1, prevY, cx1, y, x, y)
                 fillPath.cubicTo(cx1, prevY, cx1, y, x, y)
             }
+            if (i == dataPoints.lastIndex) {
+                lastX = x
+                lastY = y
+            }
         }
         fillPath.lineTo(size.width, size.height)
         fillPath.close()
@@ -1516,6 +1526,12 @@ private fun Sparkline(
             path = path,
             color = lineColor,
             style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
+        )
+
+        drawCircle(
+            color = lineColor,
+            radius = 2.5.dp.toPx(),
+            center = Offset(lastX, lastY)
         )
     }
 }
