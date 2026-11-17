@@ -68,6 +68,7 @@ import com.simats.focusflow.data.models.FocusSessionRecord
 import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.service.NotificationHelper
+import com.simats.focusflow.ui.components.AmbientMeshGlowHeader
 import com.simats.focusflow.ui.components.bounceClick
 import com.simats.focusflow.ui.theme.FocusFlowTheme
 import com.simats.focusflow.ui.viewmodel.TimerMode
@@ -183,18 +184,24 @@ fun TimerScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = colors.background,
+        containerColor = Color(0xFF07060D),
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(colors.background)
-                .padding(horizontal = 24.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .background(Color(0xFF07060D))
         ) {
+            AmbientMeshGlowHeader(height = 260.dp)
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
             Spacer(modifier = Modifier.height(24.dp))
 
             Row(
@@ -362,34 +369,43 @@ fun TimerScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            val hairlineBorder = Brush.verticalGradient(
+                listOf(
+                    Color.White.copy(alpha = 0.14f),
+                    Color.White.copy(alpha = 0.03f)
+                )
+            )
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(
+                Surface(
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         viewModel.resetTimer()
                     },
+                    shape = CircleShape,
+                    color = Color(0xFF11101C),
+                    border = BorderStroke(1.dp, hairlineBorder),
                     modifier = Modifier
-                        .size(52.dp)
-                        .clip(CircleShape)
-                        .background(colors.surface)
-                        .border(1.dp, colors.border, CircleShape)
+                        .size(54.dp)
                         .bounceClick()
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Reset Timer",
-                        tint = colors.textMuted,
-                        modifier = Modifier.size(22.dp)
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Reset Timer",
+                            tint = Color(0xFF94A3B8),
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
                 }
 
-                Spacer(modifier = Modifier.width(20.dp))
+                Spacer(modifier = Modifier.width(22.dp))
 
-                Button(
+                Surface(
                     onClick = {
                         if (state.isRunning) {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -400,14 +416,22 @@ fun TimerScreen(
                     },
                     modifier = Modifier
                         .height(64.dp)
-                        .width(140.dp)
+                        .width(150.dp)
                         .bounceClick(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = colors.primary
+                    shape = RoundedCornerShape(32.dp),
+                    color = Color(0xFF8B5CF6),
+                    border = BorderStroke(
+                        1.dp,
+                        Brush.verticalGradient(
+                            listOf(Color.White.copy(alpha = 0.30f), Color.Transparent)
+                        )
                     )
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Icon(
                             imageVector = if (state.isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
                             contentDescription = if (state.isRunning) "Pause" else "Start",
@@ -424,26 +448,28 @@ fun TimerScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.width(20.dp))
+                Spacer(modifier = Modifier.width(22.dp))
 
-                IconButton(
+                Surface(
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         viewModel.skipSession()
                     },
+                    shape = CircleShape,
+                    color = Color(0xFF11101C),
+                    border = BorderStroke(1.dp, hairlineBorder),
                     modifier = Modifier
-                        .size(52.dp)
-                        .clip(CircleShape)
-                        .background(colors.surface)
-                        .border(1.dp, colors.border, CircleShape)
+                        .size(54.dp)
                         .bounceClick()
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.SkipNext,
-                        contentDescription = "Skip Session",
-                        tint = colors.textMuted,
-                        modifier = Modifier.size(22.dp)
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.SkipNext,
+                            contentDescription = "Skip Session",
+                            tint = Color(0xFF94A3B8),
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
                 }
             }
 
@@ -451,13 +477,13 @@ fun TimerScreen(
 
             Surface(
                 shape = RoundedCornerShape(20.dp),
-                color = colors.surface,
-                border = BorderStroke(1.dp, colors.border)
+                color = Color(0xFF11101C),
+                border = BorderStroke(1.dp, hairlineBorder)
             ) {
                 Text(
                     text = "Sessions completed today: ${state.completedSessions}",
                     fontSize = 12.sp,
-                    color = colors.primaryLight,
+                    color = Color(0xFFC4B5FD),
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
@@ -467,24 +493,26 @@ fun TimerScreen(
 
             val strictBorder = if (isStrictFocus) {
                 BorderStroke(
-                    1.5.dp,
+                    1.dp,
                     Brush.linearGradient(
-                        listOf(Color(0xFF8B5CF6), Color(0xFFF59E0B), Color(0xFF8B5CF6))
+                        listOf(Color(0xFF8B5CF6), Color(0xFF10B981), Color(0xFF8B5CF6))
                     )
                 )
             } else {
-                BorderStroke(1.dp, colors.border)
+                BorderStroke(1.dp, hairlineBorder)
             }
 
             Surface(
-                shape = RoundedCornerShape(18.dp),
-                color = if (isStrictFocus) Color(0xFF1E1735) else colors.surface,
+                shape = RoundedCornerShape(20.dp),
+                color = if (isStrictFocus) Color(0xFF16132A) else Color(0xFF11101C),
                 border = strictBorder,
-                shadowElevation = if (isStrictFocus) 8.dp else 0.dp,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp)
+                    .bounceClick()
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -494,51 +522,69 @@ fun TimerScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(if (isStrictFocus) Color(0xFF8B5CF6).copy(alpha = 0.25f) else colors.surfaceVariant),
+                                .size(42.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(
+                                    if (isStrictFocus)
+                                        Brush.linearGradient(
+                                            listOf(Color(0xFF8B5CF6).copy(alpha = 0.35f), Color(0xFF10B981).copy(alpha = 0.25f))
+                                        )
+                                    else
+                                        Brush.linearGradient(
+                                            listOf(Color.White.copy(alpha = 0.06f), Color.White.copy(alpha = 0.02f))
+                                        )
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Security,
                                 contentDescription = null,
-                                tint = if (isStrictFocus) Color(0xFFF59E0B) else colors.textMuted,
+                                tint = if (isStrictFocus) Color(0xFF10B981) else Color(0xFF94A3B8),
                                 modifier = Modifier.size(20.dp)
                             )
                         }
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(14.dp))
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
                                     text = "Strict Focus Mode",
-                                    fontSize = 14.5.sp,
+                                    fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isStrictFocus) Color.White else colors.textPrimary
+                                    color = Color(0xFFF1F1F5)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 if (isStrictFocus) {
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(Color(0xFF10B981).copy(alpha = 0.2f))
-                                            .border(1.dp, Color(0xFF10B981).copy(alpha = 0.5f), RoundedCornerShape(6.dp))
-                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = Color(0xFF10B981).copy(alpha = 0.16f),
+                                        border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.4f))
                                     ) {
-                                        Text(
-                                            text = "SHIELD ACTIVE",
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = Color(0xFF34D399),
-                                            letterSpacing = 0.8.sp
-                                        )
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(5.dp)
+                                                    .clip(CircleShape)
+                                                    .background(Color(0xFF10B981))
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = "SHIELD ARMED",
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = Color(0xFF10B981)
+                                            )
+                                        }
                                     }
                                 }
                             }
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "Auto-detect distractions & shield your workflow",
+                                text = if (isStrictFocus) "App blocker actively shields session" else "Lock out distracting social & game apps",
                                 fontSize = 11.5.sp,
-                                color = if (isStrictFocus) Color(0xFFCBD5E1) else colors.textMuted
+                                color = Color(0xFF94A3B8)
                             )
                         }
                     }
@@ -561,9 +607,9 @@ fun TimerScreen(
                         },
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = Color.White,
-                            checkedTrackColor = colors.primary,
-                            uncheckedThumbColor = colors.textMuted,
-                            uncheckedTrackColor = colors.surfaceVariant
+                            checkedTrackColor = Color(0xFF8B5CF6),
+                            uncheckedThumbColor = Color(0xFF94A3B8),
+                            uncheckedTrackColor = Color(0xFF232035)
                         )
                     )
                 }
@@ -883,6 +929,7 @@ fun TimerScreen(
             )
         }
     }
+}
 }
 
 
