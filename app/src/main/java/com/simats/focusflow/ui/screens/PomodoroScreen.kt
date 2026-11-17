@@ -536,8 +536,7 @@ fun PomodoroScreen(
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
                     style = TextStyle(
-                        fontFeatureSettings = "tnum",
-                        letterSpacing = (-0.5).sp
+                        fontFeatureSettings = "tnum"
                     )
                 )
 

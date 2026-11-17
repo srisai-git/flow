@@ -199,11 +199,7 @@ fun ProfileScreen(
                     Box(
                         modifier = Modifier
                             .size(76.dp)
-                            .clip(CircleShape)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) { onNavigateToEditProfile() },
+                            .clip(CircleShape),
                         contentAlignment = Alignment.BottomEnd
                     ) {
                         Box(

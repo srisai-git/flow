@@ -419,7 +419,6 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
                             fontSize = 32.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = Color.White,
-                            letterSpacing = (-0.5).sp,
                             style = androidx.compose.ui.text.TextStyle(fontFeatureSettings = "tnum")
                         )
                         Spacer(modifier = Modifier.height(2.dp))

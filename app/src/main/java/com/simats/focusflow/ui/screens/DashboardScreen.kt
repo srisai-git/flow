@@ -210,63 +210,27 @@ fun DashboardScreen(
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "Welcome back,",
-                            fontSize = 12.sp,
-                            color = Color(0xFF94A3B8),
-                            fontWeight = FontWeight.Medium
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = Color(0xFF10B981).copy(alpha = 0.12f),
-                            border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.3f))
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(5.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0xFF10B981))
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "Ready to Focus",
-                                    fontSize = 9.5.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = Color(0xFF10B981)
-                                )
-                            }
-                        }
-                    }
-                    if (data.userName.isBlank() && uiState.isLoading) {
-                        Box(
-                            modifier = Modifier
-                                .padding(vertical = 4.dp)
-                                .width(120.dp)
-                                .height(20.dp)
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(colors.surfaceVariant)
-                        )
-                    } else {
-                        Text(
-                            text = data.userName.ifBlank { "Focus User" },
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFFF1F1F5),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Welcome back,",
+                        fontSize = 12.sp,
+                        color = Color(0xFF94A3B8),
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = data.userName.ifBlank { "Focus User" },
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFF1F1F5),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                     Text(
                         text = currentDateStr,
-                        fontSize = 11.5.sp,
-                        color = Color(0xFFC4B5FD)
+                        fontSize = 11.sp,
+                        color = Color(0xFFC4B5FD),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
@@ -274,66 +238,66 @@ fun DashboardScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
                     onClick = { viewModel.setStreakModalOpen(true) },
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(16.dp),
                     color = Color(0xFFF59E0B).copy(alpha = 0.14f),
                     border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.4f)),
                     modifier = Modifier.bounceClick()
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.LocalFireDepartment,
                             contentDescription = "Streak",
                             tint = Color(0xFFF59E0B),
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(15.dp)
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "${data.streakDays}d Streak",
+                            text = "${data.streakDays}d",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = colors.textPrimary
+                            color = Color(0xFFF59E0B)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(6.dp))
 
                 IconButton(
                     onClick = onNavigateToNotifications,
                     modifier = Modifier
-                        .size(42.dp)
+                        .size(36.dp)
                         .bounceClick()
                 ) {
                     Surface(
                         shape = CircleShape,
                         color = colors.surface,
                         border = BorderStroke(1.dp, colors.border),
-                        modifier = Modifier.size(38.dp)
+                        modifier = Modifier.size(34.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = Icons.Default.Notifications,
                                 contentDescription = "Notifications & Reminders",
                                 tint = colors.primaryLight,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(16.dp)
                             )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(6.dp))
 
                 IconButton(
                     onClick = onNavigateToGrootAi,
                     modifier = Modifier
-                        .size(42.dp)
+                        .size(36.dp)
                         .bounceClick()
                 ) {
                     GrootAvatar(
-                        size = 40.dp,
+                        size = 34.dp,
                         containerColor = colors.surface,
                         borderColor = colors.primary.copy(alpha = 0.4f),
                         tint = colors.primaryLight
@@ -406,8 +370,7 @@ fun DashboardScreen(
                                 text = String.format(Locale.US, "%.1f", completedHours),
                                 fontSize = 34.sp,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = Color(0xFFF1F1F5),
-                                letterSpacing = (-1.5).sp
+                                color = Color(0xFFF1F1F5)
                             )
                             Text(
                                 text = " / ${goalHours.toInt()} hrs",
@@ -1441,7 +1404,7 @@ private fun BentoSparklineTile(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(14.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1450,14 +1413,18 @@ private fun BentoSparklineTile(
             ) {
                 Text(
                     text = label.uppercase(),
-                    fontSize = 10.5.sp,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF94A3B8),
-                    letterSpacing = 0.8.sp
+                    letterSpacing = 0.5.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
                 )
+                Spacer(modifier = Modifier.width(6.dp))
                 Box(
                     modifier = Modifier
-                        .size(28.dp)
+                        .size(26.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .background(accentColor.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
@@ -1466,19 +1433,18 @@ private fun BentoSparklineTile(
                         imageVector = icon,
                         contentDescription = null,
                         tint = accentColor,
-                        modifier = Modifier.size(15.dp)
+                        modifier = Modifier.size(14.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
                 text = value,
-                fontSize = 24.sp,
+                fontSize = 22.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = Color(0xFFF1F1F5),
-                letterSpacing = (-1.5).sp
+                color = Color(0xFFF1F1F5)
             )
 
             Spacer(modifier = Modifier.height(2.dp))
@@ -1491,14 +1457,14 @@ private fun BentoSparklineTile(
                 overflow = TextOverflow.Ellipsis
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Sparkline(
                 dataPoints = sparklineData,
                 lineColor = accentColor,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(24.dp)
+                    .height(20.dp)
             )
         }
     }

@@ -231,8 +231,7 @@ fun InsightsScreen(
                                 text = "${hours}h ${mins}m",
                                 fontSize = 32.sp,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = Color(0xFFF1F1F5),
-                                letterSpacing = (-1.5).sp
+                                color = Color(0xFFF1F1F5)
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(

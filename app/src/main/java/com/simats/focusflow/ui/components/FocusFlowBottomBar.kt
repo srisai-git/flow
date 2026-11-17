@@ -44,7 +44,7 @@ fun FocusFlowBottomBar(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 24.dp, vertical = 10.dp),
+            .padding(horizontal = 14.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
     ) {
         val hairlineBorder = Brush.verticalGradient(
@@ -57,11 +57,11 @@ fun FocusFlowBottomBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(68.dp)
-                .clip(RoundedCornerShape(32.dp))
+                .height(62.dp)
+                .clip(RoundedCornerShape(28.dp))
                 .background(Color(0xF211101C))
-                .border(1.dp, hairlineBorder, RoundedCornerShape(32.dp))
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+                .border(1.dp, hairlineBorder, RoundedCornerShape(28.dp))
+                .padding(horizontal = 4.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -153,7 +153,8 @@ fun FocusFlowBottomBar(
                             fontSize = 10.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                             color = textColor,
-                            letterSpacing = 0.2.sp
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
                 }
@@ -174,7 +175,7 @@ fun FocusFlowBottomBar(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 24.dp, vertical = 10.dp),
+            .padding(horizontal = 14.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
     ) {
         val hairlineBorder = Brush.verticalGradient(
@@ -187,11 +188,11 @@ fun FocusFlowBottomBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(68.dp)
-                .clip(RoundedCornerShape(32.dp))
+                .height(62.dp)
+                .clip(RoundedCornerShape(28.dp))
                 .background(Color(0xF211101C))
-                .border(1.dp, hairlineBorder, RoundedCornerShape(32.dp))
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+                .border(1.dp, hairlineBorder, RoundedCornerShape(28.dp))
+                .padding(horizontal = 4.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -272,7 +273,8 @@ fun FocusFlowBottomBar(
                             fontSize = 10.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                             color = textColor,
-                            letterSpacing = 0.2.sp
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
                 }

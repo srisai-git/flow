@@ -207,7 +207,7 @@ fun HabitsScreen(
                     contentColor = Color.White,
                     shape = CircleShape,
                     modifier = Modifier
-                        .padding(bottom = 80.dp, end = 12.dp)
+                        .padding(bottom = 12.dp, end = 8.dp)
                         .bounceClick()
                 ) {
                     Icon(
@@ -424,7 +424,7 @@ fun HabitsScreen(
                             .fillMaxWidth()
                             .weight(1f),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(bottom = 120.dp)
+                        contentPadding = PaddingValues(bottom = 24.dp)
                     ) {
                         items(state.habits, key = { it.id }) { habit ->
                             HabitCard(
@@ -1214,8 +1214,7 @@ private fun StreakMetricRow(
                     text = title,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = colors.textPrimary,
-                    letterSpacing = (-0.5).sp
+                    color = colors.textPrimary
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(

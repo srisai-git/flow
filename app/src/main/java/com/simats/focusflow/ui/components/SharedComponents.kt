@@ -7,7 +7,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -60,19 +61,20 @@ fun Modifier.bouncyClick(
         }
         .pointerInput(enabled) {
             if (!enabled) return@pointerInput
-            detectTapGestures(
-                onPress = {
+            awaitPointerEventScope {
+                while (true) {
+                    awaitFirstDown(requireUnconsumed = false)
                     isPressed = true
                     try {
                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     } catch (_: Exception) {}
-                    val released = tryAwaitRelease()
+                    val up = waitForUpOrCancellation()
                     isPressed = false
-                    if (released && onClick != null) {
+                    if (up != null && onClick != null) {
                         onClick()
                     }
                 }
-            )
+            }
         }
 }
 
