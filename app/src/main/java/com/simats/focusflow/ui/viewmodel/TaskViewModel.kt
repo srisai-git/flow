@@ -165,7 +165,8 @@ class TaskViewModel(
         description: String = "",
         priority: String = "medium",
         dueDate: String = "Today",
-        category: String = "General"
+        category: String = "General",
+        scheduledTime: String? = null
     ) {
         if (title.isBlank()) return
 
@@ -180,7 +181,8 @@ class TaskViewModel(
                 description = description.trim(),
                 priority = priority.lowercase(),
                 dueDate = dueDate.trim(),
-                category = category.trim()
+                category = category.trim(),
+                scheduledTime = scheduledTime?.trim()
             )
 
             withContext(Dispatchers.Main) {
