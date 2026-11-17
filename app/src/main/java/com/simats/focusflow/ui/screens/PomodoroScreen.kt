@@ -29,9 +29,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Pause
@@ -70,6 +70,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -181,7 +182,7 @@ fun PomodoroScreen(
                     .background(colors.surfaceVariant)
             ) {
                 Icon(
-                    imageVector = Icons.Default.HelpOutline,
+                    imageVector = Icons.AutoMirrored.Filled.HelpOutline,
                     contentDescription = "Info",
                     tint = Color(0xFFEF4444),
                     modifier = Modifier.size(20.dp)
@@ -338,109 +339,104 @@ fun PomodoroScreen(
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val cx = size.width / 2f
                 val cy = size.height / 2f
-                val ringRadius = size.minDimension / 2f - 14.dp.toPx()
+                val ringRadius = size.minDimension / 2f - 16.dp.toPx()
 
                 drawCircle(
-                    color = Color(0xFF261217),
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color(0xFF1E2230),
+                            Color(0xFF12141C)
+                        ),
+                        center = Offset(cx, cy),
+                        radius = ringRadius
+                    ),
+                    radius = ringRadius
+                )
+
+                drawCircle(
+                    color = Color(0xFF2E3547),
                     radius = ringRadius,
-                    style = Stroke(width = 12.dp.toPx())
+                    style = Stroke(width = 1.5.dp.toPx())
+                )
+
+                drawCircle(
+                    color = Color(0xFF1F2432).copy(alpha = 0.6f),
+                    radius = ringRadius - 14.dp.toPx(),
+                    style = Stroke(width = 1.dp.toPx())
+                )
+
+                val tickOuterR = ringRadius - 6.dp.toPx()
+                for (i in 0 until 60) {
+                    val angleRad = Math.toRadians((i * 6.0 - 90.0))
+                    val isFiveMin = i % 5 == 0
+                    val tickLen = if (isFiveMin) 8.dp.toPx() else 4.dp.toPx()
+                    val strokeW = if (isFiveMin) 2.dp.toPx() else 1.dp.toPx()
+                    val tickColor = if (isFiveMin) Color(0xFFE2E8F0) else Color(0xFF475569).copy(alpha = 0.55f)
+
+                    val startX = cx + ((tickOuterR - tickLen) * Math.cos(angleRad)).toFloat()
+                    val startY = cy + ((tickOuterR - tickLen) * Math.sin(angleRad)).toFloat()
+                    val endX = cx + (tickOuterR * Math.cos(angleRad)).toFloat()
+                    val endY = cy + (tickOuterR * Math.sin(angleRad)).toFloat()
+
+                    drawLine(
+                        color = tickColor,
+                        start = Offset(startX, startY),
+                        end = Offset(endX, endY),
+                        strokeWidth = strokeW,
+                        cap = StrokeCap.Round
+                    )
+                }
+
+                val arcRadius = ringRadius - 1.dp.toPx()
+
+                drawCircle(
+                    color = Color(0xFF261820),
+                    radius = arcRadius,
+                    style = Stroke(width = 3.5.dp.toPx())
                 )
 
                 drawArc(
                     brush = Brush.sweepGradient(
                         listOf(
-                            Color(0xFFEF4444),
-                            Color(0xFFF97316),
-                            Color(0xFFEF4444)
+                            Color(0xFFFF4D4D).copy(alpha = 0.28f),
+                            Color(0xFFFF7A59).copy(alpha = 0.28f),
+                            Color(0xFFFF4D4D).copy(alpha = 0.28f)
                         )
                     ),
                     startAngle = -90f,
                     sweepAngle = 360f * animatedProgress,
                     useCenter = false,
-                    style = Stroke(width = 12.dp.toPx(), cap = StrokeCap.Round)
+                    style = Stroke(width = 7.dp.toPx(), cap = StrokeCap.Round)
                 )
 
-                val tomatoRadius = ringRadius * 0.76f
-                val tomatoCy = cy + 10.dp.toPx()
-
-                drawOval(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color(0xFFF87171),
-                            Color(0xFFEF4444),
-                            Color(0xFF991B1B)
-                        ),
-                        center = Offset(cx - tomatoRadius * 0.28f, tomatoCy - tomatoRadius * 0.22f),
-                        radius = tomatoRadius * 1.15f
-                    ),
-                    topLeft = Offset(cx - tomatoRadius, tomatoCy - tomatoRadius * 0.88f),
-                    size = Size(tomatoRadius * 1.3f, tomatoRadius * 1.76f)
-                )
-
-                drawOval(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color(0xFFF87171),
-                            Color(0xFFDC2626),
-                            Color(0xFF7F1D1D)
-                        ),
-                        center = Offset(cx + tomatoRadius * 0.28f, tomatoCy - tomatoRadius * 0.22f),
-                        radius = tomatoRadius * 1.15f
-                    ),
-                    topLeft = Offset(cx - tomatoRadius * 0.3f, tomatoCy - tomatoRadius * 0.88f),
-                    size = Size(tomatoRadius * 1.3f, tomatoRadius * 1.76f)
-                )
-
-                drawOval(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.28f),
-                            Color.Transparent
+                drawArc(
+                    brush = Brush.sweepGradient(
+                        listOf(
+                            Color(0xFFFF4D4D),
+                            Color(0xFFFF7A59),
+                            Color(0xFFFF4D4D)
                         )
                     ),
-                    topLeft = Offset(cx - tomatoRadius * 0.45f, tomatoCy - tomatoRadius * 0.62f),
-                    size = Size(tomatoRadius * 0.45f, tomatoRadius * 0.26f)
+                    startAngle = -90f,
+                    sweepAngle = 360f * animatedProgress,
+                    useCenter = false,
+                    style = Stroke(width = 3.5.dp.toPx(), cap = StrokeCap.Round)
                 )
 
-                val stemTopY = tomatoCy - tomatoRadius * 1.25f
-                val stemAttachY = tomatoCy - tomatoRadius * 0.82f
-
-                val stemPath = Path().apply {
-                    moveTo(cx - 3.dp.toPx(), stemAttachY)
-                    quadraticBezierTo(cx - 6.dp.toPx(), stemTopY + 4.dp.toPx(), cx + 7.dp.toPx(), stemTopY)
-                    quadraticBezierTo(cx + 4.dp.toPx(), stemTopY + 8.dp.toPx(), cx + 3.dp.toPx(), stemAttachY)
+                val notchCenterY = cy - ringRadius
+                val notchPath = Path().apply {
+                    moveTo(cx, notchCenterY - 6.dp.toPx())
+                    lineTo(cx + 4.dp.toPx(), notchCenterY + 2.dp.toPx())
+                    lineTo(cx, notchCenterY + 7.dp.toPx())
+                    lineTo(cx - 4.dp.toPx(), notchCenterY + 2.dp.toPx())
                     close()
                 }
                 drawPath(
-                    path = stemPath,
+                    path = notchPath,
                     brush = Brush.verticalGradient(
-                        listOf(Color(0xFF4ADE80), Color(0xFF16A34A))
+                        listOf(Color(0xFF34D399), Color(0xFF059669))
                     )
                 )
-
-                val leafLeft = Path().apply {
-                    moveTo(cx, stemAttachY)
-                    quadraticBezierTo(cx - tomatoRadius * 0.4f, stemAttachY - 14.dp.toPx(), cx - tomatoRadius * 0.52f, stemAttachY - 2.dp.toPx())
-                    quadraticBezierTo(cx - tomatoRadius * 0.28f, stemAttachY + 2.dp.toPx(), cx, stemAttachY)
-                    close()
-                }
-                drawPath(leafLeft, Color(0xFF22C55E))
-
-                val leafRight = Path().apply {
-                    moveTo(cx, stemAttachY)
-                    quadraticBezierTo(cx + tomatoRadius * 0.4f, stemAttachY - 14.dp.toPx(), cx + tomatoRadius * 0.52f, stemAttachY - 2.dp.toPx())
-                    quadraticBezierTo(cx + tomatoRadius * 0.28f, stemAttachY + 2.dp.toPx(), cx, stemAttachY)
-                    close()
-                }
-                drawPath(leafRight, Color(0xFF16A34A))
-
-                val leafCenter = Path().apply {
-                    moveTo(cx, stemAttachY)
-                    quadraticBezierTo(cx - 6.dp.toPx(), stemAttachY + 12.dp.toPx(), cx, stemAttachY + 18.dp.toPx())
-                    quadraticBezierTo(cx + 6.dp.toPx(), stemAttachY + 12.dp.toPx(), cx, stemAttachY)
-                    close()
-                }
-                drawPath(leafCenter, Color(0xFF4ADE80))
             }
 
             Column(
@@ -449,29 +445,34 @@ fun PomodoroScreen(
             ) {
                 Text(
                     text = timerState.currentMode.title.uppercase(),
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White.copy(alpha = 0.9f),
-                    letterSpacing = 1.2.sp
+                    color = Color(0xFFFF7A59),
+                    letterSpacing = 2.sp
                 )
 
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
                     text = timerState.formattedTime,
-                    fontSize = 44.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.White
+                    fontSize = 48.sp,
+                    fontWeight = FontWeight.Light,
+                    color = Color.White,
+                    style = TextStyle(
+                        fontFeatureSettings = "tnum",
+                        letterSpacing = (-1).sp
+                    )
                 )
 
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 val cycleNum = (timerState.completedSessions % 4) + 1
                 Text(
-                    text = "Sprint $cycleNum of 4",
-                    fontSize = 12.sp,
+                    text = "INTERVAL $cycleNum OF 4",
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.White.copy(alpha = 0.85f)
+                    color = Color(0xFF94A3B8),
+                    letterSpacing = 1.2.sp
                 )
             }
         }
