@@ -54,6 +54,13 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".ui.screens.FocusShieldActivity"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.FOCUSFLOW" />
+
         <service
             android:name=".service.FocusTimerService"
             android:foregroundServiceType="specialUse"
