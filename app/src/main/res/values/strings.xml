@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Flow</string>
+    <string name="accessibility_service_description">Detects distracting social media and gaming apps during active Strict Focus sessions to shield your workflow.</string>
 </resources>
