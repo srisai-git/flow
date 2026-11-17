@@ -59,6 +59,7 @@ import com.simats.focusflow.data.models.DailyChartItem
 import com.simats.focusflow.data.models.InsightsData
 import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.session.SessionManager
+import com.simats.focusflow.ui.components.AmbientMeshGlowHeader
 import com.simats.focusflow.ui.components.CustomTopBar
 import com.simats.focusflow.ui.components.bounceClick
 import com.simats.focusflow.ui.theme.FocusFlowTheme
@@ -138,14 +139,20 @@ fun ProgressConsistencyScreen(onBack: () -> Unit = {}) {
         )
     )
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.background)
-            .statusBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 16.dp)
-            .verticalScroll(rememberScrollState())
+            .background(Color(0xFF07060D))
     ) {
+        AmbientMeshGlowHeader(height = 240.dp)
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 16.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
         CustomTopBar("Progress & Consistency", null, onBack)
 
         Spacer(modifier = Modifier.height(18.dp))
@@ -433,6 +440,37 @@ fun ProgressConsistencyScreen(onBack: () -> Unit = {}) {
                                         color = if (isSelected) Color(0xFFF59E0B) else Color.White,
                                         radius = if (isSelected) 4.5.dp.toPx() else 3.5.dp.toPx(),
                                         center = p
+                                    )
+                                }
+                            }
+                        }
+
+                        val selectedDayItem = displayDays.getOrNull(selectedDayIndex)
+                        if (selectedDayItem != null) {
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = Color(0xF211101C),
+                                border = BorderStroke(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.18f), Color.White.copy(alpha = 0.04f)))),
+                                modifier = Modifier
+                                    .align(Alignment.TopCenter)
+                                    .padding(top = 2.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(6.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFFF59E0B))
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "${selectedDayItem.day}: ${selectedDayItem.focusMinutes}m focus",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color(0xFFF1F1F5)
                                     )
                                 }
                             }
@@ -755,4 +793,5 @@ fun ProgressConsistencyScreen(onBack: () -> Unit = {}) {
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
+}
 }
