@@ -305,6 +305,8 @@ class FocusTimerService : Service() {
                     durationSeconds = elapsedSeconds,
                     startTime = startTime,
                     endTime = endTime,
+                    tag = "Focus Sprint",
+                    status = "completed",
                     sessionUuid = sessionUuid
                 )
             }
@@ -491,6 +493,8 @@ class FocusTimerService : Service() {
                     durationSeconds = sessionDuration * 60,
                     startTime = startTime,
                     endTime = endTime,
+                    tag = "Focus Sprint",
+                    status = "completed",
                     sessionUuid = sessionUuid
                 )
             }
