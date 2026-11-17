@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.simats.focusflow.data.models.AiAction
 import com.simats.focusflow.data.session.SessionManager
+import com.simats.focusflow.ui.components.AmbientMeshGlowHeader
 import com.simats.focusflow.ui.components.GrootAvatar
 import com.simats.focusflow.ui.components.bounceClick
 import com.simats.focusflow.ui.theme.FocusFlowTheme
@@ -213,112 +214,127 @@ fun GrootAiScreen(
             }
         },
         bottomBar = {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = colors.surface,
-                border = BorderStroke(1.dp, colors.border)
+            val hairlineBorder = Brush.verticalGradient(
+                listOf(
+                    Color.White.copy(alpha = 0.16f),
+                    Color.White.copy(alpha = 0.04f)
+                )
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 14.dp, vertical = 8.dp)
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(26.dp),
+                    color = Color(0xF211101C),
+                    border = BorderStroke(1.dp, hairlineBorder)
                 ) {
-                    LazyRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 10.dp)
                     ) {
-                        items(quickActionPrompts, key = { it.label }) { item ->
-                            Surface(
-                                onClick = { viewModel.sendMessage(item.label) },
-                                shape = RoundedCornerShape(12.dp),
-                                color = colors.surfaceVariant,
-                                border = BorderStroke(1.dp, colors.border),
-                                modifier = Modifier.bounceClick(),
-                                enabled = !state.isAiThinking
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                        LazyRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(quickActionPrompts, key = { it.label }) { item ->
+                                Surface(
+                                    onClick = { viewModel.sendMessage(item.label) },
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = Color(0xFF181628),
+                                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.06f)),
+                                    modifier = Modifier.bounceClick(),
+                                    enabled = !state.isAiThinking
                                 ) {
-                                    Icon(
-                                        imageVector = when (item.category) {
-                                            "Action" -> Icons.Outlined.Timer
-                                            "Insights" -> Icons.Outlined.TrackChanges
-                                            "Coding" -> Icons.Outlined.AutoAwesome
-                                            else -> Icons.Outlined.Star
-                                        },
-                                        contentDescription = null,
-                                        tint = colors.primaryLight,
-                                        modifier = Modifier.size(13.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = item.label,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = colors.textPrimary
-                                    )
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = when (item.category) {
+                                                "Action" -> Icons.Outlined.Timer
+                                                "Insights" -> Icons.Outlined.TrackChanges
+                                                "Coding" -> Icons.Outlined.AutoAwesome
+                                                else -> Icons.Outlined.Star
+                                            },
+                                            contentDescription = null,
+                                            tint = Color(0xFFC4B5FD),
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = item.label,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = Color(0xFFF1F1F5)
+                                        )
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.Bottom
-                    ) {
-                        OutlinedTextField(
-                            value = state.inputText,
-                            onValueChange = { viewModel.onInputTextChanged(it) },
-                            placeholder = {
-                                Text(
-                                    text = "Ask anything or command actions (start timer, add task)...",
-                                    fontSize = 13.sp,
-                                    color = colors.textMuted
-                                )
-                            },
-                            modifier = Modifier
-                                .weight(1f)
-                                .heightIn(min = 48.dp, max = 120.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            maxLines = 4,
-                            minLines = 1,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = colors.primary,
-                                unfocusedBorderColor = colors.border,
-                                focusedContainerColor = colors.surfaceVariant,
-                                unfocusedContainerColor = colors.surfaceVariant,
-                                focusedTextColor = colors.textPrimary,
-                                unfocusedTextColor = colors.textPrimary
-                            ),
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
-                            keyboardActions = KeyboardActions(onSend = { viewModel.sendMessage() })
-                        )
-
-                        Spacer(modifier = Modifier.width(10.dp))
-
-                        IconButton(
-                            onClick = { viewModel.sendMessage() },
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(
-                                    if (state.inputText.isNotBlank() && !state.isAiThinking)
-                                        Brush.horizontalGradient(listOf(colors.primary, colors.primaryLight))
-                                    else
-                                        Brush.horizontalGradient(listOf(colors.border, colors.border))
-                                )
-                                .bounceClick(),
-                            enabled = state.inputText.isNotBlank() && !state.isAiThinking
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Send,
-                                contentDescription = "Send",
-                                tint = if (state.inputText.isNotBlank() && !state.isAiThinking) Color.White else colors.textMuted,
-                                modifier = Modifier.size(18.dp)
+                            OutlinedTextField(
+                                value = state.inputText,
+                                onValueChange = { viewModel.onInputTextChanged(it) },
+                                placeholder = {
+                                    Text(
+                                        text = "Ask Groot anything or command actions...",
+                                        fontSize = 13.sp,
+                                        color = Color(0xFF94A3B8)
+                                    )
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .heightIn(min = 44.dp, max = 110.dp),
+                                shape = RoundedCornerShape(18.dp),
+                                maxLines = 4,
+                                minLines = 1,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = Color.Transparent,
+                                    unfocusedBorderColor = Color.Transparent,
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    focusedTextColor = Color(0xFFF1F1F5),
+                                    unfocusedTextColor = Color(0xFFF1F1F5)
+                                ),
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
+                                keyboardActions = KeyboardActions(onSend = { viewModel.sendMessage() })
                             )
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            IconButton(
+                                onClick = { viewModel.sendMessage() },
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (state.inputText.isNotBlank() && !state.isAiThinking)
+                                            Brush.linearGradient(listOf(Color(0xFF8B5CF6), Color(0xFF6366F1)))
+                                        else
+                                            Brush.linearGradient(listOf(Color(0xFF232035), Color(0xFF232035)))
+                                    )
+                                    .bounceClick(),
+                                enabled = state.inputText.isNotBlank() && !state.isAiThinking
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Send,
+                                    contentDescription = "Send",
+                                    tint = if (state.inputText.isNotBlank() && !state.isAiThinking) Color.White else Color(0xFF94A3B8),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
                         }
                     }
                 }
