@@ -20,6 +20,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,6 +39,7 @@ fun FocusFlowBottomBar(
     onNavigate: ((String) -> Unit)? = null
 ) {
     val colors = FocusFlowTheme.colors
+    val haptic = LocalHapticFeedback.current
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
@@ -119,6 +122,7 @@ fun FocusFlowBottomBar(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
                         ) {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             if (onNavigate != null) {
                                 onNavigate(screen.route)
                             } else {
@@ -170,6 +174,7 @@ fun FocusFlowBottomBar(
     modifier: Modifier = Modifier
 ) {
     val colors = FocusFlowTheme.colors
+    val haptic = LocalHapticFeedback.current
 
     Box(
         modifier = modifier
@@ -251,6 +256,7 @@ fun FocusFlowBottomBar(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
                         ) {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             onNavigate(screen.route)
                         },
                     contentAlignment = Alignment.Center
