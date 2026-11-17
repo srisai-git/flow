@@ -73,12 +73,13 @@ fun EditProfileScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     var showAvatarPickerSheet by remember { mutableStateOf(false) }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
 
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let {
-            viewModel.onGalleryImagePicked(context, it)
+        if (uri != null) {
+            selectedImageUri = uri
             showAvatarPickerSheet = false
         }
     }
@@ -188,7 +189,21 @@ fun EditProfileScreen(
                             val avatarStr = state.avatar
                             val isImage = ProfileImageManager.isImageAvatar(avatarStr)
 
-                            if (isImage) {
+                            if (selectedImageUri != null) {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(context)
+                                        .data(selectedImageUri)
+                                        .crossfade(true)
+                                        .diskCachePolicy(CachePolicy.ENABLED)
+                                        .memoryCachePolicy(CachePolicy.ENABLED)
+                                        .build(),
+                                    contentDescription = "Profile Photo",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(CircleShape)
+                                )
+                            } else if (isImage) {
                                 val imageModel = ProfileImageManager.resolveImageModel(context, avatarStr)
                                 AsyncImage(
                                     model = ImageRequest.Builder(context)
@@ -401,7 +416,7 @@ fun EditProfileScreen(
 
             Button(
                 onClick = {
-                    viewModel.saveProfile(context) {
+                    viewModel.saveProfileWithSelectedImage(context, selectedImageUri) {
                         onSaveSuccess()
                     }
                 },
@@ -564,6 +579,7 @@ fun EditProfileScreen(
                             val isSelected = state.avatar == avatarKey
                             Surface(
                                 onClick = {
+                                    selectedImageUri = null
                                     viewModel.onAvatarChange(avatarKey)
                                     showAvatarPickerSheet = false
                                 },
