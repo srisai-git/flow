@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -45,6 +46,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -80,6 +82,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.session.SessionManager
+import com.simats.focusflow.ui.components.AmbientMeshGlowHeader
 import com.simats.focusflow.ui.components.bounceClick
 import com.simats.focusflow.ui.theme.FocusFlowTheme
 import kotlinx.coroutines.Dispatchers
@@ -196,14 +199,20 @@ fun PomodoroScreen(
         String.format(Locale.US, "%02d:%02d", mins, secs)
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.background)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(Color(0xFF07060D))
     ) {
+        AmbientMeshGlowHeader(height = 240.dp)
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -214,12 +223,13 @@ fun PomodoroScreen(
                 modifier = Modifier
                     .size(42.dp)
                     .clip(CircleShape)
-                    .background(colors.surfaceVariant)
+                    .background(Color(0xFF181628))
+                    .bounceClick()
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
-                    tint = colors.textPrimary,
+                    tint = Color(0xFFF1F1F5),
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -229,28 +239,29 @@ fun PomodoroScreen(
                     text = "POMODORO FOCUS",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFFEF4444),
+                    color = Color(0xFFFF5A5F),
                     letterSpacing = 1.4.sp
                 )
                 Text(
                     text = "Deep Sprint Timer",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = colors.textPrimary
+                    color = Color(0xFFF1F1F5)
                 )
             }
 
             IconButton(
-                onClick = { showInfoModal = !showInfoModal },
+                onClick = { showInfoModal = true },
                 modifier = Modifier
                     .size(42.dp)
                     .clip(CircleShape)
-                    .background(colors.surfaceVariant)
+                    .background(Color(0xFF181628))
+                    .bounceClick()
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.HelpOutline,
                     contentDescription = "Info",
-                    tint = Color(0xFFEF4444),
+                    tint = Color(0xFFFF5A5F),
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -258,63 +269,23 @@ fun PomodoroScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        AnimatedVisibility(
-            visible = showInfoModal,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut()
-        ) {
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = colors.surface,
-                border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.35f)),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "What is the Pomodoro Technique?",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.textPrimary
-                        )
-                        IconButton(
-                            onClick = { showInfoModal = false },
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.KeyboardArrowUp,
-                                contentDescription = "Close",
-                                tint = colors.textMuted
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "1. Focus completely on your chosen task for 25 uninterrupted minutes.\n2. When the timer rings, take a 5-minute restorative short break.\n3. After completing 4 focus sprints, reward yourself with an extended 15-30 minute break.\n\nThis proven rhythm enhances deep concentration, prevents mental fatigue, and boosts long-term productivity.",
-                        fontSize = 13.sp,
-                        lineHeight = 19.sp,
-                        color = colors.textMuted
-                    )
-                }
-            }
-        }
+        val hairlineBorder = Brush.verticalGradient(
+            listOf(
+                Color.White.copy(alpha = 0.14f),
+                Color.White.copy(alpha = 0.03f)
+            )
+        )
 
         Surface(
             shape = RoundedCornerShape(20.dp),
-            color = colors.surface,
-            border = BorderStroke(1.dp, colors.border),
+            color = Color(0xFF11101C),
+            border = BorderStroke(1.dp, hairlineBorder),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp),
+                    .padding(18.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Row(
@@ -326,15 +297,18 @@ fun PomodoroScreen(
                         text = "TASK TAG",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = colors.primaryLight,
+                        color = Color(0xFFC4B5FD),
                         letterSpacing = 1.sp
                     )
 
-                    TextButton(onClick = { showAddTagDialog = true }) {
+                    TextButton(
+                        onClick = { showAddTagDialog = true },
+                        modifier = Modifier.bounceClick()
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = null,
-                            tint = colors.primary,
+                            tint = Color(0xFF8B5CF6),
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
@@ -342,12 +316,12 @@ fun PomodoroScreen(
                             text = "Add Tag",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = colors.primary
+                            color = Color(0xFF8B5CF6)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Row(
                     modifier = Modifier
@@ -362,21 +336,21 @@ fun PomodoroScreen(
                                 selectedTagId = tag.id
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             },
-                            shape = RoundedCornerShape(12.dp),
-                            color = if (isSelected) tag.color.copy(alpha = 0.22f) else colors.surfaceVariant,
+                            shape = RoundedCornerShape(14.dp),
+                            color = if (isSelected) tag.color.copy(alpha = 0.20f) else Color(0xFF181628),
                             border = BorderStroke(
                                 1.5.dp,
-                                if (isSelected) tag.color else Color.Transparent
+                                if (isSelected) tag.color else Color.White.copy(alpha = 0.05f)
                             ),
                             modifier = Modifier.bounceClick()
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(10.dp)
+                                        .size(9.dp)
                                         .clip(CircleShape)
                                         .background(tag.color)
                                 )
@@ -385,13 +359,14 @@ fun PomodoroScreen(
                                     text = tag.name,
                                     fontSize = 13.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) colors.textPrimary else colors.textMuted
+                                    color = if (isSelected) Color(0xFFF1F1F5) else Color(0xFF94A3B8)
                                 )
                             }
                         }
                     }
                 }
             }
+        }
         }
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -416,6 +391,20 @@ fun PomodoroScreen(
                     ),
                     center = Offset(cx - tomatoR * 0.28f, cy - tomatoR * 0.32f),
                     radius = tomatoR * 1.35f
+                )
+
+                drawOval(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.65f),
+                            Color.Black.copy(alpha = 0.20f),
+                            Color.Transparent
+                        ),
+                        center = Offset(cx, cy + tomatoR + 6.dp.toPx()),
+                        radius = tomatoR * 0.85f
+                    ),
+                    topLeft = Offset(cx - tomatoR * 0.85f, cy + tomatoR - 8.dp.toPx()),
+                    size = Size(tomatoR * 1.7f, 26.dp.toPx())
                 )
 
                 drawCircle(
@@ -773,6 +762,90 @@ fun PomodoroScreen(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
+    }
+
+    if (showInfoModal) {
+        ModalBottomSheet(
+            onDismissRequest = { showInfoModal = false },
+            containerColor = Color(0xFF11101C),
+            scrimColor = Color.Black.copy(alpha = 0.65f),
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            dragHandle = {
+                Box(
+                    modifier = Modifier
+                        .padding(vertical = 12.dp)
+                        .width(44.dp)
+                        .height(4.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF232035))
+                )
+            }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 12.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFFF5A5F).copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = null,
+                            tint = Color(0xFFFF5A5F),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "How Pomodoro Works",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFF1F1F5)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                listOf(
+                    "1. 25-Minute Sprint" to "Focus single-mindedly on your chosen task with zero interruptions.",
+                    "2. 5-Minute Rest" to "Step away, breathe, stretch, and give your cognitive energy time to recharge.",
+                    "3. 4-Sprint Milestone" to "After completing four full cycles, reward yourself with an extended 20-30 minute recovery break."
+                ).forEach { (stepTitle, stepDesc) ->
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color(0xFF181628),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Text(
+                                text = stepTitle,
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFC4B5FD)
+                            )
+                            Spacer(modifier = Modifier.height(3.dp))
+                            Text(
+                                text = stepDesc,
+                                fontSize = 12.sp,
+                                color = Color(0xFF94A3B8),
+                                lineHeight = 16.sp
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+        }
     }
 
     if (showAddTagDialog) {
