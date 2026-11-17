@@ -6,6 +6,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -173,13 +174,13 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onNavigateToEditProfile() }
-                    .bounceClick(),
+                onClick = onNavigateToEditProfile,
                 shape = RoundedCornerShape(20.dp),
                 color = colors.surface,
-                border = BorderStroke(1.dp, colors.border)
+                border = BorderStroke(1.dp, colors.border),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .bounceClick()
             ) {
                 Row(
                     modifier = Modifier
@@ -188,7 +189,13 @@ fun ProfileScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
-                        modifier = Modifier.size(76.dp),
+                        modifier = Modifier
+                            .size(76.dp)
+                            .clip(CircleShape)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { onNavigateToEditProfile() },
                         contentAlignment = Alignment.BottomEnd
                     ) {
                         Box(
@@ -1480,7 +1487,11 @@ private fun ProfileMenuRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { onClick() }
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
