@@ -324,16 +324,24 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(colors.surface, RoundedCornerShape(16.dp))
-                .border(1.dp, colors.border, RoundedCornerShape(16.dp))
-                .padding(20.dp)
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = Color(0xFF1E1A2E).copy(alpha = 0.95f),
+            border = BorderStroke(
+                1.dp,
+                androidx.compose.ui.graphics.Brush.horizontalGradient(
+                    listOf(Color(0xFF8B5CF6).copy(alpha = 0.45f), Color(0xFF06B6D4).copy(alpha = 0.45f))
+                )
+            ),
+            shadowElevation = 8.dp,
+            modifier = Modifier.fillMaxWidth()
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(22.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     val primaryStat = if (selectedHours > 0) {
@@ -348,14 +356,15 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                     }
                     Text(
                         text = primaryStat,
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.textPrimary
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White,
+                        style = androidx.compose.ui.text.TextStyle(fontFeatureSettings = "tnum")
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = primaryLabel,
-                        fontSize = 13.sp,
+                        fontSize = 12.5.sp,
                         color = colors.textMuted
                     )
                 }
@@ -373,14 +382,15 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                     }
                     Text(
                         text = secondaryStat,
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.textPrimary
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFF38BDF8),
+                        style = androidx.compose.ui.text.TextStyle(fontFeatureSettings = "tnum")
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = secondaryLabel,
-                        fontSize = 13.sp,
+                        fontSize = 12.5.sp,
                         color = colors.textMuted
                     )
                 }
