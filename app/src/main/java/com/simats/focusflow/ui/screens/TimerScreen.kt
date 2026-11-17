@@ -1319,19 +1319,20 @@ private fun TimerCountdownDial(
             val bgStroke = remember(strokeWidthPx) { Stroke(width = strokeWidthPx) }
             val arcStroke = remember(strokeWidthPx) { Stroke(width = strokeWidthPx, cap = StrokeCap.Round) }
             val glowStroke = remember(glowWidthPx) { Stroke(width = glowWidthPx, cap = StrokeCap.Round) }
+            val clipOvalPath = remember { androidx.compose.ui.graphics.Path() }
+            val wavePath = remember { androidx.compose.ui.graphics.Path() }
 
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val pad = strokeWidthPx / 2f
                 val innerDiameter = size.minDimension - strokeWidthPx * 2f
 
-                clipPath(
-                    Path().apply {
-                        addOval(Rect(strokeWidthPx, strokeWidthPx, size.width - strokeWidthPx, size.height - strokeWidthPx))
-                    }
-                ) {
+                clipOvalPath.reset()
+                clipOvalPath.addOval(androidx.compose.ui.geometry.Rect(strokeWidthPx, strokeWidthPx, size.width - strokeWidthPx, size.height - strokeWidthPx))
+
+                clipPath(clipOvalPath) {
                     val progressVal = animatedProgressState.value.coerceIn(0f, 1f)
                     val liquidLevelY = size.height - (size.height - strokeWidthPx * 2f) * progressVal - strokeWidthPx
-                    val wavePath = Path()
+                    wavePath.reset()
                     val amplitude = if (isRunning) 6.dp.toPx() else 2.5.dp.toPx()
                     val waveLen = size.width * 0.75f
                     wavePath.moveTo(0f, size.height)
