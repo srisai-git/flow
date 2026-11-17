@@ -6,6 +6,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.*
@@ -21,6 +22,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -53,6 +55,18 @@ fun Modifier.bounceClick() = composed {
                 }
             }
         }
+}
+
+fun Modifier.noRippleClickable(
+    enabled: Boolean = true,
+    onClick: () -> Unit
+) = composed {
+    this.clickable(
+        enabled = enabled,
+        interactionSource = remember { MutableInteractionSource() },
+        indication = null,
+        onClick = onClick
+    )
 }
 
 @Composable
@@ -442,7 +456,8 @@ fun TaskItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
+            .clip(RoundedCornerShape(12.dp))
+            .noRippleClickable { onClick() }
             .bounceClick()
             .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -451,8 +466,9 @@ fun TaskItem(
             modifier = Modifier
                 .size(24.dp)
                 .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                .clip(RoundedCornerShape(6.dp))
                 .border(2.dp, Color(0xFFE5E7EB), RoundedCornerShape(6.dp))
-                .clickable { onCheckedChange(!isChecked) },
+                .noRippleClickable { onCheckedChange(!isChecked) },
             contentAlignment = Alignment.Center
         ) {
             if (isChecked) {
@@ -513,7 +529,8 @@ fun SegmentedControl(
                         color = if (isSelected) Color(0xFFF0EDFF) else Color.Transparent,
                         shape = RoundedCornerShape(12.dp)
                     )
-                    .clickable { onOptionSelected(option) }
+                    .clip(RoundedCornerShape(12.dp))
+                    .noRippleClickable { onOptionSelected(option) }
                     .bounceClick(),
                 contentAlignment = Alignment.Center
             ) {
@@ -552,7 +569,8 @@ fun BottomNavItem(label: String, isSelected: Boolean, onClick: () -> Unit = {}) 
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
-            .clickable { onClick() }
+            .clip(RoundedCornerShape(12.dp))
+            .noRippleClickable { onClick() }
             .bounceClick()
             .padding(horizontal = 16.dp, vertical = 4.dp)
     ) {
