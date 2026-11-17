@@ -383,6 +383,19 @@ fun PomodoroScreen(
                 .padding(4.dp),
             contentAlignment = Alignment.Center
         ) {
+            val calyxPath = remember { Path() }
+            val stemPath = remember { Path() }
+            val pointerPath = remember { Path() }
+            val dialPaint = remember {
+                Paint().apply {
+                    color = android.graphics.Color.WHITE
+                    textSize = 28f
+                    isAntiAlias = true
+                    textAlign = Paint.Align.CENTER
+                    typeface = android.graphics.Typeface.DEFAULT_BOLD
+                }
+            }
+
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val cx = size.width / 2f
                 val cy = size.height / 2f
@@ -420,21 +433,21 @@ fun PomodoroScreen(
                 )
 
                 val calyxTop = cy - tomatoR + 2.dp.toPx()
-                val calyxPath = Path().apply {
-                    moveTo(cx, calyxTop)
-                    lineTo(cx + 14.dp.toPx(), calyxTop + 16.dp.toPx())
-                    lineTo(cx + 28.dp.toPx(), calyxTop + 4.dp.toPx())
-                    lineTo(cx + 18.dp.toPx(), calyxTop + 24.dp.toPx())
-                    lineTo(cx + 30.dp.toPx(), calyxTop + 32.dp.toPx())
-                    lineTo(cx + 10.dp.toPx(), calyxTop + 30.dp.toPx())
-                    lineTo(cx, calyxTop + 42.dp.toPx())
-                    lineTo(cx - 10.dp.toPx(), calyxTop + 30.dp.toPx())
-                    lineTo(cx - 30.dp.toPx(), calyxTop + 32.dp.toPx())
-                    lineTo(cx - 18.dp.toPx(), calyxTop + 24.dp.toPx())
-                    lineTo(cx - 28.dp.toPx(), calyxTop + 4.dp.toPx())
-                    lineTo(cx - 14.dp.toPx(), calyxTop + 16.dp.toPx())
-                    close()
-                }
+                calyxPath.reset()
+                calyxPath.moveTo(cx, calyxTop)
+                calyxPath.lineTo(cx + 14.dp.toPx(), calyxTop + 16.dp.toPx())
+                calyxPath.lineTo(cx + 28.dp.toPx(), calyxTop + 4.dp.toPx())
+                calyxPath.lineTo(cx + 18.dp.toPx(), calyxTop + 24.dp.toPx())
+                calyxPath.lineTo(cx + 30.dp.toPx(), calyxTop + 32.dp.toPx())
+                calyxPath.lineTo(cx + 10.dp.toPx(), calyxTop + 30.dp.toPx())
+                calyxPath.lineTo(cx, calyxTop + 42.dp.toPx())
+                calyxPath.lineTo(cx - 10.dp.toPx(), calyxTop + 30.dp.toPx())
+                calyxPath.lineTo(cx - 30.dp.toPx(), calyxTop + 32.dp.toPx())
+                calyxPath.lineTo(cx - 18.dp.toPx(), calyxTop + 24.dp.toPx())
+                calyxPath.lineTo(cx - 28.dp.toPx(), calyxTop + 4.dp.toPx())
+                calyxPath.lineTo(cx - 14.dp.toPx(), calyxTop + 16.dp.toPx())
+                calyxPath.close()
+
                 drawPath(
                     path = calyxPath,
                     brush = Brush.verticalGradient(
@@ -442,14 +455,14 @@ fun PomodoroScreen(
                     )
                 )
 
-                val stemPath = Path().apply {
-                    moveTo(cx, calyxTop + 16.dp.toPx())
-                    cubicTo(
-                        cx - 4.dp.toPx(), calyxTop - 8.dp.toPx(),
-                        cx + 10.dp.toPx(), calyxTop - 12.dp.toPx(),
-                        cx + 6.dp.toPx(), calyxTop - 22.dp.toPx()
-                    )
-                }
+                stemPath.reset()
+                stemPath.moveTo(cx, calyxTop + 16.dp.toPx())
+                stemPath.cubicTo(
+                    cx - 4.dp.toPx(), calyxTop - 8.dp.toPx(),
+                    cx + 10.dp.toPx(), calyxTop - 12.dp.toPx(),
+                    cx + 6.dp.toPx(), calyxTop - 22.dp.toPx()
+                )
+
                 drawPath(
                     path = stemPath,
                     color = Color(0xFF22543D),
@@ -472,13 +485,6 @@ fun PomodoroScreen(
                 )
 
                 val activeMins = remainingSeconds / 60f
-                val paint = Paint().apply {
-                    color = android.graphics.Color.WHITE
-                    textSize = 28f
-                    isAntiAlias = true
-                    textAlign = Paint.Align.CENTER
-                    typeface = android.graphics.Typeface.DEFAULT_BOLD
-                }
 
                 for (m in 0 until 60) {
                     var diff = (m - activeMins) % 60f
@@ -505,18 +511,18 @@ fun PomodoroScreen(
                                 "$m",
                                 tickX,
                                 tickTop - 4.dp.toPx(),
-                                paint
+                                dialPaint
                             )
                         }
                     }
                 }
 
-                val pointerPath = Path().apply {
-                    moveTo(cx, seamY + 2.dp.toPx())
-                    lineTo(cx - 6.dp.toPx(), seamY + 14.dp.toPx())
-                    lineTo(cx + 6.dp.toPx(), seamY + 14.dp.toPx())
-                    close()
-                }
+                pointerPath.reset()
+                pointerPath.moveTo(cx, seamY + 2.dp.toPx())
+                pointerPath.lineTo(cx - 6.dp.toPx(), seamY + 14.dp.toPx())
+                pointerPath.lineTo(cx + 6.dp.toPx(), seamY + 14.dp.toPx())
+                pointerPath.close()
+
                 drawPath(path = pointerPath, color = Color.White)
             }
 
