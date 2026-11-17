@@ -28,6 +28,9 @@ data class TaskItem(
     @SerializedName("due_date")
     val dueDate: String = "",
 
+    @SerializedName("scheduled_time")
+    val scheduledTime: String? = null,
+
     @SerializedName("is_completed")
     val isCompleted: Boolean = false,
 
@@ -225,6 +228,9 @@ data class LogSessionRequest(
     @SerializedName("task_id")
     val taskId: Int? = null,
 
+    @SerializedName("tag")
+    val tag: String? = null,
+
     @SerializedName("status")
     val status: String = "completed",
 
@@ -314,6 +320,9 @@ data class CreateTaskRequest(
 
     @SerializedName("due_date")
     val dueDate: String = "",
+
+    @SerializedName("scheduled_time")
+    val scheduledTime: String? = null,
 
     @SerializedName("category")
     val category: String = "General"

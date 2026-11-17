@@ -116,11 +116,12 @@ class ProductivityRepository(
         description: String = "",
         priority: String = "medium",
         dueDate: String = "",
-        category: String = "General"
+        category: String = "General",
+        scheduledTime: String? = null
     ): Result<TaskItem> = withContext(Dispatchers.IO) {
         try {
             invalidateDashboardCache()
-            val request = CreateTaskRequest(userId, title, description, priority, dueDate, category)
+            val request = CreateTaskRequest(userId, title, description, priority, dueDate, scheduledTime, category)
             val response = apiService.createTask(request)
             if (response.isSuccessful && response.body()?.status == true) {
                 val created = response.body()?.data ?: TaskItem(
@@ -130,6 +131,7 @@ class ProductivityRepository(
                     description = description,
                     priority = priority,
                     dueDate = dueDate,
+                    scheduledTime = scheduledTime,
                     category = category
                 )
                 Result.success(created)
@@ -145,6 +147,7 @@ class ProductivityRepository(
                     description = description,
                     priority = priority,
                     dueDate = dueDate,
+                    scheduledTime = scheduledTime,
                     category = category
                 )
             )
@@ -187,6 +190,8 @@ class ProductivityRepository(
         endTime: String? = null,
         taskTitle: String? = null,
         taskCategory: String? = null,
+        tag: String? = null,
+        status: String = "completed",
         sessionUuid: String = java.util.UUID.randomUUID().toString()
     ): Result<LogSessionResponse> = withContext(Dispatchers.IO) {
         val now = System.currentTimeMillis()
@@ -208,7 +213,7 @@ class ProductivityRepository(
                     startTime = startTime,
                     endTime = endTime,
                     taskTitle = taskTitle,
-                    taskCategory = taskCategory,
+                    taskCategory = taskCategory ?: tag,
                     sessionUuid = sessionUuid
                 )
             } catch (e: Exception) {
@@ -221,7 +226,8 @@ class ProductivityRepository(
                 durationMinutes = durationMinutes,
                 sessionType = sessionType,
                 taskId = taskId,
-                status = "completed",
+                tag = tag ?: taskCategory,
+                status = status,
                 startedAt = startTime,
                 completedAt = endTime,
                 sessionUuid = sessionUuid
