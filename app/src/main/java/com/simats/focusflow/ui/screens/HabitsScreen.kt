@@ -99,8 +99,8 @@ fun EmptyHabitsCard(
     val colors = FocusFlowTheme.colors
     Surface(
         shape = RoundedCornerShape(20.dp),
-        color = colors.surface,
-        border = BorderStroke(1.dp, colors.border),
+        color = Color(0xFF11101C),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
         modifier = modifier.fillMaxWidth()
     ) {
         Column(
@@ -197,7 +197,7 @@ fun HabitsScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = colors.background,
+        containerColor = Color(0xFF07060D),
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
             if (state.selectedTab == HabitTab.ROUTINE) {
@@ -223,7 +223,7 @@ fun HabitsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(colors.background)
+                .background(Color(0xFF07060D))
                 .padding(horizontal = 20.dp)
         ) {
             Spacer(modifier = Modifier.height(10.dp))
@@ -512,11 +512,11 @@ private fun HabitCard(
     val colors = FocusFlowTheme.colors
     val isDone = habit.isCompletedToday
     val cardBg by animateColorAsState(
-        targetValue = if (isDone) colors.primary.copy(alpha = 0.12f) else colors.surface,
+        targetValue = if (isDone) Color(0xFF8B5CF6).copy(alpha = 0.16f) else Color(0xFF11101C),
         label = "habitBg"
     )
     val borderColor by animateColorAsState(
-        targetValue = if (isDone) colors.primary.copy(alpha = 0.5f) else colors.border,
+        targetValue = if (isDone) Color(0xFF8B5CF6).copy(alpha = 0.45f) else Color.White.copy(alpha = 0.08f),
         label = "habitBorder"
     )
 
