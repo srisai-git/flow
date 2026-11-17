@@ -25,6 +25,7 @@ sealed class Screen(
 
     object Tasks : Screen("tasks", "Tasks", Icons.Outlined.Checklist)
     object Habits : Screen("habits", "Habits", Icons.Outlined.Repeat)
+    object Pomodoro : Screen("pomodoro_screen", "Pomodoro", Icons.Outlined.Timer)
 
     companion object {
         val bottomNavScreens: List<Screen> by lazy {
@@ -36,6 +37,7 @@ sealed class Screen(
             val mainRoutes = listOf(
                 "home",
                 "dashboard",
+                "pomodoro_screen",
                 Screen.Timer.route,
                 Screen.Habits.route,
                 Screen.Insights.route,

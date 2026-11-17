@@ -98,6 +98,7 @@ fun DashboardScreen(
     onNavigateToDistraction: () -> Unit = {},
     onNavigateToAiReport: () -> Unit = {},
     onNavigateToProgressConsistency: () -> Unit = {},
+    onNavigateToPomodoro: () -> Unit = onNavigateToTimer,
     viewModel: DashboardViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -505,7 +506,7 @@ fun DashboardScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Surface(
-            onClick = onNavigateToTimer,
+            onClick = onNavigateToPomodoro,
             shape = RoundedCornerShape(18.dp),
             color = colors.primary,
             modifier = Modifier
