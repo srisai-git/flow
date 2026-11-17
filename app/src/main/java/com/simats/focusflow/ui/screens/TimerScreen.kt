@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.History
@@ -93,13 +94,21 @@ fun TimerScreen(
     var showClockTimePicker by remember { mutableStateOf(false) }
     var showUsagePermissionDialog by remember { mutableStateOf(false) }
     var isStrictFocus by rememberSaveable { mutableStateOf(false) }
+    var hasAccessibilityPermission by remember { mutableStateOf(false) }
+    var hasOverlayPermission by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     var backgroundJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
 
+    val refreshPermissions = {
+        hasAccessibilityPermission = com.simats.focusflow.service.FocusBlockerAccessibilityService.isAccessibilityServiceEnabled(context)
+        hasOverlayPermission = com.simats.focusflow.service.FocusBlockerAccessibilityService.canDrawOverlays(context)
+    }
+
     LaunchedEffect(Unit) {
         isStrictFocus = com.simats.focusflow.service.FocusTimerService.timerStateFlow.value.isStrictFocus
+        refreshPermissions()
     }
 
     DisposableEffect(lifecycleOwner, isStrictFocus, state.isRunning) {
@@ -140,7 +149,10 @@ fun TimerScreen(
                 } else if (event == Lifecycle.Event.ON_START || event == Lifecycle.Event.ON_RESUME) {
                     backgroundJob?.cancel()
                     backgroundJob = null
+                    refreshPermissions()
                 }
+            } else if (event == Lifecycle.Event.ON_RESUME) {
+                refreshPermissions()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -527,11 +539,13 @@ fun TimerScreen(
                         checked = isStrictFocus,
                         onCheckedChange = { checked ->
                             if (checked) {
-                                if (!com.simats.focusflow.utils.UsageStatsHelper.hasUsageStatsPermission(context)) {
-                                    showUsagePermissionDialog = true
-                                } else {
-                                    isStrictFocus = true
-                                    com.simats.focusflow.service.FocusTimerService.setStrictFocus(context, true)
+                                isStrictFocus = true
+                                com.simats.focusflow.service.FocusTimerService.setStrictFocus(context, true)
+                                refreshPermissions()
+                                if (!com.simats.focusflow.service.FocusBlockerAccessibilityService.isAccessibilityServiceEnabled(context)) {
+                                    com.simats.focusflow.service.FocusBlockerAccessibilityService.openAccessibilitySettings(context)
+                                } else if (!com.simats.focusflow.service.FocusBlockerAccessibilityService.canDrawOverlays(context)) {
+                                    com.simats.focusflow.service.FocusBlockerAccessibilityService.openOverlaySettings(context)
                                 }
                             } else {
                                 isStrictFocus = false
@@ -545,6 +559,145 @@ fun TimerScreen(
                             uncheckedTrackColor = colors.surfaceVariant
                         )
                     )
+                }
+            }
+
+            if (isStrictFocus) {
+                Spacer(modifier = Modifier.height(14.dp))
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = colors.surface,
+                    border = BorderStroke(
+                        1.dp,
+                        if (hasAccessibilityPermission && hasOverlayPermission) Color(0xFF10B981).copy(alpha = 0.4f) else Color(0xFFF59E0B).copy(alpha = 0.4f)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "STRICT APP BLOCKER SETUP",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (hasAccessibilityPermission && hasOverlayPermission) Color(0xFF10B981) else Color(0xFFF59E0B),
+                                letterSpacing = 1.sp
+                            )
+                            Text(
+                                text = if (hasAccessibilityPermission && hasOverlayPermission) "Active & Armed" else "Setup Needed",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (hasAccessibilityPermission && hasOverlayPermission) Color(0xFF10B981) else Color(0xFFF59E0B)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "1. Accessibility Service",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = colors.textPrimary
+                                )
+                                Text(
+                                    text = "Required to detect and lock out blocked apps instantly",
+                                    fontSize = 11.sp,
+                                    color = colors.textMuted
+                                )
+                            }
+                            if (hasAccessibilityPermission) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF10B981).copy(alpha = 0.2f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = Color(0xFF10B981),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            } else {
+                                Button(
+                                    onClick = {
+                                        com.simats.focusflow.service.FocusBlockerAccessibilityService.openAccessibilitySettings(context)
+                                    },
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                    modifier = Modifier.height(34.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Text("Enable", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "2. Display Over Other Apps",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = colors.textPrimary
+                                )
+                                Text(
+                                    text = "Displays full-screen Focus Shield over distracting apps",
+                                    fontSize = 11.sp,
+                                    color = colors.textMuted
+                                )
+                            }
+                            if (hasOverlayPermission) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF10B981).copy(alpha = 0.2f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = Color(0xFF10B981),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            } else {
+                                Button(
+                                    onClick = {
+                                        com.simats.focusflow.service.FocusBlockerAccessibilityService.openOverlaySettings(context)
+                                    },
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                    modifier = Modifier.height(34.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Text("Grant", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
