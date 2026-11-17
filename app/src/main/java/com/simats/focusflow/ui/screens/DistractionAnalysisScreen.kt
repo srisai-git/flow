@@ -275,7 +275,7 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.background)
+            .background(Color(0xFF07060D))
             .statusBarsPadding()
             .padding(top = 16.dp, bottom = 24.dp, start = 20.dp, end = 20.dp)
             .verticalScroll(rememberScrollState())
