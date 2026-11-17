@@ -88,7 +88,7 @@ fun RecommendationsScreen(
             list.add(
                 RecommendationItem(
                     id = "rec_interval",
-                    icon = Icons.Default.Timer,
+                    icon = Icons.Default.HourglassBottom,
                     title = "Target $avgDuration-minute focus blocks",
                     desc = "Your recorded sessions average $avgDuration minutes. Calibrating your timer to match your actual stamina minimizes cognitive fatigue."
                 )

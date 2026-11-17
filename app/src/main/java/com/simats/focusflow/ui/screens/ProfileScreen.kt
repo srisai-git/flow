@@ -35,8 +35,8 @@ import androidx.compose.material.icons.filled.RocketLaunch
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.HourglassBottom
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -302,7 +302,7 @@ fun ProfileScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 StatSummaryCard(
-                    icon = Icons.Default.Timer,
+                    icon = Icons.Default.HourglassBottom,
                     value = String.format(Locale.US, "%.1fh", profile.totalFocusHours),
                     label = "Focus Time",
                     iconTint = colors.primaryLight,
@@ -1039,7 +1039,7 @@ private fun FocusTimeDetailSheetContent(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Timer,
+                        imageVector = Icons.Default.HourglassBottom,
                         contentDescription = null,
                         tint = colors.primaryLight,
                         modifier = Modifier.size(28.dp)
@@ -1114,7 +1114,7 @@ private fun FocusTimeDetailSheetContent(
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
             ) {
-                Icon(Icons.Default.Timer, contentDescription = null, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.HourglassBottom, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(6.dp))
                 Text("Start Focus", fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }

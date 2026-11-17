@@ -968,6 +968,7 @@ private fun AbstractGeometricClock(
     }
 
     Canvas(modifier = modifier) {
+        if (size.width <= 0f || size.height <= 0f) return@Canvas
         val w = size.width
         val h = size.height
         val center = Offset(w / 2f, h / 2f)
@@ -1480,7 +1481,7 @@ private fun Sparkline(
     val fillPath = remember { androidx.compose.ui.graphics.Path() }
 
     Canvas(modifier = modifier) {
-        if (dataPoints.size < 2) return@Canvas
+        if (size.width <= 0f || size.height <= 0f || dataPoints.size < 2) return@Canvas
         val maxVal = (dataPoints.maxOrNull() ?: 1f).coerceAtLeast(1f)
         val minVal = dataPoints.minOrNull() ?: 0f
         val range = (maxVal - minVal).coerceAtLeast(0.1f)

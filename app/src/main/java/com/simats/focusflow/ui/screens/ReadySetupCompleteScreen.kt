@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.HourglassBottom
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Timer
@@ -110,7 +111,7 @@ fun ReadySetupCompleteScreen(
                 
                 PreferenceRow(Icons.Default.MenuBook, "Primary goal", "Study")
                 Spacer(modifier = Modifier.height(14.dp))
-                PreferenceRow(Icons.Default.Timer, "Focus duration", "25 min")
+                PreferenceRow(Icons.Default.HourglassBottom, "Focus duration", "25 min")
                 Spacer(modifier = Modifier.height(14.dp))
                 PreferenceRow(Icons.Default.TrackChanges, "Daily focus goal", "2h 00m")
                 Spacer(modifier = Modifier.height(14.dp))

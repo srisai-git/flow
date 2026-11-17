@@ -33,6 +33,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.HourglassBottom
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Pause
@@ -397,9 +398,10 @@ fun PomodoroScreen(
             }
 
             Canvas(modifier = Modifier.fillMaxSize()) {
+                if (size.width <= 0f || size.height <= 0f || size.minDimension <= 36.dp.toPx()) return@Canvas
                 val cx = size.width / 2f
                 val cy = size.height / 2f
-                val tomatoR = (size.minDimension / 2f) - 18.dp.toPx()
+                val tomatoR = ((size.minDimension / 2f) - 18.dp.toPx()).coerceAtLeast(10.dp.toPx())
 
                 val tomatoShading = Brush.radialGradient(
                     colors = listOf(
@@ -823,7 +825,7 @@ fun PomodoroScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Timer,
+                            imageVector = Icons.Default.HourglassBottom,
                             contentDescription = null,
                             tint = Color(0xFFFF5A5F),
                             modifier = Modifier.size(20.dp)

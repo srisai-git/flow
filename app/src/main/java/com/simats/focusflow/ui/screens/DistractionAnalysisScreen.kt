@@ -332,8 +332,9 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
                     contentAlignment = Alignment.Center
                 ) {
                     Canvas(modifier = Modifier.size(190.dp)) {
+                        if (size.width <= 0f || size.height <= 0f) return@Canvas
                         val strokeWidth = 18.dp.toPx()
-                        val diameter = size.minDimension - strokeWidth - 8.dp.toPx()
+                        val diameter = (size.minDimension - strokeWidth - 8.dp.toPx()).coerceAtLeast(10f)
                         val topLeftOffset = androidx.compose.ui.geometry.Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
                         val arcSize = androidx.compose.ui.geometry.Size(diameter, diameter)
                         val cx = size.width / 2f

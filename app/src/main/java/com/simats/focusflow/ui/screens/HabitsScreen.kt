@@ -751,11 +751,11 @@ private fun HabitsInsightsView(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        LazyColumn(
-            modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
+        Column(
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(habits, key = { it.id }) { h ->
+            habits.forEach { h ->
                 Surface(
                     onClick = { onHabitClick(h) },
                     shape = RoundedCornerShape(12.dp),

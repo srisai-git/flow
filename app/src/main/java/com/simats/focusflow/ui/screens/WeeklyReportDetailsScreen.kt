@@ -8,6 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.HourglassBottom
 import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Schedule
@@ -162,7 +163,7 @@ fun WeeklyReportDetailsScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Timer,
+                                imageVector = Icons.Default.HourglassBottom,
                                 contentDescription = null,
                                 tint = colors.primaryLight,
                                 modifier = Modifier.size(18.dp)

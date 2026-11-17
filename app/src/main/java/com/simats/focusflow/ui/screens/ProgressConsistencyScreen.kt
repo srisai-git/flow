@@ -363,6 +363,7 @@ fun ProgressConsistencyScreen(onBack: () -> Unit = {}) {
                             .height(180.dp)
                     ) {
                         Canvas(modifier = Modifier.fillMaxSize()) {
+                            if (size.width <= 0f || size.height <= 0f) return@Canvas
                             val w = size.width
                             val h = size.height
                             val bottomPadding = 30.dp.toPx()
@@ -546,8 +547,9 @@ fun ProgressConsistencyScreen(onBack: () -> Unit = {}) {
                             contentAlignment = Alignment.Center
                         ) {
                             Canvas(modifier = Modifier.fillMaxSize()) {
+                                if (size.width <= 0f || size.height <= 0f) return@Canvas
                                 val strokeWidth = 14.dp.toPx()
-                                val r = (size.minDimension - strokeWidth) / 2f
+                                val r = ((size.minDimension - strokeWidth) / 2f).coerceAtLeast(1f)
 
                                 drawCircle(
                                     color = Color(0xFFEF4444).copy(alpha = 0.85f),
@@ -701,6 +703,7 @@ fun ProgressConsistencyScreen(onBack: () -> Unit = {}) {
                             .height(160.dp)
                     ) {
                         Canvas(modifier = Modifier.fillMaxSize()) {
+                            if (size.width <= 0f || size.height <= 0f) return@Canvas
                             val w = size.width
                             val h = size.height
                             val bottomPad = 26.dp.toPx()

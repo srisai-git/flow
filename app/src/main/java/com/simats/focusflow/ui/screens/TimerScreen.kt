@@ -988,16 +988,14 @@ private fun SessionHistorySheet(
                 )
             }
         } else {
-            LazyColumn(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 420.dp),
+                    .heightIn(max = 420.dp)
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(
-                    sessions,
-                    key = { if (it.id > 0) "id_${it.id}" else if (it.sessionUuid.isNotBlank()) it.sessionUuid else "${it.startedAt}_${it.durationMinutes}" }
-                ) { s ->
+                sessions.forEach { s ->
                     FocusSessionItemCard(session = s)
                 }
             }
@@ -1323,6 +1321,7 @@ private fun TimerCountdownDial(
             val wavePath = remember { androidx.compose.ui.graphics.Path() }
 
             Canvas(modifier = Modifier.fillMaxSize()) {
+                if (size.width <= 0f || size.height <= 0f || size.minDimension <= strokeWidthPx * 2f) return@Canvas
                 val pad = strokeWidthPx / 2f
                 val innerDiameter = size.minDimension - strokeWidthPx * 2f
 

@@ -16,9 +16,9 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.HourglassBottom
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -304,7 +304,8 @@ fun InsightsScreen(
                             .height(140.dp)
                     ) {
                         Canvas(modifier = Modifier.fillMaxSize()) {
-                            val chartH = size.height - 18.dp.toPx()
+                            if (size.width <= 0f || size.height <= 0f) return@Canvas
+                            val chartH = (size.height - 18.dp.toPx()).coerceAtLeast(10f)
                             if (selectedTab == "Week") {
                                 val totalDays = labels.size
                                 val groupWidth = 34.dp.toPx()
@@ -566,7 +567,7 @@ fun InsightsScreen(
             ) {
                 Column {
                     InsightNavRow(
-                        icon = Icons.Default.Timer,
+                        icon = Icons.Default.HourglassBottom,
                         title = "Focus Time Analysis",
                         onClick = onNavigateToFocusAnalysis
                     )
