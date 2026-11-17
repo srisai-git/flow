@@ -30,6 +30,7 @@ import java.util.Locale
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -40,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.simats.focusflow.data.models.TaskItem
 import com.simats.focusflow.data.session.SessionManager
+import com.simats.focusflow.ui.components.AmbientMeshGlowHeader
 import com.simats.focusflow.ui.components.FlowLoadingIndicator
 import com.simats.focusflow.ui.components.TasksSkeleton
 import com.simats.focusflow.ui.components.bounceClick
@@ -98,13 +100,19 @@ fun TasksScreen(
             }
         }
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(colors.background)
-                .padding(horizontal = 20.dp)
+                .background(Color(0xFF07060D))
         ) {
+            AmbientMeshGlowHeader(height = 240.dp)
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp)
+            ) {
             Spacer(modifier = Modifier.height(10.dp))
 
             Row(
@@ -284,6 +292,7 @@ fun TasksScreen(
                 }
             }
         }
+        }
 
         if (state.isBottomSheetOpen) {
             val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -330,13 +339,20 @@ private fun TaskItemCard(
         else -> Color(0xFF10B981)
     }
 
+    val hairlineBorder = Brush.verticalGradient(
+        listOf(
+            Color.White.copy(alpha = 0.14f),
+            Color.White.copy(alpha = 0.03f)
+        )
+    )
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .bounceClick(),
-        shape = RoundedCornerShape(16.dp),
-        color = colors.surface,
-        border = BorderStroke(1.dp, colors.border)
+        shape = RoundedCornerShape(18.dp),
+        color = Color(0xFF11101C),
+        border = BorderStroke(1.dp, hairlineBorder)
     ) {
         Row(
             modifier = Modifier
@@ -348,8 +364,8 @@ private fun TaskItemCard(
                 checked = task.isCompleted,
                 onCheckedChange = { onToggle() },
                 colors = CheckboxDefaults.colors(
-                    checkedColor = colors.primary,
-                    uncheckedColor = colors.textMuted,
+                    checkedColor = Color(0xFF8B5CF6),
+                    uncheckedColor = Color(0xFF94A3B8),
                     checkmarkColor = Color.White
                 )
             )
@@ -361,7 +377,7 @@ private fun TaskItemCard(
                     text = task.title,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (task.isCompleted) colors.textMuted else colors.textPrimary,
+                    color = if (task.isCompleted) Color(0xFF94A3B8) else Color(0xFFF1F1F5),
                     textDecoration = if (task.isCompleted) TextDecoration.LineThrough else TextDecoration.None
                 )
 
@@ -370,7 +386,7 @@ private fun TaskItemCard(
                     Text(
                         text = task.description,
                         fontSize = 12.sp,
-                        color = colors.textMuted,
+                        color = Color(0xFF94A3B8),
                         maxLines = 2
                     )
                 }
@@ -384,14 +400,15 @@ private fun TaskItemCard(
                     if (task.category.isNotBlank()) {
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(colors.surfaceVariant)
-                                .padding(horizontal = 7.dp, vertical = 2.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFF8B5CF6).copy(alpha = 0.12f))
+                                .border(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.30f), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
                         ) {
                             Text(
                                 text = task.category,
-                                fontSize = 10.sp,
-                                color = colors.primaryLight,
+                                fontSize = 10.5.sp,
+                                color = Color(0xFFC4B5FD),
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -400,22 +417,23 @@ private fun TaskItemCard(
                     if (task.dueDate.isNotBlank()) {
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(colors.surfaceVariant)
-                                .padding(horizontal = 7.dp, vertical = 2.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFF181628))
+                                .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     imageVector = Icons.Default.DateRange,
                                     contentDescription = null,
-                                    tint = colors.textMuted,
+                                    tint = Color(0xFF94A3B8),
                                     modifier = Modifier.size(11.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = task.dueDate,
-                                    fontSize = 10.sp,
-                                    color = colors.textMuted,
+                                    fontSize = 10.5.sp,
+                                    color = Color(0xFF94A3B8),
                                     fontWeight = FontWeight.Medium
                                 )
                             }
@@ -425,22 +443,23 @@ private fun TaskItemCard(
                     if (!task.scheduledTime.isNullOrBlank()) {
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(Color(0xFF8B5CF6).copy(alpha = 0.15f))
-                                .padding(horizontal = 7.dp, vertical = 2.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFF38BDF8).copy(alpha = 0.12f))
+                                .border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     imageVector = Icons.Default.Schedule,
                                     contentDescription = null,
-                                    tint = Color(0xFFA78BFA),
+                                    tint = Color(0xFF38BDF8),
                                     modifier = Modifier.size(11.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = task.scheduledTime,
-                                    fontSize = 10.sp,
-                                    color = Color(0xFFA78BFA),
+                                    fontSize = 10.5.sp,
+                                    color = Color(0xFF38BDF8),
                                     fontWeight = FontWeight.SemiBold
                                 )
                             }
@@ -449,13 +468,14 @@ private fun TaskItemCard(
 
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(priorityColor.copy(alpha = 0.15f))
-                            .padding(horizontal = 7.dp, vertical = 2.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(priorityColor.copy(alpha = 0.14f))
+                            .border(1.dp, priorityColor.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 7.dp, vertical = 3.dp)
                     ) {
                         Text(
                             text = task.priority.uppercase(),
-                            fontSize = 9.sp,
+                            fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = priorityColor
                         )
