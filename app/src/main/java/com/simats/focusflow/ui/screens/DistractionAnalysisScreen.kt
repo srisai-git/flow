@@ -24,6 +24,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -330,14 +331,36 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
                     modifier = Modifier.size(chartDiameter),
                     contentAlignment = Alignment.Center
                 ) {
-                    Canvas(modifier = Modifier.size(176.dp)) {
+                    Canvas(modifier = Modifier.size(190.dp)) {
                         val strokeWidth = 18.dp.toPx()
-                        val diameter = size.minDimension - strokeWidth
-                        val topLeftOffset = androidx.compose.ui.geometry.Offset(strokeWidth / 2, strokeWidth / 2)
+                        val diameter = size.minDimension - strokeWidth - 8.dp.toPx()
+                        val topLeftOffset = androidx.compose.ui.geometry.Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
                         val arcSize = androidx.compose.ui.geometry.Size(diameter, diameter)
+                        val cx = size.width / 2f
+                        val cy = size.height / 2f
+
+                        drawCircle(
+                            brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                                colors = listOf(Color(0xFF8B5CF6).copy(alpha = 0.2f), Color.Transparent),
+                                center = Offset(cx, cy),
+                                radius = diameter / 1.4f
+                            ),
+                            radius = diameter / 1.4f,
+                            center = Offset(cx, cy)
+                        )
 
                         drawArc(
-                            color = Color(0xFF25203D),
+                            color = Color(0xFF1C1830),
+                            startAngle = 0f,
+                            sweepAngle = 360f,
+                            useCenter = false,
+                            topLeft = topLeftOffset,
+                            size = arcSize,
+                            style = Stroke(width = strokeWidth + 4.dp.toPx(), cap = StrokeCap.Round)
+                        )
+
+                        drawArc(
+                            color = Color(0xFF282245),
                             startAngle = 0f,
                             sweepAngle = 360f,
                             useCenter = false,
@@ -351,7 +374,9 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
                                 val single = ringSegments.first()
                                 val singleColor = getAppBrandColor(single.packageName, 0)
                                 drawArc(
-                                    color = singleColor,
+                                    brush = androidx.compose.ui.graphics.Brush.sweepGradient(
+                                        listOf(singleColor, singleColor.copy(alpha = 0.7f), singleColor)
+                                    ),
                                     startAngle = -90f,
                                     sweepAngle = 360f,
                                     useCenter = false,
@@ -361,15 +386,17 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
                                 )
                             } else {
                                 var currentAngle = -90f
-                                val gapDegrees = 5f
+                                val gapDegrees = 6f
                                 val availableSweep = 360f - (ringSegments.size * gapDegrees)
 
                                 ringSegments.forEachIndexed { index, segment ->
-                                    val segmentSweep = (segment.percentage * availableSweep).coerceAtLeast(4f)
+                                    val segmentSweep = (segment.percentage * availableSweep).coerceAtLeast(6f)
                                     val segmentColor = getAppBrandColor(segment.packageName, index)
 
                                     drawArc(
-                                        color = segmentColor,
+                                        brush = androidx.compose.ui.graphics.Brush.sweepGradient(
+                                            listOf(segmentColor, segmentColor.copy(alpha = 0.75f), segmentColor)
+                                        ),
                                         startAngle = currentAngle,
                                         sweepAngle = segmentSweep,
                                         useCenter = false,
@@ -390,16 +417,17 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
                         Text(
                             text = if (totalMins > 0) totalHoursStr else "0m",
                             fontSize = 32.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.textPrimary,
-                            letterSpacing = (-0.5).sp
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White,
+                            letterSpacing = (-0.5).sp,
+                            style = androidx.compose.ui.text.TextStyle(fontFeatureSettings = "tnum")
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "Today",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = colors.textMuted
+                            text = "Lost to Distractions",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFFF472B6)
                         )
                     }
                 }
