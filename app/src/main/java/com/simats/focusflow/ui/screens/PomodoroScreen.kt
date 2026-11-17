@@ -1,5 +1,6 @@
 package com.simats.focusflow.ui.screens
 
+import android.graphics.Paint
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
@@ -50,8 +51,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,6 +70,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -75,18 +79,27 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.simats.focusflow.data.repository.ProductivityRepository
-import com.simats.focusflow.service.FocusTimerService
+import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.ui.components.bounceClick
 import com.simats.focusflow.ui.theme.FocusFlowTheme
-import com.simats.focusflow.ui.viewmodel.TimerMode
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 data class PomodoroTagItem(
     val id: String,
     val name: String,
     val color: Color
 )
+
+enum class PomodoroPhase(val title: String, val minutes: Int) {
+    POMODORO("Focus", 25),
+    SHORT_BREAK("Short Break", 5),
+    LONG_BREAK("Long Break", 15)
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,7 +112,11 @@ fun PomodoroScreen(
     val scope = rememberCoroutineScope()
     val repository = remember { ProductivityRepository() }
 
-    val timerState by FocusTimerService.timerStateFlow.collectAsState()
+    var currentPhase by remember { mutableStateOf(PomodoroPhase.POMODORO) }
+    var remainingSeconds by remember { mutableIntStateOf(25 * 60) }
+    var totalSeconds by remember { mutableIntStateOf(25 * 60) }
+    var isRunning by remember { mutableStateOf(false) }
+    var completedSprints by remember { mutableIntStateOf(0) }
 
     var showInfoModal by remember { mutableStateOf(false) }
     var showAddTagDialog by remember { mutableStateOf(false) }
@@ -125,10 +142,59 @@ fun PomodoroScreen(
     }
     var selectedTagId by remember { mutableStateOf("1") }
 
+    LaunchedEffect(isRunning, currentPhase) {
+        if (isRunning) {
+            while (isActive && remainingSeconds > 0) {
+                delay(1000L)
+                remainingSeconds--
+            }
+            if (remainingSeconds <= 0) {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                if (currentPhase == PomodoroPhase.POMODORO) {
+                    val nextCompleted = completedSprints + 1
+                    completedSprints = nextCompleted
+                    val activeTag = customTags.firstOrNull { it.id == selectedTagId }?.name ?: "Work"
+                    scope.launch(Dispatchers.IO) {
+                        try {
+                            val sessionMgr = SessionManager.getInstance(context)
+                            val uId = sessionMgr.userSessionFlow.first().userId ?: 1
+                            repository.logSession(
+                                userId = uId,
+                                durationMinutes = 25,
+                                sessionType = "pomodoro",
+                                tag = activeTag,
+                                status = "completed"
+                            )
+                        } catch (_: Exception) {}
+                    }
+                    val nextMode = if (nextCompleted % 4 == 0) PomodoroPhase.LONG_BREAK else PomodoroPhase.SHORT_BREAK
+                    currentPhase = nextMode
+                    totalSeconds = nextMode.minutes * 60
+                    remainingSeconds = nextMode.minutes * 60
+                    isRunning = false
+                } else {
+                    currentPhase = PomodoroPhase.POMODORO
+                    totalSeconds = 25 * 60
+                    remainingSeconds = 25 * 60
+                    isRunning = false
+                }
+            }
+        }
+    }
+
+    val progress = remember(remainingSeconds, totalSeconds) {
+        if (totalSeconds > 0) remainingSeconds.toFloat() / totalSeconds.toFloat() else 0f
+    }
     val animatedProgress by animateFloatAsState(
-        targetValue = timerState.progress,
+        targetValue = progress,
         label = "pomodoro_progress"
     )
+
+    val formattedTime = remember(remainingSeconds) {
+        val mins = remainingSeconds / 60
+        val secs = remainingSeconds % 60
+        String.format(Locale.US, "%02d:%02d", mins, secs)
+    }
 
     Column(
         modifier = Modifier
@@ -328,156 +394,212 @@ fun PomodoroScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         Box(
             modifier = Modifier
                 .size(310.dp)
-                .padding(8.dp),
+                .padding(4.dp),
             contentAlignment = Alignment.Center
         ) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val cx = size.width / 2f
                 val cy = size.height / 2f
-                val ringRadius = size.minDimension / 2f - 16.dp.toPx()
+                val tomatoR = (size.minDimension / 2f) - 18.dp.toPx()
 
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color(0xFF1E2230),
-                            Color(0xFF12141C)
-                        ),
-                        center = Offset(cx, cy),
-                        radius = ringRadius
+                val tomatoShading = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0xFFFF4D4D),
+                        Color(0xFFDC2626),
+                        Color(0xFF991B1B),
+                        Color(0xFF450A0A)
                     ),
-                    radius = ringRadius
+                    center = Offset(cx - tomatoR * 0.28f, cy - tomatoR * 0.32f),
+                    radius = tomatoR * 1.35f
                 )
 
                 drawCircle(
-                    color = Color(0xFF2E3547),
-                    radius = ringRadius,
-                    style = Stroke(width = 1.5.dp.toPx())
+                    brush = tomatoShading,
+                    radius = tomatoR,
+                    center = Offset(cx, cy)
                 )
 
-                drawCircle(
-                    color = Color(0xFF1F2432).copy(alpha = 0.6f),
-                    radius = ringRadius - 14.dp.toPx(),
-                    style = Stroke(width = 1.dp.toPx())
-                )
-
-                val tickOuterR = ringRadius - 6.dp.toPx()
-                for (i in 0 until 60) {
-                    val angleRad = Math.toRadians((i * 6.0 - 90.0))
-                    val isFiveMin = i % 5 == 0
-                    val tickLen = if (isFiveMin) 8.dp.toPx() else 4.dp.toPx()
-                    val strokeW = if (isFiveMin) 2.dp.toPx() else 1.dp.toPx()
-                    val tickColor = if (isFiveMin) Color(0xFFE2E8F0) else Color(0xFF475569).copy(alpha = 0.55f)
-
-                    val startX = cx + ((tickOuterR - tickLen) * Math.cos(angleRad)).toFloat()
-                    val startY = cy + ((tickOuterR - tickLen) * Math.sin(angleRad)).toFloat()
-                    val endX = cx + (tickOuterR * Math.cos(angleRad)).toFloat()
-                    val endY = cy + (tickOuterR * Math.sin(angleRad)).toFloat()
-
-                    drawLine(
-                        color = tickColor,
-                        start = Offset(startX, startY),
-                        end = Offset(endX, endY),
-                        strokeWidth = strokeW,
-                        cap = StrokeCap.Round
-                    )
-                }
-
-                val arcRadius = ringRadius - 1.dp.toPx()
-
-                drawCircle(
-                    color = Color(0xFF261820),
-                    radius = arcRadius,
-                    style = Stroke(width = 3.5.dp.toPx())
-                )
-
-                drawArc(
-                    brush = Brush.sweepGradient(
-                        listOf(
-                            Color(0xFFFF4D4D).copy(alpha = 0.28f),
-                            Color(0xFFFF7A59).copy(alpha = 0.28f),
-                            Color(0xFFFF4D4D).copy(alpha = 0.28f)
-                        )
-                    ),
-                    startAngle = -90f,
-                    sweepAngle = 360f * animatedProgress,
-                    useCenter = false,
-                    style = Stroke(width = 7.dp.toPx(), cap = StrokeCap.Round)
-                )
-
-                drawArc(
-                    brush = Brush.sweepGradient(
-                        listOf(
-                            Color(0xFFFF4D4D),
-                            Color(0xFFFF7A59),
-                            Color(0xFFFF4D4D)
-                        )
-                    ),
-                    startAngle = -90f,
-                    sweepAngle = 360f * animatedProgress,
-                    useCenter = false,
-                    style = Stroke(width = 3.5.dp.toPx(), cap = StrokeCap.Round)
-                )
-
-                val notchCenterY = cy - ringRadius
-                val notchPath = Path().apply {
-                    moveTo(cx, notchCenterY - 6.dp.toPx())
-                    lineTo(cx + 4.dp.toPx(), notchCenterY + 2.dp.toPx())
-                    lineTo(cx, notchCenterY + 7.dp.toPx())
-                    lineTo(cx - 4.dp.toPx(), notchCenterY + 2.dp.toPx())
+                val calyxTop = cy - tomatoR + 2.dp.toPx()
+                val calyxPath = Path().apply {
+                    moveTo(cx, calyxTop)
+                    lineTo(cx + 14.dp.toPx(), calyxTop + 16.dp.toPx())
+                    lineTo(cx + 28.dp.toPx(), calyxTop + 4.dp.toPx())
+                    lineTo(cx + 18.dp.toPx(), calyxTop + 24.dp.toPx())
+                    lineTo(cx + 30.dp.toPx(), calyxTop + 32.dp.toPx())
+                    lineTo(cx + 10.dp.toPx(), calyxTop + 30.dp.toPx())
+                    lineTo(cx, calyxTop + 42.dp.toPx())
+                    lineTo(cx - 10.dp.toPx(), calyxTop + 30.dp.toPx())
+                    lineTo(cx - 30.dp.toPx(), calyxTop + 32.dp.toPx())
+                    lineTo(cx - 18.dp.toPx(), calyxTop + 24.dp.toPx())
+                    lineTo(cx - 28.dp.toPx(), calyxTop + 4.dp.toPx())
+                    lineTo(cx - 14.dp.toPx(), calyxTop + 16.dp.toPx())
                     close()
                 }
                 drawPath(
-                    path = notchPath,
+                    path = calyxPath,
                     brush = Brush.verticalGradient(
-                        listOf(Color(0xFF34D399), Color(0xFF059669))
+                        listOf(Color(0xFF1B4D2E), Color(0xFF0F361E))
                     )
                 )
+
+                val stemPath = Path().apply {
+                    moveTo(cx, calyxTop + 16.dp.toPx())
+                    cubicTo(
+                        cx - 4.dp.toPx(), calyxTop - 8.dp.toPx(),
+                        cx + 10.dp.toPx(), calyxTop - 12.dp.toPx(),
+                        cx + 6.dp.toPx(), calyxTop - 22.dp.toPx()
+                    )
+                }
+                drawPath(
+                    path = stemPath,
+                    color = Color(0xFF22543D),
+                    style = Stroke(width = 4.5.dp.toPx(), cap = StrokeCap.Round)
+                )
+
+                drawOval(
+                    color = Color.White.copy(alpha = 0.35f),
+                    topLeft = Offset(cx - tomatoR * 0.58f, cy - tomatoR * 0.62f),
+                    size = Size(tomatoR * 0.44f, tomatoR * 0.22f)
+                )
+
+                val seamY = cy
+                drawLine(
+                    color = Color(0xFF280303),
+                    start = Offset(cx - tomatoR + 3.dp.toPx(), seamY),
+                    end = Offset(cx + tomatoR - 3.dp.toPx(), seamY),
+                    strokeWidth = 3.5.dp.toPx(),
+                    cap = StrokeCap.Round
+                )
+
+                val activeMins = remainingSeconds / 60f
+                val paint = Paint().apply {
+                    color = android.graphics.Color.WHITE
+                    textSize = 28f
+                    isAntiAlias = true
+                    textAlign = Paint.Align.CENTER
+                    typeface = android.graphics.Typeface.DEFAULT_BOLD
+                }
+
+                for (m in 0 until 60) {
+                    var diff = (m - activeMins) % 60f
+                    if (diff < -30f) diff += 60f
+                    if (diff > 30f) diff -= 60f
+
+                    if (kotlin.math.abs(diff) <= 16f) {
+                        val frac = diff / 16f
+                        val tickX = cx + frac * (tomatoR * 0.74f)
+                        val isMajor = m % 5 == 0
+                        val tickLen = if (isMajor) 12.dp.toPx() else 6.dp.toPx()
+                        val tickTop = seamY - tickLen - 2.dp.toPx()
+
+                        drawLine(
+                            color = if (isMajor) Color.White else Color.White.copy(alpha = 0.75f),
+                            start = Offset(tickX, tickTop),
+                            end = Offset(tickX, seamY - 2.dp.toPx()),
+                            strokeWidth = if (isMajor) 2.dp.toPx() else 1.dp.toPx(),
+                            cap = StrokeCap.Round
+                        )
+
+                        if (isMajor && kotlin.math.abs(diff) <= 13f) {
+                            drawContext.canvas.nativeCanvas.drawText(
+                                "$m",
+                                tickX,
+                                tickTop - 4.dp.toPx(),
+                                paint
+                            )
+                        }
+                    }
+                }
+
+                val pointerPath = Path().apply {
+                    moveTo(cx, seamY + 2.dp.toPx())
+                    lineTo(cx - 6.dp.toPx(), seamY + 14.dp.toPx())
+                    lineTo(cx + 6.dp.toPx(), seamY + 14.dp.toPx())
+                    close()
+                }
+                drawPath(path = pointerPath, color = Color.White)
             }
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.padding(top = 80.dp)
             ) {
                 Text(
-                    text = timerState.currentMode.title.uppercase(),
-                    fontSize = 11.sp,
+                    text = currentPhase.title.uppercase(),
+                    fontSize = 10.5.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFFFF7A59),
+                    color = Color.White.copy(alpha = 0.9f),
                     letterSpacing = 2.sp
                 )
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(2.dp))
 
                 Text(
-                    text = timerState.formattedTime,
-                    fontSize = 48.sp,
-                    fontWeight = FontWeight.Light,
+                    text = formattedTime,
+                    fontSize = 38.sp,
+                    fontWeight = FontWeight.Bold,
                     color = Color.White,
                     style = TextStyle(
                         fontFeatureSettings = "tnum",
-                        letterSpacing = (-1).sp
+                        letterSpacing = (-0.5).sp
                     )
                 )
 
-                Spacer(modifier = Modifier.height(4.dp))
-
-                val cycleNum = (timerState.completedSessions % 4) + 1
+                val cycleNum = (completedSprints % 4) + 1
                 Text(
-                    text = "INTERVAL $cycleNum OF 4",
-                    fontSize = 11.sp,
+                    text = "SPRINT $cycleNum OF 4",
+                    fontSize = 10.5.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF94A3B8),
-                    letterSpacing = 1.2.sp
+                    color = Color.White.copy(alpha = 0.8f),
+                    letterSpacing = 1.sp
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(28.dp))
+        Spacer(modifier = Modifier.height(20.dp))
+
+        if (currentPhase != PomodoroPhase.POMODORO) {
+            Button(
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    currentPhase = PomodoroPhase.POMODORO
+                    totalSeconds = 25 * 60
+                    remainingSeconds = 25 * 60
+                    isRunning = false
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFEF4444).copy(alpha = 0.2f),
+                    contentColor = Color(0xFFEF4444)
+                ),
+                border = BorderStroke(1.dp, Color(0xFFEF4444)),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier
+                    .fillMaxWidth(0.6f)
+                    .height(44.dp)
+                    .bounceClick()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.SkipNext,
+                    contentDescription = null,
+                    tint = Color(0xFFEF4444),
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Skip Break",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFEF4444)
+                )
+            }
+            Spacer(modifier = Modifier.height(14.dp))
+        }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -487,7 +609,8 @@ fun PomodoroScreen(
             IconButton(
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    FocusTimerService.resetTimer(context)
+                    remainingSeconds = currentPhase.minutes * 60
+                    isRunning = false
                 },
                 modifier = Modifier
                     .size(52.dp)
@@ -508,30 +631,26 @@ fun PomodoroScreen(
             Button(
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    if (timerState.isRunning) {
-                        FocusTimerService.pauseTimer(context)
-                    } else {
-                        FocusTimerService.startTimer(context, timerState.activeUserId)
-                    }
+                    isRunning = !isRunning
                 },
                 modifier = Modifier
                     .height(60.dp)
                     .width(170.dp)
                     .bounceClick(),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (timerState.isRunning) Color(0xFFEF4444) else Color(0xFF10B981)
+                    containerColor = if (isRunning) Color(0xFFEF4444) else Color(0xFF10B981)
                 ),
                 shape = RoundedCornerShape(30.dp)
             ) {
                 Icon(
-                    imageVector = if (timerState.isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    imageVector = if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = null,
                     tint = Color.White,
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = if (timerState.isRunning) "PAUSE" else "START",
+                    text = if (isRunning) "PAUSE" else "START",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color.White,
@@ -544,7 +663,20 @@ fun PomodoroScreen(
             IconButton(
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    FocusTimerService.skipSession(context)
+                    if (currentPhase == PomodoroPhase.POMODORO) {
+                        val nextCount = completedSprints + 1
+                        completedSprints = nextCount
+                        val nextMode = if (nextCount % 4 == 0) PomodoroPhase.LONG_BREAK else PomodoroPhase.SHORT_BREAK
+                        currentPhase = nextMode
+                        totalSeconds = nextMode.minutes * 60
+                        remainingSeconds = nextMode.minutes * 60
+                        isRunning = false
+                    } else {
+                        currentPhase = PomodoroPhase.POMODORO
+                        totalSeconds = 25 * 60
+                        remainingSeconds = 25 * 60
+                        isRunning = false
+                    }
                 },
                 modifier = Modifier
                     .size(52.dp)
@@ -585,7 +717,7 @@ fun PomodoroScreen(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "${timerState.focusMinutes} min",
+                        text = "${currentPhase.minutes} min",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.textPrimary
@@ -608,7 +740,7 @@ fun PomodoroScreen(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "${timerState.shortBreakMinutes} min",
+                        text = "5 min",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.textPrimary
@@ -631,7 +763,7 @@ fun PomodoroScreen(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "${timerState.completedSessions}",
+                        text = "$completedSprints",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFFEF4444)
@@ -723,17 +855,6 @@ fun PomodoroScreen(
                             selectedTagId = newTag.id
                             newTagName = ""
                             showAddTagDialog = false
-
-                            scope.launch(Dispatchers.IO) {
-                                try {
-                                    repository.logDistraction(
-                                        userId = timerState.activeUserId,
-                                        reason = "Created tag: $trimmed",
-                                        category = "TagCreation",
-                                        durationSeconds = 0
-                                    )
-                                } catch (_: Exception) {}
-                            }
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
