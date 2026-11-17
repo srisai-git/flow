@@ -64,6 +64,7 @@ import coil.request.ImageRequest
 import com.simats.focusflow.data.models.HabitItem
 import com.simats.focusflow.data.models.TaskItem
 import com.simats.focusflow.data.session.SessionManager
+import com.simats.focusflow.ui.components.AmbientMeshGlowHeader
 import com.simats.focusflow.ui.components.DashboardSkeleton
 import com.simats.focusflow.ui.components.GrootAvatar
 import com.simats.focusflow.ui.components.PriorityBadge
@@ -137,13 +138,19 @@ fun DashboardScreen(
         label = "focusProgress"
     )
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.background)
-            .padding(horizontal = 20.dp)
-            .verticalScroll(rememberScrollState())
+            .background(Color(0xFF07060D))
     ) {
+        AmbientMeshGlowHeader()
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
         Spacer(modifier = Modifier.height(24.dp))
 
         if (uiState.isLoading && data.userName.isBlank()) {
@@ -204,12 +211,39 @@ fun DashboardScreen(
                 Spacer(modifier = Modifier.width(12.dp))
 
                 Column {
-                    Text(
-                        text = "Welcome back,",
-                        fontSize = 12.sp,
-                        color = colors.textMuted,
-                        fontWeight = FontWeight.Medium
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "Welcome back,",
+                            fontSize = 12.sp,
+                            color = Color(0xFF94A3B8),
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFF10B981).copy(alpha = 0.12f),
+                            border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.3f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(5.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF10B981))
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Ready to Focus",
+                                    fontSize = 9.5.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFF10B981)
+                                )
+                            }
+                        }
+                    }
                     if (data.userName.isBlank() && uiState.isLoading) {
                         Box(
                             modifier = Modifier
@@ -224,7 +258,7 @@ fun DashboardScreen(
                             text = data.userName.ifBlank { "Focus User" },
                             fontSize = 20.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = colors.textPrimary,
+                            color = Color(0xFFF1F1F5),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -232,7 +266,7 @@ fun DashboardScreen(
                     Text(
                         text = currentDateStr,
                         fontSize = 11.5.sp,
-                        color = colors.primaryLight
+                        color = Color(0xFFC4B5FD)
                     )
                 }
             }
@@ -310,14 +344,21 @@ fun DashboardScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
+        val cardHairlineBorder = Brush.verticalGradient(
+            listOf(
+                Color.White.copy(alpha = 0.14f),
+                Color.White.copy(alpha = 0.03f)
+            )
+        )
+
         Surface(
             onClick = onNavigateToTimer,
             modifier = Modifier
                 .fillMaxWidth()
                 .bounceClick(),
             shape = RoundedCornerShape(22.dp),
-            color = colors.surface,
-            border = BorderStroke(1.dp, colors.border)
+            color = Color(0xFF11101C),
+            border = BorderStroke(1.dp, cardHairlineBorder)
         ) {
             Column(
                 modifier = Modifier
@@ -330,22 +371,23 @@ fun DashboardScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "DAILY FOCUS RHYTHM",
+                        text = "FOCUS READINESS",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = colors.primaryLight,
+                        color = Color(0xFFC4B5FD),
                         letterSpacing = 1.2.sp
                     )
 
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = colors.primary.copy(alpha = 0.15f)
+                        color = Color(0xFF8B5CF6).copy(alpha = 0.15f),
+                        border = BorderStroke(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.35f))
                     ) {
                         Text(
                             text = "${(progressFraction * 100).toInt()}% Target",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = colors.primaryLight,
+                            color = Color(0xFFC4B5FD),
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                         )
                     }
@@ -364,12 +406,13 @@ fun DashboardScreen(
                                 text = String.format(Locale.US, "%.1f", completedHours),
                                 fontSize = 34.sp,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = colors.textPrimary
+                                color = Color(0xFFF1F1F5),
+                                letterSpacing = (-1.5).sp
                             )
                             Text(
                                 text = " / ${goalHours.toInt()} hrs",
                                 fontSize = 16.sp,
-                                color = colors.textMuted,
+                                color = Color(0xFF94A3B8),
                                 fontWeight = FontWeight.Medium,
                                 modifier = Modifier.padding(bottom = 5.dp, start = 4.dp)
                             )
@@ -386,7 +429,7 @@ fun DashboardScreen(
                             },
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
-                            color = if (completedHours >= goalHours) Color(0xFF10B981) else colors.textMuted
+                            color = if (completedHours >= goalHours) Color(0xFF10B981) else Color(0xFF94A3B8)
                         )
 
                         Spacer(modifier = Modifier.height(10.dp))
@@ -395,7 +438,7 @@ fun DashboardScreen(
                             text = "${data.focusMinutesToday} focused minutes today across your active deep work intervals.",
                             fontSize = 12.sp,
                             lineHeight = 17.sp,
-                            color = colors.textMuted
+                            color = Color(0xFF94A3B8)
                         )
                     }
 
@@ -405,6 +448,143 @@ fun DashboardScreen(
                         progress = animatedProgress,
                         modifier = Modifier.size(108.dp)
                     )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        val weeklyTrend = listOf(20f, 40f, 35f, 60f, 50f, 75f, (data.focusMinutesToday.toFloat()).coerceAtLeast(15f))
+        val streakTrend = listOf(1f, 2f, 3f, 3f, 4f, 5f, data.streakDays.toFloat().coerceAtLeast(1f))
+        val taskTrend = listOf(1f, 3f, 2f, 4f, 3f, 5f, data.completedTaskCount.toFloat().coerceAtLeast(1f))
+        val distractTrend = listOf(3f, 2f, 2f, 1f, 1f, 0f, 0f)
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            BentoSparklineTile(
+                label = "Focus Time",
+                value = String.format(Locale.US, "%.1fh", completedHours),
+                subValue = "${data.focusMinutesToday}m logged today",
+                accentColor = Color(0xFF38BDF8),
+                icon = Icons.Default.HourglassBottom,
+                sparklineData = weeklyTrend,
+                modifier = Modifier.weight(1f),
+                onClick = onNavigateToFocusAnalysis
+            )
+
+            BentoSparklineTile(
+                label = "Daily Streak",
+                value = "${data.streakDays}d",
+                subValue = "Record ${data.longestStreak}d active",
+                accentColor = Color(0xFFF59E0B),
+                icon = Icons.Rounded.LocalFireDepartment,
+                sparklineData = streakTrend,
+                modifier = Modifier.weight(1f),
+                onClick = { viewModel.setStreakModalOpen(true) }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            BentoSparklineTile(
+                label = "Tasks Done",
+                value = "${data.completedTaskCount}",
+                subValue = "${data.pendingTaskCount} pending today",
+                accentColor = Color(0xFF10B981),
+                icon = Icons.Default.CheckCircle,
+                sparklineData = taskTrend,
+                modifier = Modifier.weight(1f),
+                onClick = onNavigateToTasks
+            )
+
+            BentoSparklineTile(
+                label = "Distraction Shield",
+                value = "Active",
+                subValue = "Zero interruptions",
+                accentColor = Color(0xFFFF5A5F),
+                icon = Icons.Default.PieChart,
+                sparklineData = distractTrend,
+                modifier = Modifier.weight(1f),
+                onClick = onNavigateToDistraction
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Surface(
+            onClick = onNavigateToPomodoro,
+            shape = RoundedCornerShape(20.dp),
+            color = Color(0xFF11101C),
+            border = BorderStroke(1.dp, cardHairlineBorder),
+            modifier = Modifier
+                .fillMaxWidth()
+                .bounceClick()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                Brush.linearGradient(
+                                    listOf(Color(0xFF8B5CF6), Color(0xFF6366F1))
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = "Start Timer",
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(14.dp))
+
+                    Column {
+                        Text(
+                            text = "Quick Start Pomodoro",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFF1F1F5)
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "25 min Deep Work Interval",
+                            fontSize = 12.sp,
+                            color = Color(0xFF94A3B8)
+                        )
+                    }
+                }
+
+                Surface(
+                    shape = CircleShape,
+                    color = Color(0xFF8B5CF6).copy(alpha = 0.15f),
+                    border = BorderStroke(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.35f)),
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            tint = Color(0xFFC4B5FD),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
         }
@@ -500,65 +680,6 @@ fun DashboardScreen(
                         )
                     }
                 }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Surface(
-            onClick = onNavigateToPomodoro,
-            shape = RoundedCornerShape(18.dp),
-            color = colors.primary,
-            modifier = Modifier
-                .fillMaxWidth()
-                .bounceClick()
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 18.dp, vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.2f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = "Start Timer",
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(14.dp))
-
-                    Column {
-                        Text(
-                            text = "Quick Start Pomodoro",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                        Text(
-                            text = "25 min Deep Work Interval",
-                            fontSize = 12.sp,
-                            color = Color.White.copy(alpha = 0.85f)
-                        )
-                    }
-                }
-
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
-                )
             }
         }
 
@@ -799,129 +920,10 @@ fun DashboardScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Surface(
-                onClick = onNavigateToDistraction,
-                shape = RoundedCornerShape(18.dp),
-                color = colors.surface,
-                border = BorderStroke(1.dp, colors.border),
-                modifier = Modifier
-                    .weight(1f)
-                    .bounceClick()
-            ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Box(
-                        modifier = Modifier
-                            .size(34.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(Color(0xFFF59E0B).copy(alpha = 0.16f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PieChart,
-                            contentDescription = null,
-                            tint = Color(0xFFF59E0B),
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "Distractions",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.textPrimary
-                    )
-                    Text(
-                        text = "App & Screen Usage",
-                        fontSize = 11.sp,
-                        color = colors.textMuted,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFFF59E0B))
-                        )
-                        Spacer(modifier = Modifier.width(5.dp))
-                        Text(
-                            text = "Live Tracking",
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFFF59E0B)
-                        )
-                    }
-                }
-            }
-
-            Surface(
-                onClick = onNavigateToProgressConsistency,
-                shape = RoundedCornerShape(18.dp),
-                color = colors.surface,
-                border = BorderStroke(1.dp, colors.border),
-                modifier = Modifier
-                    .weight(1f)
-                    .bounceClick()
-            ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Box(
-                        modifier = Modifier
-                            .size(34.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(Color(0xFF10B981).copy(alpha = 0.16f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.TrendingUp,
-                            contentDescription = null,
-                            tint = Color(0xFF10B981),
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "Consistency",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.textPrimary
-                    )
-                    Text(
-                        text = "Streaks & Rhythm",
-                        fontSize = 11.sp,
-                        color = colors.textMuted,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF10B981))
-                        )
-                        Spacer(modifier = Modifier.width(5.dp))
-                        Text(
-                            text = "${data.streakDays}d Streak Active",
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF10B981)
-                        )
-                    }
-                }
-            }
-        }
         }
 
         Spacer(modifier = Modifier.height(96.dp))
+        }
     }
 
     if (uiState.isStreakModalOpen) {
@@ -1408,5 +1410,146 @@ private fun InsightShortcutCard(
                 overflow = TextOverflow.Ellipsis
             )
         }
+    }
+}
+
+@Composable
+private fun BentoSparklineTile(
+    label: String,
+    value: String,
+    subValue: String,
+    accentColor: Color,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    sparklineData: List<Float>,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
+) {
+    val hairlineBorder = Brush.verticalGradient(
+        listOf(
+            Color.White.copy(alpha = 0.14f),
+            Color.White.copy(alpha = 0.03f)
+        )
+    )
+
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(20.dp),
+        color = Color(0xFF11101C),
+        border = BorderStroke(1.dp, hairlineBorder),
+        modifier = modifier.bounceClick()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = label.uppercase(),
+                    fontSize = 10.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF94A3B8),
+                    letterSpacing = 0.8.sp
+                )
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(accentColor.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = accentColor,
+                        modifier = Modifier.size(15.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = value,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color(0xFFF1F1F5),
+                letterSpacing = (-1.5).sp
+            )
+
+            Spacer(modifier = Modifier.height(2.dp))
+
+            Text(
+                text = subValue,
+                fontSize = 11.sp,
+                color = Color(0xFF94A3B8),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Sparkline(
+                dataPoints = sparklineData,
+                lineColor = accentColor,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(24.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun Sparkline(
+    dataPoints: List<Float>,
+    lineColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Canvas(modifier = modifier) {
+        if (dataPoints.size < 2) return@Canvas
+        val maxVal = (dataPoints.maxOrNull() ?: 1f).coerceAtLeast(1f)
+        val minVal = dataPoints.minOrNull() ?: 0f
+        val range = (maxVal - minVal).coerceAtLeast(0.1f)
+        val stepX = size.width / (dataPoints.size - 1)
+
+        val path = androidx.compose.ui.graphics.Path()
+        val fillPath = androidx.compose.ui.graphics.Path()
+
+        dataPoints.forEachIndexed { i, v ->
+            val x = i * stepX
+            val ratio = (v - minVal) / range
+            val y = size.height - (ratio * (size.height - 4.dp.toPx())) - 2.dp.toPx()
+            if (i == 0) {
+                path.moveTo(x, y)
+                fillPath.moveTo(x, size.height)
+                fillPath.lineTo(x, y)
+            } else {
+                val prevX = (i - 1) * stepX
+                val prevRatio = (dataPoints[i - 1] - minVal) / range
+                val prevY = size.height - (prevRatio * (size.height - 4.dp.toPx())) - 2.dp.toPx()
+                val cx1 = (prevX + x) / 2f
+                path.cubicTo(cx1, prevY, cx1, y, x, y)
+                fillPath.cubicTo(cx1, prevY, cx1, y, x, y)
+            }
+        }
+        fillPath.lineTo(size.width, size.height)
+        fillPath.close()
+
+        drawPath(
+            path = fillPath,
+            brush = Brush.verticalGradient(
+                listOf(lineColor.copy(alpha = 0.25f), Color.Transparent)
+            )
+        )
+        drawPath(
+            path = path,
+            color = lineColor,
+            style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
+        )
     }
 }
