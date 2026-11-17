@@ -134,6 +134,80 @@ class EditProfileViewModel(
         }
     }
 
+    fun saveProfileWithSelectedImage(context: Context, selectedUri: Uri?, onSuccess: () -> Unit) {
+        val name = _uiState.value.name.trim()
+        val email = _uiState.value.email.trim()
+        val bio = _uiState.value.bio.trim()
+
+        if (name.length < 2) {
+            _uiState.update { it.copy(nameError = "Name must be at least 2 characters") }
+            return
+        }
+
+        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            _uiState.update { it.copy(emailError = "Please enter a valid email address") }
+            return
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            withContext(Dispatchers.Main) {
+                _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            }
+
+            var avatar = _uiState.value.avatar
+            if (selectedUri != null) {
+                val savedPath = ProfileImageManager.saveAvatarToInternalStorage(context, selectedUri, currentUserId)
+                if (!savedPath.isNullOrBlank()) {
+                    avatar = savedPath
+                    sessionManager?.saveAvatarPath(savedPath, currentUserId)
+                    withContext(Dispatchers.Main) {
+                        _uiState.update { it.copy(avatar = savedPath) }
+                    }
+                }
+            }
+
+            val avatarPayload = if (avatar.startsWith("/") && File(avatar).exists()) {
+                ProfileImageManager.getBase64FromInternalAvatar(context, currentUserId) ?: avatar
+            } else {
+                avatar
+            }
+
+            val result = repository.updateProfile(
+                userId = currentUserId,
+                name = name,
+                email = email,
+                bio = bio,
+                avatar = avatarPayload,
+                sessionManager = sessionManager
+            )
+
+            sessionManager?.saveAvatarPath(avatar, currentUserId)
+
+            withContext(Dispatchers.Main) {
+                result.fold(
+                    onSuccess = {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                successMessage = "Profile updated successfully"
+                            )
+                        }
+                        onSuccess()
+                    },
+                    onFailure = { error ->
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = error.message ?: "Failed to update profile. Saved locally."
+                            )
+                        }
+                        onSuccess()
+                    }
+                )
+            }
+        }
+    }
+
     fun saveProfile(context: Context? = null, onSuccess: () -> Unit) {
         val name = _uiState.value.name.trim()
         val email = _uiState.value.email.trim()
