@@ -214,25 +214,35 @@ fun PomodoroScreen(
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+        val hairlineBorder = Brush.verticalGradient(
+            listOf(
+                Color.White.copy(alpha = 0.14f),
+                Color.White.copy(alpha = 0.03f)
+            )
+        )
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(
+            Surface(
                 onClick = onNavigateBack,
+                shape = CircleShape,
+                color = Color(0xFF11101C),
+                border = BorderStroke(1.dp, hairlineBorder),
                 modifier = Modifier
                     .size(42.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF181628))
                     .bounceClick()
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = Color(0xFFF1F1F5),
-                    modifier = Modifier.size(20.dp)
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color(0xFFF1F1F5),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -251,31 +261,27 @@ fun PomodoroScreen(
                 )
             }
 
-            IconButton(
+            Surface(
                 onClick = { showInfoModal = true },
+                shape = CircleShape,
+                color = Color(0xFF11101C),
+                border = BorderStroke(1.dp, hairlineBorder),
                 modifier = Modifier
                     .size(42.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF181628))
                     .bounceClick()
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.HelpOutline,
-                    contentDescription = "Info",
-                    tint = Color(0xFFFF5A5F),
-                    modifier = Modifier.size(20.dp)
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.HelpOutline,
+                        contentDescription = "Info",
+                        tint = Color(0xFFFF5A5F),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-
-        val hairlineBorder = Brush.verticalGradient(
-            listOf(
-                Color.White.copy(alpha = 0.14f),
-                Color.White.copy(alpha = 0.03f)
-            )
-        )
 
         Surface(
             shape = RoundedCornerShape(20.dp),
@@ -368,13 +374,12 @@ fun PomodoroScreen(
                 }
             }
         }
-        }
 
         Spacer(modifier = Modifier.height(20.dp))
 
         Box(
             modifier = Modifier
-                .size(310.dp)
+                .size(300.dp)
                 .padding(4.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -595,61 +600,74 @@ fun PomodoroScreen(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(
+            Surface(
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     remainingSeconds = currentPhase.minutes * 60
                     isRunning = false
                 },
+                shape = CircleShape,
+                color = Color(0xFF11101C),
+                border = BorderStroke(1.dp, hairlineBorder),
                 modifier = Modifier
-                    .size(52.dp)
-                    .clip(CircleShape)
-                    .background(colors.surfaceVariant)
+                    .size(54.dp)
                     .bounceClick()
             ) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = "Reset",
-                    tint = colors.textPrimary,
-                    modifier = Modifier.size(24.dp)
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Reset",
+                        tint = Color(0xFF94A3B8),
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(20.dp))
 
-            Button(
+            Surface(
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     isRunning = !isRunning
                 },
                 modifier = Modifier
                     .height(60.dp)
-                    .width(170.dp)
+                    .width(160.dp)
                     .bounceClick(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isRunning) Color(0xFFEF4444) else Color(0xFF10B981)
-                ),
-                shape = RoundedCornerShape(30.dp)
+                shape = RoundedCornerShape(30.dp),
+                color = if (isRunning) Color(0xFFFF5A5F) else Color(0xFF10B981),
+                border = BorderStroke(
+                    1.dp,
+                    Brush.verticalGradient(
+                        listOf(Color.White.copy(alpha = 0.30f), Color.Transparent)
+                    )
+                )
             ) {
-                Icon(
-                    imageVector = if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = if (isRunning) "PAUSE" else "START",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.White,
-                    letterSpacing = 1.sp
-                )
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (isRunning) "PAUSE" else "START",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White,
+                        letterSpacing = 1.sp
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(20.dp))
 
-            IconButton(
+            Surface(
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     if (currentPhase == PomodoroPhase.POMODORO) {
@@ -667,33 +685,36 @@ fun PomodoroScreen(
                         isRunning = false
                     }
                 },
+                shape = CircleShape,
+                color = Color(0xFF11101C),
+                border = BorderStroke(1.dp, hairlineBorder),
                 modifier = Modifier
-                    .size(52.dp)
-                    .clip(CircleShape)
-                    .background(colors.surfaceVariant)
+                    .size(54.dp)
                     .bounceClick()
             ) {
-                Icon(
-                    imageVector = Icons.Default.SkipNext,
-                    contentDescription = "Skip",
-                    tint = colors.textPrimary,
-                    modifier = Modifier.size(24.dp)
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.SkipNext,
+                        contentDescription = "Skip",
+                        tint = Color(0xFF94A3B8),
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
             }
         }
 
         Spacer(modifier = Modifier.height(28.dp))
 
         Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = colors.surface,
-            border = BorderStroke(1.dp, colors.border),
+            shape = RoundedCornerShape(20.dp),
+            color = Color(0xFF11101C),
+            border = BorderStroke(1.dp, hairlineBorder),
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(18.dp),
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -702,22 +723,22 @@ fun PomodoroScreen(
                         text = "FOCUS DURATION",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = colors.textMuted
+                        color = Color(0xFF94A3B8)
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.height(3.dp))
                     Text(
                         text = "${currentPhase.minutes} min",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = colors.textPrimary
+                        color = Color(0xFFF1F1F5)
                     )
                 }
 
                 Box(
                     modifier = Modifier
                         .width(1.dp)
-                        .height(30.dp)
-                        .background(colors.border)
+                        .height(32.dp)
+                        .background(Color.White.copy(alpha = 0.08f))
                 )
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -725,22 +746,22 @@ fun PomodoroScreen(
                         text = "SHORT BREAK",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = colors.textMuted
+                        color = Color(0xFF94A3B8)
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.height(3.dp))
                     Text(
                         text = "5 min",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = colors.textPrimary
+                        color = Color(0xFFF1F1F5)
                     )
                 }
 
                 Box(
                     modifier = Modifier
                         .width(1.dp)
-                        .height(30.dp)
-                        .background(colors.border)
+                        .height(32.dp)
+                        .background(Color.White.copy(alpha = 0.08f))
                 )
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -748,21 +769,22 @@ fun PomodoroScreen(
                         text = "COMPLETED",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = colors.textMuted
+                        color = Color(0xFF94A3B8)
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.height(3.dp))
                     Text(
                         text = "$completedSprints",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFEF4444)
+                        color = Color(0xFFFF5A5F)
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(36.dp))
     }
+}
 
     if (showInfoModal) {
         ModalBottomSheet(
