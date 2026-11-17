@@ -145,6 +145,12 @@ data class DashboardData(
     @SerializedName("total_focus_minutes")
     val totalFocusMinutes: Int = 0,
 
+    @SerializedName("weekly_focus_minutes")
+    val weeklyFocusMinutes: List<Int> = emptyList(),
+
+    @SerializedName("distraction_count_today")
+    val distractionCountToday: Int = 0,
+
     @SerializedName("priority_tasks")
     val priorityTasks: List<TaskItem> = emptyList(),
 
