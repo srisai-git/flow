@@ -125,20 +125,23 @@ fun GrootAiScreen(
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(
+                    Surface(
                         onClick = onBack,
+                        shape = CircleShape,
+                        color = Color(0xFF181628),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
                         modifier = Modifier
                             .size(38.dp)
-                            .clip(CircleShape)
-                            .background(colors.surfaceVariant)
                             .bounceClick()
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = colors.textPrimary,
-                            modifier = Modifier.size(18.dp)
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = Color(0xFFF1F1F5),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.width(12.dp))
@@ -195,20 +198,23 @@ fun GrootAiScreen(
                         }
                     }
 
-                    IconButton(
+                    Surface(
                         onClick = { viewModel.clearChat() },
+                        shape = CircleShape,
+                        color = Color(0xFF181628),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
                         modifier = Modifier
                             .size(38.dp)
-                            .clip(CircleShape)
-                            .background(colors.surfaceVariant)
                             .bounceClick()
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.DeleteSweep,
-                            contentDescription = "Clear Chat",
-                            tint = colors.textMuted,
-                            modifier = Modifier.size(18.dp)
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Outlined.DeleteSweep,
+                                contentDescription = "Clear Chat",
+                                tint = Color(0xFF94A3B8),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
             }
