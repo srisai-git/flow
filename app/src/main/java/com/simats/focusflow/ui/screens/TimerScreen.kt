@@ -91,11 +91,16 @@ fun TimerScreen(
     val state by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var showClockTimePicker by remember { mutableStateOf(false) }
+    var showUsagePermissionDialog by remember { mutableStateOf(false) }
     var isStrictFocus by rememberSaveable { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     var backgroundJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+
+    LaunchedEffect(Unit) {
+        isStrictFocus = com.simats.focusflow.service.FocusTimerService.timerStateFlow.value.isStrictFocus
+    }
 
     DisposableEffect(lifecycleOwner, isStrictFocus, state.isRunning) {
         val observer = LifecycleEventObserver { _, event ->
@@ -520,7 +525,19 @@ fun TimerScreen(
                     }
                     Switch(
                         checked = isStrictFocus,
-                        onCheckedChange = { isStrictFocus = it },
+                        onCheckedChange = { checked ->
+                            if (checked) {
+                                if (!com.simats.focusflow.utils.UsageStatsHelper.hasUsageStatsPermission(context)) {
+                                    showUsagePermissionDialog = true
+                                } else {
+                                    isStrictFocus = true
+                                    com.simats.focusflow.service.FocusTimerService.setStrictFocus(context, true)
+                                }
+                            } else {
+                                isStrictFocus = false
+                                com.simats.focusflow.service.FocusTimerService.setStrictFocus(context, false)
+                            }
+                        },
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = Color.White,
                             checkedTrackColor = colors.primary,
@@ -658,6 +675,51 @@ fun TimerScreen(
                     viewModel.setCustomFocusDuration(hours, minutes)
                     showClockTimePicker = false
                 }
+            )
+        }
+
+        if (showUsagePermissionDialog) {
+            AlertDialog(
+                onDismissRequest = { showUsagePermissionDialog = false },
+                title = {
+                    Text(
+                        text = "Usage Access Required",
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textPrimary
+                    )
+                },
+                text = {
+                    Text(
+                        text = "Strict Focus Mode blocks distracting apps and shields your focus sessions. Please grant Usage Access permission to enable real-time app protection.",
+                        color = colors.textMuted,
+                        fontSize = 14.sp
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showUsagePermissionDialog = false
+                            isStrictFocus = true
+                            com.simats.focusflow.service.FocusTimerService.setStrictFocus(context, true)
+                            com.simats.focusflow.utils.UsageStatsHelper.openUsageAccessSettings(context)
+                        }
+                    ) {
+                        Text("Grant Permission", color = colors.primary, fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            showUsagePermissionDialog = false
+                            isStrictFocus = false
+                            com.simats.focusflow.service.FocusTimerService.setStrictFocus(context, false)
+                        }
+                    ) {
+                        Text("Cancel", color = colors.textMuted)
+                    }
+                },
+                containerColor = colors.surface,
+                shape = RoundedCornerShape(16.dp)
             )
         }
     }
