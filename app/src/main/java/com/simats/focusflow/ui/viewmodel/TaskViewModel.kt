@@ -4,7 +4,6 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.simats.focusflow.data.models.TaskItem
-import com.simats.focusflow.data.repository.AiRepository
 import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.session.SessionManager
 import kotlinx.coroutines.Dispatchers
@@ -32,7 +31,7 @@ data class TaskUiState(
     val searchQuery: String = "",
     val errorMessage: String? = null,
     val isBottomSheetOpen: Boolean = false,
-    val breakingDownTaskId: Int? = null
+    val editingTask: TaskItem? = null
 ) {
     val filteredTasks: List<TaskItem>
         get() {
@@ -75,6 +74,29 @@ class TaskViewModel(
     val uiState: StateFlow<TaskUiState> = _uiState.asStateFlow()
 
     private var currentUserId: Int = 1
+
+    init {
+        viewModelScope.launch {
+            com.simats.focusflow.data.local.FocusSessionDatabase.taskTableChangedFlow.collect {
+                loadTasksSilently()
+            }
+        }
+    }
+
+    private fun loadTasksSilently() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val result = try {
+                repository.getTasks(currentUserId)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+            withContext(Dispatchers.Main) {
+                result.onSuccess { list ->
+                    _uiState.update { it.copy(tasks = list) }
+                }
+            }
+        }
+    }
 
     fun initSessionManager(context: android.content.Context, manager: SessionManager) {
         initSessionManager(manager)
@@ -130,7 +152,15 @@ class TaskViewModel(
     }
 
     fun setBottomSheetOpen(isOpen: Boolean) {
-        _uiState.update { it.copy(isBottomSheetOpen = isOpen) }
+        _uiState.update { it.copy(isBottomSheetOpen = isOpen, editingTask = if (!isOpen) null else it.editingTask) }
+    }
+
+    fun openCreateTask() {
+        _uiState.update { it.copy(isBottomSheetOpen = true, editingTask = null) }
+    }
+
+    fun openEditTask(task: TaskItem) {
+        _uiState.update { it.copy(isBottomSheetOpen = true, editingTask = task) }
     }
 
     fun toggleTask(taskId: Int) {
@@ -166,13 +196,14 @@ class TaskViewModel(
         priority: String = "medium",
         dueDate: String = "Today",
         category: String = "General",
-        scheduledTime: String? = null
+        scheduledTime: String? = null,
+        deadlineTimestamp: Long? = null
     ) {
         if (title.isBlank()) return
 
         viewModelScope.launch(Dispatchers.IO) {
             withContext(Dispatchers.Main) {
-                _uiState.update { it.copy(isBottomSheetOpen = false) }
+                _uiState.update { it.copy(isBottomSheetOpen = false, editingTask = null) }
             }
 
             val result = repository.createTask(
@@ -182,7 +213,8 @@ class TaskViewModel(
                 priority = priority.lowercase(),
                 dueDate = dueDate.trim(),
                 category = category.trim(),
-                scheduledTime = scheduledTime?.trim()
+                scheduledTime = scheduledTime?.trim(),
+                deadlineTimestamp = deadlineTimestamp
             )
 
             withContext(Dispatchers.Main) {
@@ -199,39 +231,47 @@ class TaskViewModel(
         }
     }
 
-    fun breakdownTaskWithGroot(task: TaskItem) {
-        if (_uiState.value.breakingDownTaskId != null) return
+    fun updateTask(
+        taskId: Int,
+        title: String,
+        description: String = "",
+        priority: String = "medium",
+        dueDate: String = "Today",
+        category: String = "General",
+        scheduledTime: String? = null,
+        deadlineTimestamp: Long? = null,
+        clientId: String = ""
+    ) {
+        if (title.isBlank()) return
+
         viewModelScope.launch(Dispatchers.IO) {
             withContext(Dispatchers.Main) {
-                _uiState.update { it.copy(breakingDownTaskId = task.id) }
+                _uiState.update { it.copy(isBottomSheetOpen = false, editingTask = null) }
             }
-            try {
-                val aiRepo = AiRepository()
-                val subtasks = aiRepo.breakdownTask(task.title)
-                for (subtask in subtasks) {
-                    val result = repository.createTask(
-                        userId = currentUserId,
-                        title = subtask,
-                        description = "Subtask of: ${task.title}",
-                        priority = task.priority.ifBlank { "medium" },
-                        dueDate = task.dueDate.ifBlank { "Today" },
-                        category = task.category.ifBlank { "General" }
-                    )
-                    result.onSuccess { createdTask ->
-                        withContext(Dispatchers.Main) {
-                            val updated = _uiState.value.tasks.toMutableList().apply { add(0, createdTask) }
-                            _uiState.update { it.copy(tasks = updated) }
-                        }
+
+            val result = repository.updateTask(
+                userId = currentUserId,
+                taskId = taskId,
+                title = title.trim(),
+                description = description.trim(),
+                priority = priority.lowercase(),
+                dueDate = dueDate.trim(),
+                category = category.trim(),
+                scheduledTime = scheduledTime?.trim(),
+                deadlineTimestamp = deadlineTimestamp,
+                clientId = clientId
+            )
+
+            withContext(Dispatchers.Main) {
+                result.fold(
+                    onSuccess = { updatedTask ->
+                        val updated = _uiState.value.tasks.map { if (it.id == taskId) updatedTask else it }
+                        _uiState.update { it.copy(tasks = updated) }
+                    },
+                    onFailure = { err ->
+                        _uiState.update { it.copy(errorMessage = err.localizedMessage) }
                     }
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    _uiState.update { it.copy(errorMessage = "Groot AI breakdown: ${e.localizedMessage}") }
-                }
-            } finally {
-                withContext(Dispatchers.Main) {
-                    _uiState.update { it.copy(breakingDownTaskId = null) }
-                }
+                )
             }
         }
     }

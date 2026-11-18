@@ -21,6 +21,9 @@ interface FlowApiService {
     suspend fun createTask(@Body request: CreateTaskRequest): Response<TaskActionResponse>
 
     @POST("tasks.php")
+    suspend fun updateTask(@Body request: UpdateTaskRequest): Response<TaskActionResponse>
+
+    @POST("tasks.php")
     suspend fun toggleTask(@Body request: ToggleTaskRequest): Response<TaskActionResponse>
 
     @POST("tasks.php")

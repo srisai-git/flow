@@ -16,21 +16,57 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.simats.focusflow.ui.components.CustomTopBar
 import com.simats.focusflow.ui.components.SegmentedControl
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditTaskScreen(onBack: () -> Unit = {}) {
+    val context = LocalContext.current
     var title by remember { mutableStateOf("Study machine learning") }
     var description by remember { mutableStateOf("Review classification metrics and solve 3 practice questions.") }
     var duration by remember { mutableStateOf("45 min") }
     var dueDate by remember { mutableStateOf("12 Oct 2026") }
+    var scheduledTime by remember { mutableStateOf("10:00 AM") }
     var priority by remember { mutableStateOf("High") }
     var reminderEnabled by remember { mutableStateOf(true) }
+
+    var showDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = System.currentTimeMillis())
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        val pickedCal = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply { timeInMillis = millis }
+                        val targetCal = Calendar.getInstance().apply {
+                            set(Calendar.YEAR, pickedCal.get(Calendar.YEAR))
+                            set(Calendar.MONTH, pickedCal.get(Calendar.MONTH))
+                            set(Calendar.DAY_OF_MONTH, pickedCal.get(Calendar.DAY_OF_MONTH))
+                        }
+                        dueDate = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(targetCal.time)
+                    }
+                    showDatePicker = false
+                }) { Text("Confirm") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -149,7 +185,10 @@ fun EditTaskScreen(onBack: () -> Unit = {}) {
                 OutlinedTextField(
                     value = dueDate,
                     onValueChange = { dueDate = it },
-                    modifier = Modifier.fillMaxWidth(),
+                    readOnly = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showDatePicker = true },
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         unfocusedBorderColor = Color(0xFFE5E7EB),
@@ -159,6 +198,40 @@ fun EditTaskScreen(onBack: () -> Unit = {}) {
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(text = "Scheduled deadline time", fontSize = 14.sp, color = Color(0xFF6B7280), fontWeight = FontWeight.Medium)
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(
+            value = scheduledTime,
+            onValueChange = { scheduledTime = it },
+            readOnly = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    val cal = Calendar.getInstance()
+                    android.app.TimePickerDialog(
+                        context,
+                        { _, h, m ->
+                            val t = Calendar.getInstance().apply {
+                                set(Calendar.HOUR_OF_DAY, h)
+                                set(Calendar.MINUTE, m)
+                            }
+                            scheduledTime = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(t.time)
+                        },
+                        cal.get(Calendar.HOUR_OF_DAY),
+                        cal.get(Calendar.MINUTE),
+                        false
+                    ).show()
+                },
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                unfocusedBorderColor = Color(0xFFE5E7EB),
+                focusedBorderColor = Color(0xFF7158E2)
+            ),
+            singleLine = true
+        )
         
         Spacer(modifier = Modifier.height(32.dp))
         

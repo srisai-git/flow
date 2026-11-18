@@ -66,6 +66,8 @@ class FocusShieldActivity : ComponentActivity() {
                     onReturnToFlow = {
                         val mainIntent = Intent(this, MainActivity::class.java).apply {
                             flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                            putExtra("navigate_to", "focus_timer")
+                            putExtra("route", "timer")
                         }
                         startActivity(mainIntent)
                         finish()

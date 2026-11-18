@@ -63,6 +63,104 @@ class ProductivityRepository(
             _sessionLoggedEventFlow.tryEmit(Unit)
             FocusSessionDatabase.notifyTableChanged()
         }
+
+        suspend fun syncPendingItems() {
+            val repository = ProductivityRepository()
+            repository.performSyncPendingItems()
+        }
+    }
+
+    suspend fun performSyncPendingItems() = withContext(Dispatchers.IO) {
+        val ctx = appContext ?: return@withContext
+        val db = FocusSessionDatabase.getInstance(ctx)
+        var hasSyncedAny = false
+
+        try {
+            val unsyncedTasks = db.getUnsyncedTasks()
+            for (task in unsyncedTasks) {
+                try {
+                    val request = CreateTaskRequest(
+                        userId = task.userId,
+                        title = task.title,
+                        description = task.description,
+                        priority = task.priority,
+                        dueDate = task.dueDate,
+                        scheduledTime = task.scheduledTime,
+                        category = task.category,
+                        deadlineTimestamp = task.deadlineTimestamp
+                    )
+                    val response = apiService.createTask(request)
+                    if (response.isSuccessful && response.body()?.status == true) {
+                        val serverId = response.body()?.data?.id ?: 0
+                        db.markTaskSynced(task.clientId, serverId)
+                        if (task.deadlineTimestamp != null && task.deadlineTimestamp > System.currentTimeMillis() && !task.isCompleted && serverId > 0) {
+                            com.simats.focusflow.service.TaskDeadlineScheduler.scheduleTaskDeadline(ctx, serverId, task.title, task.deadlineTimestamp)
+                        }
+                        if (task.isCompleted && serverId > 0) {
+                            try {
+                                apiService.toggleTask(ToggleTaskRequest(task.userId, serverId, "toggle", true))
+                            } catch (_: Exception) {}
+                        }
+                        hasSyncedAny = true
+                    }
+                } catch (_: Exception) {}
+            }
+        } catch (_: Exception) {}
+
+        try {
+            val unsyncedSessions = db.getUnsyncedSessions()
+            for (session in unsyncedSessions) {
+                try {
+                    val request = LogSessionRequest(
+                        userId = session.userId,
+                        durationMinutes = session.durationMinutes,
+                        sessionType = session.sessionType,
+                        taskId = session.taskId,
+                        tag = session.taskCategory.ifBlank { null },
+                        status = session.status,
+                        startedAt = session.startedAt,
+                        completedAt = session.completedAt,
+                        sessionUuid = session.sessionUuid
+                    )
+                    val response = try {
+                        apiService.saveSession(request)
+                    } catch (_: Exception) {
+                        apiService.logSession(request)
+                    }
+                    if (response.isSuccessful && response.body()?.status == true) {
+                        db.markSessionSynced(session.sessionUuid)
+                        hasSyncedAny = true
+                    }
+                } catch (_: Exception) {}
+            }
+        } catch (_: Exception) {}
+
+        try {
+            val unsyncedDistractions = db.getUnsyncedDistractions()
+            for (distraction in unsyncedDistractions) {
+                try {
+                    val req = LogDistractionRequest(
+                        userId = distraction.userId,
+                        reason = distraction.reason,
+                        category = distraction.category,
+                        durationSeconds = distraction.durationSeconds
+                    )
+                    val resp = apiService.logDistraction(req)
+                    if (resp.isSuccessful && resp.body()?.status == true) {
+                        db.markDistractionSynced(distraction.clientId)
+                        hasSyncedAny = true
+                    }
+                } catch (_: Exception) {}
+            }
+        } catch (_: Exception) {}
+
+        if (hasSyncedAny) {
+            invalidateDashboardCache()
+            _sessionLoggedEventFlow.tryEmit(Unit)
+            FocusSessionDatabase.notifyTableChanged()
+            FocusSessionDatabase.notifyTaskTableChanged()
+            FocusSessionDatabase.notifyDistractionTableChanged()
+        }
     }
 
     suspend fun getDashboard(userId: Int): Result<DashboardData> = withContext(Dispatchers.IO) {
@@ -98,15 +196,67 @@ class ProductivityRepository(
     }
 
     suspend fun getTasks(userId: Int): Result<List<TaskItem>> = withContext(Dispatchers.IO) {
+        val localTasks = appContext?.let { ctx ->
+            try {
+                FocusSessionDatabase.getInstance(ctx).getLocalTasks(userId)
+            } catch (_: Exception) {
+                emptyList()
+            }
+        } ?: emptyList()
+
         try {
             val response = apiService.getTasks(userId)
             if (response.isSuccessful && response.body()?.status == true) {
-                Result.success(response.body()?.data ?: emptyList())
+                val rawRemoteTasks = response.body()?.data ?: emptyList()
+                val remoteTasks = rawRemoteTasks.map { t ->
+                    val effectiveDate = if (t.dueDate.isNotBlank() && t.dueDate != "0000-00-00") {
+                        t.dueDate
+                    } else if (t.deadlineTimestamp != null && t.deadlineTimestamp > 0) {
+                        SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(Date(t.deadlineTimestamp))
+                    } else {
+                        t.dueDate
+                    }
+                    val effectiveTime = if (!t.scheduledTime.isNullOrBlank()) {
+                        t.scheduledTime
+                    } else if (t.deadlineTimestamp != null && t.deadlineTimestamp > 0) {
+                        SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(t.deadlineTimestamp))
+                    } else null
+                    t.copy(dueDate = effectiveDate, scheduledTime = effectiveTime)
+                }
+                val merged = appContext?.let { ctx ->
+                    try {
+                        FocusSessionDatabase.getInstance(ctx).mergeAndCacheServerTasks(userId, remoteTasks)
+                    } catch (_: Exception) {
+                        (localTasks.filter { !it.isSynced } + remoteTasks).distinctBy {
+                            if (!it.isSynced) {
+                                if (it.clientId.isNotBlank()) "client_${it.clientId}" else "local_${it.id}"
+                            } else {
+                                "server_${it.id}"
+                            }
+                        }
+                    }
+                } ?: (localTasks.filter { !it.isSynced } + remoteTasks).distinctBy {
+                    if (!it.isSynced) {
+                        if (it.clientId.isNotBlank()) "client_${it.clientId}" else "local_${it.id}"
+                    } else {
+                        "server_${it.id}"
+                    }
+                }
+                appContext?.let { ctx ->
+                    for (item in merged) {
+                        if (!item.isCompleted && item.deadlineTimestamp != null && item.deadlineTimestamp > System.currentTimeMillis()) {
+                            com.simats.focusflow.service.TaskDeadlineScheduler.scheduleTaskDeadline(ctx, item.id, item.title, item.deadlineTimestamp)
+                        } else if (item.isCompleted && item.deadlineTimestamp != null) {
+                            com.simats.focusflow.service.TaskDeadlineScheduler.cancelTaskDeadline(ctx, item.id)
+                        }
+                    }
+                }
+                Result.success(merged)
             } else {
-                Result.success(emptyList())
+                Result.success(localTasks)
             }
         } catch (e: Exception) {
-            Result.success(emptyList())
+            Result.success(localTasks)
         }
     }
 
@@ -117,61 +267,200 @@ class ProductivityRepository(
         priority: String = "medium",
         dueDate: String = "",
         category: String = "General",
-        scheduledTime: String? = null
+        scheduledTime: String? = null,
+        deadlineTimestamp: Long? = null
     ): Result<TaskItem> = withContext(Dispatchers.IO) {
+        invalidateDashboardCache()
+        val clientId = java.util.UUID.randomUUID().toString()
+        val effectiveDueDate = if (dueDate.isNotBlank() && dueDate != "0000-00-00") {
+            dueDate
+        } else if (deadlineTimestamp != null && deadlineTimestamp > 0) {
+            SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(Date(deadlineTimestamp))
+        } else {
+            "Today"
+        }
+        val effectiveScheduledTime = scheduledTime ?: if (deadlineTimestamp != null && deadlineTimestamp > 0) {
+            SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(deadlineTimestamp))
+        } else null
+
+        val initialTask = TaskItem(
+            id = (System.currentTimeMillis() % 100000).toInt(),
+            userId = userId,
+            title = title,
+            description = description,
+            priority = priority,
+            dueDate = effectiveDueDate,
+            scheduledTime = effectiveScheduledTime,
+            deadlineTimestamp = deadlineTimestamp,
+            category = category,
+            isCompleted = false,
+            isSynced = false,
+            clientId = clientId
+        )
+
+        appContext?.let { ctx ->
+            try {
+                FocusSessionDatabase.getInstance(ctx).insertTaskLocally(initialTask, isSynced = false)
+                if (deadlineTimestamp != null && deadlineTimestamp > System.currentTimeMillis()) {
+                    com.simats.focusflow.service.TaskDeadlineScheduler.scheduleTaskDeadline(ctx, initialTask.id, initialTask.title, deadlineTimestamp)
+                }
+            } catch (_: Exception) {}
+        }
+
         try {
-            invalidateDashboardCache()
-            val request = CreateTaskRequest(userId, title, description, priority, dueDate, scheduledTime, category)
+            val request = CreateTaskRequest(userId, title, description, priority, effectiveDueDate, effectiveScheduledTime, category, deadlineTimestamp)
             val response = apiService.createTask(request)
             if (response.isSuccessful && response.body()?.status == true) {
-                val created = response.body()?.data ?: TaskItem(
-                    id = System.currentTimeMillis().toInt(),
-                    userId = userId,
-                    title = title,
-                    description = description,
-                    priority = priority,
-                    dueDate = dueDate,
-                    scheduledTime = scheduledTime,
-                    category = category
+                val created = response.body()?.data ?: initialTask
+                val finalItem = created.copy(
+                    isSynced = true,
+                    clientId = clientId,
+                    dueDate = effectiveDueDate,
+                    scheduledTime = effectiveScheduledTime,
+                    deadlineTimestamp = deadlineTimestamp
                 )
-                Result.success(created)
+                appContext?.let { ctx ->
+                    try {
+                        FocusSessionDatabase.getInstance(ctx).markTaskSynced(clientId, finalItem.id)
+                        if (deadlineTimestamp != null && deadlineTimestamp > System.currentTimeMillis()) {
+                            com.simats.focusflow.service.TaskDeadlineScheduler.scheduleTaskDeadline(ctx, finalItem.id, finalItem.title, deadlineTimestamp)
+                        }
+                    } catch (_: Exception) {}
+                }
+                Result.success(finalItem)
             } else {
-                Result.failure(Exception(response.body()?.message ?: "Failed to create task"))
+                Result.success(initialTask)
             }
         } catch (e: Exception) {
-            Result.success(
-                TaskItem(
-                    id = (System.currentTimeMillis() % 100000).toInt(),
-                    userId = userId,
-                    title = title,
-                    description = description,
-                    priority = priority,
-                    dueDate = dueDate,
-                    scheduledTime = scheduledTime,
-                    category = category
-                )
+            Result.success(initialTask)
+        }
+    }
+
+    suspend fun updateTask(
+        userId: Int,
+        taskId: Int,
+        title: String,
+        description: String = "",
+        priority: String = "medium",
+        dueDate: String = "",
+        category: String = "General",
+        scheduledTime: String? = null,
+        deadlineTimestamp: Long? = null,
+        clientId: String = ""
+    ): Result<TaskItem> = withContext(Dispatchers.IO) {
+        invalidateDashboardCache()
+        val effectiveDueDate = if (dueDate.isNotBlank() && dueDate != "0000-00-00") {
+            dueDate
+        } else if (deadlineTimestamp != null && deadlineTimestamp > 0) {
+            SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(Date(deadlineTimestamp))
+        } else {
+            "Today"
+        }
+        val effectiveScheduledTime = scheduledTime ?: if (deadlineTimestamp != null && deadlineTimestamp > 0) {
+            SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(deadlineTimestamp))
+        } else null
+
+        val updatedTask = TaskItem(
+            id = taskId,
+            userId = userId,
+            title = title,
+            description = description,
+            priority = priority,
+            dueDate = effectiveDueDate,
+            scheduledTime = effectiveScheduledTime,
+            deadlineTimestamp = deadlineTimestamp,
+            category = category,
+            isCompleted = false,
+            isSynced = false,
+            clientId = clientId
+        )
+
+        appContext?.let { ctx ->
+            try {
+                FocusSessionDatabase.getInstance(ctx).updateTaskLocally(updatedTask, isSynced = false)
+            } catch (_: Exception) {}
+            if (deadlineTimestamp != null && deadlineTimestamp > System.currentTimeMillis()) {
+                com.simats.focusflow.service.TaskDeadlineScheduler.scheduleTaskDeadline(ctx, taskId, title, deadlineTimestamp)
+            } else {
+                com.simats.focusflow.service.TaskDeadlineScheduler.cancelTaskDeadline(ctx, taskId)
+            }
+        }
+
+        try {
+            val request = UpdateTaskRequest(
+                action = "update",
+                userId = userId,
+                taskId = taskId,
+                title = title,
+                description = description,
+                priority = priority,
+                dueDate = effectiveDueDate,
+                scheduledTime = effectiveScheduledTime,
+                category = category,
+                deadlineTimestamp = deadlineTimestamp
             )
+            val response = apiService.updateTask(request)
+            if (response.isSuccessful && response.body()?.status == true) {
+                val finalItem = (response.body()?.data ?: updatedTask).copy(
+                    isSynced = true,
+                    clientId = clientId,
+                    dueDate = effectiveDueDate,
+                    scheduledTime = effectiveScheduledTime,
+                    deadlineTimestamp = deadlineTimestamp
+                )
+                appContext?.let { ctx ->
+                    try {
+                        FocusSessionDatabase.getInstance(ctx).updateTaskLocally(finalItem, isSynced = true)
+                    } catch (_: Exception) {}
+                }
+                Result.success(finalItem)
+            } else {
+                Result.success(updatedTask)
+            }
+        } catch (e: Exception) {
+            Result.success(updatedTask)
         }
     }
 
     suspend fun toggleTask(userId: Int, taskId: Int, isCompleted: Boolean? = null): Result<Boolean> = withContext(Dispatchers.IO) {
+        invalidateDashboardCache()
+        val targetCompleted = isCompleted ?: true
+        appContext?.let { ctx ->
+            try {
+                FocusSessionDatabase.getInstance(ctx).updateTaskCompletionLocally(taskId, targetCompleted)
+            } catch (_: Exception) {}
+            if (targetCompleted) {
+                com.simats.focusflow.service.TaskDeadlineScheduler.cancelTaskDeadline(ctx, taskId)
+            }
+        }
         try {
-            invalidateDashboardCache()
             val request = ToggleTaskRequest(userId, taskId, "toggle", isCompleted)
             val response = apiService.toggleTask(request)
             if (response.isSuccessful && response.body()?.status == true) {
-                Result.success(response.body()?.isCompleted ?: true)
+                val comp = response.body()?.isCompleted ?: targetCompleted
+                appContext?.let { ctx ->
+                    try {
+                        FocusSessionDatabase.getInstance(ctx).updateTaskCompletionLocally(taskId, comp)
+                    } catch (_: Exception) {}
+                }
+                Result.success(comp)
             } else {
-                Result.success(isCompleted ?: true)
+                Result.success(targetCompleted)
             }
         } catch (e: Exception) {
-            Result.success(isCompleted ?: true)
+            Result.success(targetCompleted)
         }
     }
 
     suspend fun deleteTask(userId: Int, taskId: Int): Result<Boolean> = withContext(Dispatchers.IO) {
+        invalidateDashboardCache()
+        appContext?.let { ctx ->
+            try {
+                FocusSessionDatabase.getInstance(ctx).deleteTaskLocally(taskId)
+            } catch (_: Exception) {}
+            com.simats.focusflow.service.TaskDeadlineScheduler.cancelTaskDeadline(ctx, taskId)
+        }
         try {
-            invalidateDashboardCache()
             val request = DeleteTaskRequest(userId, taskId)
             val response = apiService.deleteTask(request)
             Result.success(response.isSuccessful)
@@ -214,7 +503,8 @@ class ProductivityRepository(
                     endTime = endTime,
                     taskTitle = taskTitle,
                     taskCategory = taskCategory ?: tag,
-                    sessionUuid = sessionUuid
+                    sessionUuid = sessionUuid,
+                    isSynced = false
                 )
             } catch (e: Exception) {
             }
@@ -238,6 +528,11 @@ class ProductivityRepository(
                 apiService.logSession(request)
             }
             if (response.isSuccessful && response.body()?.status == true) {
+                appContext?.let { ctx ->
+                    try {
+                        FocusSessionDatabase.getInstance(ctx).markSessionSynced(sessionUuid)
+                    } catch (_: Exception) {}
+                }
                 Result.success(response.body()!!)
             } else {
                 Result.success(LogSessionResponse(true, "Session recorded", null, durationMinutes))
@@ -265,7 +560,14 @@ class ProductivityRepository(
             val response = apiService.getRecentSessions(userId, limit)
             if (response.isSuccessful && response.body()?.status == true) {
                 val remoteList = response.body()?.data ?: emptyList()
-                val merged = (localList + remoteList).distinctBy { session ->
+                val remoteUuids = remoteList.mapNotNull { it.sessionUuid.trim().ifEmpty { null } }.toSet()
+                val merged = (localList.map { local ->
+                    if (local.sessionUuid.isNotBlank() && remoteUuids.contains(local.sessionUuid.trim())) {
+                        local.copy(isSynced = true)
+                    } else {
+                        local
+                    }
+                } + remoteList).distinctBy { session ->
                     val uuid = session.sessionUuid.trim()
                     if (uuid.isNotEmpty()) {
                         "uuid_$uuid"
@@ -458,13 +760,16 @@ class ProductivityRepository(
         category: String = "Other",
         durationSeconds: Int = 0
     ): Result<Boolean> = withContext(Dispatchers.IO) {
+        val clientId = java.util.UUID.randomUUID().toString()
         appContext?.let { ctx ->
             try {
                 FocusSessionDatabase.getInstance(ctx).insertDistraction(
                     userId = userId,
                     reason = reason,
                     category = category,
-                    durationSeconds = durationSeconds
+                    durationSeconds = durationSeconds,
+                    isSynced = false,
+                    clientId = clientId
                 )
             } catch (_: Exception) {}
         }
@@ -476,7 +781,16 @@ class ProductivityRepository(
                 durationSeconds = durationSeconds
             )
             val resp = apiService.logDistraction(req)
-            Result.success(resp.isSuccessful && resp.body()?.status == true)
+            if (resp.isSuccessful && resp.body()?.status == true) {
+                appContext?.let { ctx ->
+                    try {
+                        FocusSessionDatabase.getInstance(ctx).markDistractionSynced(clientId)
+                    } catch (_: Exception) {}
+                }
+                Result.success(true)
+            } else {
+                Result.success(true)
+            }
         } catch (_: Exception) {
             Result.success(true)
         }
@@ -496,7 +810,9 @@ class ProductivityRepository(
             if (resp.isSuccessful && resp.body()?.status == true) {
                 val remote = resp.body()?.data ?: emptyList()
                 val merged = (local + remote).distinctBy { item ->
-                    if (item.id > 0) "id_${item.id}" else "${item.createdAt}_${item.reason}"
+                    if (item.clientId.isNotBlank()) "client_${item.clientId}"
+                    else if (item.id > 0) "id_${item.id}"
+                    else "${item.createdAt}_${item.reason}"
                 }
                 Result.success(merged)
             } else {

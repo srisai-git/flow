@@ -581,6 +581,8 @@ class FocusTimerService : Service() {
     private fun buildOngoingNotification(): Notification {
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("navigate_to", "focus_timer")
+            putExtra("route", "timer")
         }
         val pendingIntent = PendingIntent.getActivity(
             this,
@@ -651,6 +653,8 @@ class FocusTimerService : Service() {
 
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("navigate_to", "focus_timer")
+            putExtra("route", "timer")
         }
         val pendingIntent = PendingIntent.getActivity(
             this,

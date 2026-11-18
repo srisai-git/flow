@@ -112,8 +112,20 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        intent.getStringExtra("route")?.let { route ->
-            pendingRoute.value = route
+        handleIntentNavigation(intent)
+    }
+
+    private fun handleIntentNavigation(incomingIntent: Intent?) {
+        if (incomingIntent == null) return
+        val navigateTo = incomingIntent.getStringExtra("navigate_to")
+        val route = incomingIntent.getStringExtra("route")
+        val target = when {
+            navigateTo == "focus_timer" || navigateTo == "timer" -> Screen.Timer.route
+            !route.isNullOrBlank() -> if (route == "focus_timer") Screen.Timer.route else route
+            else -> null
+        }
+        if (target != null) {
+            pendingRoute.value = target
         }
     }
 
@@ -130,7 +142,15 @@ class MainActivity : ComponentActivity() {
                         val sessionManager = SessionManager.getInstance(applicationContext)
                         val session = sessionManager.userSessionFlow.first()
                         if (session.isLoggedIn && (session.userId ?: 0) > 0) {
-                            if (session.isOnboardingCompleted) Screen.Home.route else "make_it_yours/${session.userId ?: 1}"
+                            if (session.isOnboardingCompleted) {
+                                val nav = intent.getStringExtra("navigate_to")
+                                val r = intent.getStringExtra("route")
+                                if (nav == "focus_timer" || nav == "timer" || r == "timer" || r == Screen.Timer.route) {
+                                    Screen.Timer.route
+                                } else {
+                                    Screen.Home.route
+                                }
+                            } else "make_it_yours/${session.userId ?: 1}"
                         } else {
                             "welcome_start"
                         }
@@ -166,9 +186,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        intent.getStringExtra("route")?.let { route ->
-            pendingRoute.value = route
-        }
+        handleIntentNavigation(intent)
 
         try {
             FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
@@ -251,8 +269,13 @@ class MainActivity : ComponentActivity() {
                             val route = targetRoute
                             if (route != null && currentRoute != null) {
                                 try {
-                                    navController.navigate(route) {
+                                    val target = if (route == "focus_timer") Screen.Timer.route else route
+                                    navController.navigate(target) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = false
+                                        }
                                         launchSingleTop = true
+                                        restoreState = false
                                     }
                                 } catch (e: Exception) {
                                     Log.e("MainActivity", "Failed to navigate to route: $route", e)

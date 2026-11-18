@@ -6,6 +6,8 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.text.TextUtils
 import android.view.accessibility.AccessibilityEvent
@@ -23,14 +25,41 @@ class FocusBlockerAccessibilityService : AccessibilityService() {
     private val serviceJob = SupervisorJob()
     private val serviceScope = CoroutineScope(Dispatchers.Main + serviceJob)
     private val repository = ProductivityRepository()
+    private val handler = Handler(Looper.getMainLooper())
     private var lastLogTimestamp = 0L
     private var lastBlockedPkg: String? = null
+    private var lastBlockActionTime = 0L
+
+    private fun isIgnoredPackage(pkgName: String): Boolean {
+        if (pkgName == packageName || pkgName == applicationContext.packageName) return true
+        if (pkgName == "com.android.systemui") return true
+        if (isLauncherPackage(pkgName)) return true
+        return false
+    }
+
+    private fun isLauncherPackage(pkgName: String): Boolean {
+        return try {
+            val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+            val resolveInfos = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                packageManager.queryIntentActivities(
+                    intent,
+                    android.content.pm.PackageManager.ResolveInfoFlags.of(android.content.pm.PackageManager.MATCH_DEFAULT_ONLY.toLong())
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                packageManager.queryIntentActivities(intent, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY)
+            }
+            resolveInfos.any { it.activityInfo?.packageName == pkgName }
+        } catch (_: Exception) {
+            false
+        }
+    }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null || event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
 
         val pkgName = event.packageName?.toString() ?: return
-        if (pkgName == packageName) return
+        if (isIgnoredPackage(pkgName)) return
 
         val timerState = FocusTimerService.timerStateFlow.value
         if (!timerState.isRunning || timerState.currentMode != TimerMode.FOCUS || !timerState.isStrictFocus) {
@@ -38,21 +67,30 @@ class FocusBlockerAccessibilityService : AccessibilityService() {
         }
 
         if (UsageStatsHelper.isBlockedDistractingApp(applicationContext, pkgName)) {
+            val now = System.currentTimeMillis()
+            if (pkgName == lastBlockedPkg && (now - lastBlockActionTime < 1200L)) {
+                return
+            }
+            lastBlockActionTime = now
+            lastBlockedPkg = pkgName
+
             val appLabel = UsageStatsHelper.getAppLabel(applicationContext, pkgName)
 
             performGlobalAction(GLOBAL_ACTION_HOME)
 
-            val shieldIntent = Intent(applicationContext, FocusShieldActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                putExtra("EXTRA_BLOCKED_APP", appLabel)
-                putExtra("EXTRA_PACKAGE_NAME", pkgName)
-            }
-            startActivity(shieldIntent)
+            handler.postDelayed({
+                try {
+                    val shieldIntent = Intent(applicationContext, FocusShieldActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        putExtra("EXTRA_BLOCKED_APP", appLabel)
+                        putExtra("EXTRA_PACKAGE_NAME", pkgName)
+                    }
+                    startActivity(shieldIntent)
+                } catch (_: Exception) {}
+            }, 200L)
 
-            val now = System.currentTimeMillis()
-            if (now - lastLogTimestamp > 60000L || lastBlockedPkg != pkgName) {
+            if (now - lastLogTimestamp > 60000L) {
                 lastLogTimestamp = now
-                lastBlockedPkg = pkgName
                 val activeUid = timerState.activeUserId
                 val cat = UsageStatsHelper.categorizePackage(pkgName, appLabel, applicationContext)
                 serviceScope.launch(Dispatchers.IO) {

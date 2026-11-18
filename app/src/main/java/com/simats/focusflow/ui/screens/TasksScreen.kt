@@ -15,20 +15,24 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -64,6 +68,21 @@ fun TasksScreen(
     val context = LocalContext.current
     val colors = FocusFlowTheme.colors
 
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+        val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+            contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+        ) { }
+        LaunchedEffect(Unit) {
+            if (androidx.core.content.ContextCompat.checkSelfPermission(
+                    context,
+                    android.Manifest.permission.POST_NOTIFICATIONS
+                ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+
     LaunchedEffect(Unit) {
         viewModel.initSessionManager(SessionManager.getInstance(context))
     }
@@ -73,6 +92,14 @@ fun TasksScreen(
         state.filteredTasks
     }
     val snackbarHostState = remember { SnackbarHostState() }
+
+    var currentTimeMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(1000L)
+            currentTimeMillis = System.currentTimeMillis()
+        }
+    }
 
     LaunchedEffect(state.errorMessage) {
         state.errorMessage?.let {
@@ -86,7 +113,7 @@ fun TasksScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { viewModel.setBottomSheetOpen(true) },
+                onClick = { viewModel.openCreateTask() },
                 containerColor = colors.primary,
                 contentColor = Color.White,
                 shape = CircleShape,
@@ -285,10 +312,10 @@ fun TasksScreen(
                     items(filteredTasks, key = { it.id }) { task ->
                         TaskItemCard(
                             task = task,
-                            isBreakingDown = state.breakingDownTaskId == task.id,
+                            currentTimeMillis = currentTimeMillis,
                             onToggle = { viewModel.toggleTask(task.id) },
                             onDelete = { viewModel.deleteTask(task.id) },
-                            onBreakdown = { viewModel.breakdownTaskWithGroot(task) }
+                            onEdit = { viewModel.openEditTask(task) }
                         )
                     }
                 }
@@ -316,9 +343,13 @@ fun TasksScreen(
                 }
             ) {
                 AddTaskBottomSheetContent(
+                    taskToEdit = state.editingTask,
                     onDismiss = { viewModel.setBottomSheetOpen(false) },
-                    onCreateTask = { title, desc, priority, dueDate, category, scheduledTime ->
-                        viewModel.createTask(title, desc, priority, dueDate, category, scheduledTime)
+                    onCreateTask = { title, desc, priority, dueDate, category, scheduledTime, deadlineTimestamp ->
+                        viewModel.createTask(title, desc, priority, dueDate, category, scheduledTime, deadlineTimestamp)
+                    },
+                    onUpdateTask = { taskId, title, desc, priority, dueDate, category, scheduledTime, deadlineTimestamp, clientId ->
+                        viewModel.updateTask(taskId, title, desc, priority, dueDate, category, scheduledTime, deadlineTimestamp, clientId)
                     }
                 )
             }
@@ -326,13 +357,63 @@ fun TasksScreen(
     }
 }
 
+private fun resolveLegacyDeadlineToMillis(dueDate: String, scheduledTime: String?): Long? {
+    if (scheduledTime.isNullOrBlank()) return null
+    return try {
+        val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
+        val parsedTime = timeFormat.parse(scheduledTime.trim()) ?: return null
+        val timeCal = Calendar.getInstance().apply { time = parsedTime }
+        val targetCal = Calendar.getInstance()
+
+        if (dueDate.equals("Tomorrow", ignoreCase = true)) {
+            targetCal.add(Calendar.DAY_OF_YEAR, 1)
+        } else if (!dueDate.equals("Today", ignoreCase = true) && dueDate.isNotBlank()) {
+            val dateFormats = listOf(
+                SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()),
+                SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            )
+            for (df in dateFormats) {
+                try {
+                    val d = df.parse(dueDate)
+                    if (d != null) {
+                        targetCal.time = d
+                        break
+                    }
+                } catch (_: Exception) {}
+            }
+        }
+        targetCal.set(Calendar.HOUR_OF_DAY, timeCal.get(Calendar.HOUR_OF_DAY))
+        targetCal.set(Calendar.MINUTE, timeCal.get(Calendar.MINUTE))
+        targetCal.set(Calendar.SECOND, 0)
+        targetCal.set(Calendar.MILLISECOND, 0)
+        targetCal.timeInMillis
+    } catch (_: Exception) {
+        null
+    }
+}
+
+private fun formatCountdown(diffMillis: Long): String {
+    val totalSeconds = diffMillis / 1000
+    val days = totalSeconds / 86400
+    val hours = (totalSeconds % 86400) / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+
+    return when {
+        days > 0 -> "${days}d ${hours}h left"
+        hours > 0 -> String.format(Locale.getDefault(), "%02dh %02dm %02ds left", hours, minutes, seconds)
+        minutes > 0 -> String.format(Locale.getDefault(), "%02dm %02ds left", minutes, seconds)
+        else -> String.format(Locale.getDefault(), "%02ds left", seconds)
+    }
+}
+
 @Composable
 private fun TaskItemCard(
     task: TaskItem,
-    isBreakingDown: Boolean = false,
+    currentTimeMillis: Long,
     onToggle: () -> Unit,
     onDelete: () -> Unit,
-    onBreakdown: () -> Unit = {}
+    onEdit: () -> Unit = {}
 ) {
     val colors = FocusFlowTheme.colors
     val priorityColor = when (task.priority.lowercase()) {
@@ -369,7 +450,11 @@ private fun TaskItemCard(
 
             Spacer(modifier = Modifier.width(10.dp))
 
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { onEdit() }
+            ) {
                 Text(
                     text = task.title,
                     fontSize = 15.sp,
@@ -412,7 +497,11 @@ private fun TaskItemCard(
                         }
                     }
 
-                    if (task.dueDate.isNotBlank()) {
+                    val resolvedDeadline = task.deadlineTimestamp?.takeIf { it > 0 }
+                        ?: resolveLegacyDeadlineToMillis(task.dueDate, task.scheduledTime)
+
+                    if (resolvedDeadline != null) {
+                        val deadlineStr = SimpleDateFormat("MMM dd, yyyy • hh:mm a", Locale.getDefault()).format(Date(resolvedDeadline))
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
@@ -422,44 +511,122 @@ private fun TaskItemCard(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = Icons.Default.DateRange,
+                                    imageVector = Icons.Default.CalendarMonth,
                                     contentDescription = null,
                                     tint = colors.textMuted,
                                     modifier = Modifier.size(11.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = task.dueDate,
+                                    text = deadlineStr,
                                     fontSize = 10.5.sp,
                                     color = colors.textMuted,
                                     fontWeight = FontWeight.Medium
                                 )
                             }
                         }
-                    }
 
-                    if (!task.scheduledTime.isNullOrBlank()) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFF38BDF8).copy(alpha = 0.12f))
-                                .border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.35f), RoundedCornerShape(8.dp))
-                                .padding(horizontal = 8.dp, vertical = 3.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Schedule,
-                                    contentDescription = null,
-                                    tint = Color(0xFF38BDF8),
-                                    modifier = Modifier.size(11.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = task.scheduledTime,
-                                    fontSize = 10.5.sp,
-                                    color = Color(0xFF38BDF8),
-                                    fontWeight = FontWeight.SemiBold
-                                )
+                        val diffMillis = resolvedDeadline - currentTimeMillis
+                        if (!task.isCompleted && diffMillis <= 0) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0xFFFF5A5F).copy(alpha = 0.14f))
+                                    .border(1.dp, Color(0xFFFF5A5F).copy(alpha = 0.45f), RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Warning,
+                                        contentDescription = null,
+                                        tint = Color(0xFFFF5A5F),
+                                        modifier = Modifier.size(11.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "Overdue",
+                                        fontSize = 10.5.sp,
+                                        color = Color(0xFFFF5A5F),
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        } else {
+                            val countdownText = if (diffMillis > 0) formatCountdown(diffMillis) else "Due"
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0xFF38BDF8).copy(alpha = 0.14f))
+                                    .border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.40f), RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Schedule,
+                                        contentDescription = null,
+                                        tint = Color(0xFF38BDF8),
+                                        modifier = Modifier.size(11.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = countdownText,
+                                        fontSize = 10.5.sp,
+                                        color = Color(0xFF38BDF8),
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        if (task.dueDate.isNotBlank() && task.dueDate != "0000-00-00") {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(colors.surfaceVariant)
+                                    .border(1.dp, colors.border, RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.DateRange,
+                                        contentDescription = null,
+                                        tint = colors.textMuted,
+                                        modifier = Modifier.size(11.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = task.dueDate,
+                                        fontSize = 10.5.sp,
+                                        color = colors.textMuted,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                        }
+
+                        if (!task.scheduledTime.isNullOrBlank()) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0xFF38BDF8).copy(alpha = 0.12f))
+                                    .border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Schedule,
+                                        contentDescription = null,
+                                        tint = Color(0xFF38BDF8),
+                                        modifier = Modifier.size(11.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = task.scheduledTime,
+                                        fontSize = 10.5.sp,
+                                        color = Color(0xFF38BDF8),
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
                             }
                         }
                     }
@@ -478,43 +645,30 @@ private fun TaskItemCard(
                             color = priorityColor
                         )
                     }
-                }
 
-                if (!task.isCompleted) {
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Surface(
-                        onClick = onBreakdown,
-                        enabled = !isBreakingDown,
-                        shape = RoundedCornerShape(8.dp),
-                        color = colors.primary.copy(alpha = 0.12f),
-                        border = BorderStroke(1.dp, colors.primary.copy(alpha = 0.35f)),
-                        modifier = Modifier.bounceClick()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    if (!task.isSynced) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFFF59E0B).copy(alpha = 0.14f))
+                                .border(1.dp, Color(0xFFF59E0B).copy(alpha = 0.40f), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 7.dp, vertical = 3.dp)
                         ) {
-                            if (isBreakingDown) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(12.dp),
-                                    strokeWidth = 2.dp,
-                                    color = colors.primaryLight
-                                )
-                            } else {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = null,
-                                    tint = colors.primaryLight,
-                                    modifier = Modifier.size(12.dp)
+                                    imageVector = Icons.Default.Sync,
+                                    contentDescription = "Syncing",
+                                    tint = Color(0xFFF59E0B),
+                                    modifier = Modifier.size(11.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Sync pending",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFFF59E0B)
                                 )
                             }
-                            Text(
-                                text = if (isBreakingDown) "Breaking down..." else "Break down with Groot AI",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = colors.primaryLight
-                            )
                         }
                     }
                 }
@@ -522,16 +676,30 @@ private fun TaskItemCard(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            IconButton(
-                onClick = onDelete,
-                modifier = Modifier.size(32.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete Task",
-                    tint = colors.textMuted.copy(alpha = 0.6f),
-                    modifier = Modifier.size(18.dp)
-                )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(
+                    onClick = onEdit,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit Task",
+                        tint = colors.textMuted.copy(alpha = 0.7f),
+                        modifier = Modifier.size(17.dp)
+                    )
+                }
+
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete Task",
+                        tint = colors.textMuted.copy(alpha = 0.6f),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
         }
     }
@@ -539,24 +707,35 @@ private fun TaskItemCard(
 
 @Composable
 private fun AddTaskBottomSheetContent(
+    taskToEdit: TaskItem? = null,
     onDismiss: () -> Unit,
-    onCreateTask: (title: String, desc: String, priority: String, dueDate: String, category: String, scheduledTime: String?) -> Unit
+    onCreateTask: (title: String, desc: String, priority: String, dueDate: String, category: String, scheduledTime: String?, deadlineTimestamp: Long?) -> Unit,
+    onUpdateTask: (taskId: Int, title: String, desc: String, priority: String, dueDate: String, category: String, scheduledTime: String?, deadlineTimestamp: Long?, clientId: String) -> Unit
 ) {
     val colors = FocusFlowTheme.colors
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var selectedPriority by remember { mutableStateOf("Medium") }
-    var selectedDueDate by remember { mutableStateOf("Today") }
-    var selectedScheduledTime by remember { mutableStateOf<String?>("09:00 AM") }
-    var selectedCategory by remember { mutableStateOf("Deep Work") }
+    val context = LocalContext.current
+
+    var title by remember { mutableStateOf(taskToEdit?.title ?: "") }
+    var description by remember { mutableStateOf(taskToEdit?.description ?: "") }
+    var selectedPriority by remember {
+        mutableStateOf(
+            taskToEdit?.priority?.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() } ?: "Medium"
+        )
+    }
+    var selectedDueDate by remember { mutableStateOf(taskToEdit?.dueDate?.ifBlank { "Today" } ?: "Today") }
+    var selectedCategory by remember { mutableStateOf(taskToEdit?.category?.ifBlank { "Deep Work" } ?: "Deep Work") }
+    var selectedScheduledTime by remember { mutableStateOf<String?>(taskToEdit?.scheduledTime) }
+    var selectedDeadlineTimestamp by remember { mutableStateOf<Long?>(taskToEdit?.deadlineTimestamp) }
 
     val priorities = listOf("Low", "Medium", "High")
     val dueDates = listOf("Today", "Tomorrow", "Next Week")
-    val timePresets = listOf("09:00 AM", "11:30 AM", "02:00 PM", "04:30 PM", "07:00 PM", "No Time")
     val categories = listOf("Deep Work", "Coding", "Study", "Creative", "General")
 
     var showDatePicker by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = System.currentTimeMillis())
+    val initialDateMillis = remember(selectedDeadlineTimestamp) {
+        selectedDeadlineTimestamp ?: System.currentTimeMillis()
+    }
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = initialDateMillis)
 
     if (showDatePicker) {
         DatePickerDialog(
@@ -564,8 +743,24 @@ private fun AddTaskBottomSheetContent(
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { millis ->
-                        val formatted = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(Date(millis))
-                        selectedDueDate = formatted
+                        val pickedCal = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply { timeInMillis = millis }
+                        val targetCal = Calendar.getInstance().apply {
+                            set(Calendar.YEAR, pickedCal.get(Calendar.YEAR))
+                            set(Calendar.MONTH, pickedCal.get(Calendar.MONTH))
+                            set(Calendar.DAY_OF_MONTH, pickedCal.get(Calendar.DAY_OF_MONTH))
+                        }
+                        selectedDueDate = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(targetCal.time)
+
+                        val timeCal = Calendar.getInstance()
+                        selectedDeadlineTimestamp?.let { timeCal.timeInMillis = it }
+                        targetCal.set(Calendar.HOUR_OF_DAY, timeCal.get(Calendar.HOUR_OF_DAY))
+                        targetCal.set(Calendar.MINUTE, timeCal.get(Calendar.MINUTE))
+                        targetCal.set(Calendar.SECOND, 0)
+                        targetCal.set(Calendar.MILLISECOND, 0)
+                        selectedDeadlineTimestamp = targetCal.timeInMillis
+                        if (selectedScheduledTime == null) {
+                            selectedScheduledTime = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(targetCal.time)
+                        }
                     }
                     showDatePicker = false
                 }) { Text("Confirm") }
@@ -576,6 +771,95 @@ private fun AddTaskBottomSheetContent(
         ) {
             DatePicker(state = datePickerState)
         }
+    }
+
+    val openTimePicker: () -> Unit = {
+        val cal = Calendar.getInstance()
+        selectedDeadlineTimestamp?.let { cal.timeInMillis = it }
+        android.app.TimePickerDialog(
+            context,
+            { _, hourOfDay, minute ->
+                val targetCal = Calendar.getInstance()
+                selectedDeadlineTimestamp?.let { targetCal.timeInMillis = it } ?: run {
+                    if (selectedDueDate.equals("Tomorrow", ignoreCase = true)) {
+                        targetCal.add(Calendar.DAY_OF_YEAR, 1)
+                    } else if (!selectedDueDate.equals("Today", ignoreCase = true) && selectedDueDate.isNotBlank()) {
+                        val dateFormats = listOf(
+                            SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()),
+                            SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                        )
+                        for (df in dateFormats) {
+                            try {
+                                val d = df.parse(selectedDueDate)
+                                if (d != null) {
+                                    targetCal.time = d
+                                    break
+                                }
+                            } catch (_: Exception) {}
+                        }
+                    }
+                }
+                targetCal.set(Calendar.HOUR_OF_DAY, hourOfDay)
+                targetCal.set(Calendar.MINUTE, minute)
+                targetCal.set(Calendar.SECOND, 0)
+                targetCal.set(Calendar.MILLISECOND, 0)
+
+                selectedDeadlineTimestamp = targetCal.timeInMillis
+                selectedScheduledTime = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(targetCal.time)
+                if (selectedDueDate.isBlank()) {
+                    selectedDueDate = "Today"
+                }
+            },
+            cal.get(Calendar.HOUR_OF_DAY),
+            cal.get(Calendar.MINUTE),
+            false
+        ).show()
+    }
+
+    val setOffsetHours: (Int) -> Unit = { hours ->
+        val targetCal = Calendar.getInstance().apply {
+            add(Calendar.HOUR_OF_DAY, hours)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        selectedDeadlineTimestamp = targetCal.timeInMillis
+        selectedScheduledTime = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(targetCal.time)
+        val nowCal = Calendar.getInstance()
+        selectedDueDate = if (targetCal.get(Calendar.DAY_OF_YEAR) == nowCal.get(Calendar.DAY_OF_YEAR)) "Today" else "Tomorrow"
+    }
+
+    val setTonight: () -> Unit = {
+        val targetCal = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 21)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+            if (timeInMillis <= System.currentTimeMillis()) {
+                add(Calendar.DAY_OF_YEAR, 1)
+            }
+        }
+        selectedDeadlineTimestamp = targetCal.timeInMillis
+        selectedScheduledTime = "09:00 PM"
+        val nowCal = Calendar.getInstance()
+        selectedDueDate = if (targetCal.get(Calendar.DAY_OF_YEAR) == nowCal.get(Calendar.DAY_OF_YEAR)) "Today" else "Tomorrow"
+    }
+
+    val setTomorrowMorning: () -> Unit = {
+        val targetCal = Calendar.getInstance().apply {
+            add(Calendar.DAY_OF_YEAR, 1)
+            set(Calendar.HOUR_OF_DAY, 9)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        selectedDeadlineTimestamp = targetCal.timeInMillis
+        selectedScheduledTime = "09:00 AM"
+        selectedDueDate = "Tomorrow"
+    }
+
+    val clearDeadline: () -> Unit = {
+        selectedDeadlineTimestamp = null
+        selectedScheduledTime = null
     }
 
     Column(
@@ -590,7 +874,7 @@ private fun AddTaskBottomSheetContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "New Focus Task",
+                text = if (taskToEdit != null) "Edit Focus Task" else "New Focus Task",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = colors.textPrimary
@@ -747,7 +1031,7 @@ private fun AddTaskBottomSheetContent(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("SCHEDULED TIME", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = colors.primaryLight, letterSpacing = 1.sp)
+            Text("CUSTOM DEADLINE TIMER", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = colors.primaryLight, letterSpacing = 1.sp)
             if (selectedScheduledTime != null) {
                 Text(
                     text = selectedScheduledTime!!,
@@ -758,37 +1042,157 @@ private fun AddTaskBottomSheetContent(
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(timePresets, key = { it }) { timeOpt ->
-                val isSelected = (timeOpt == "No Time" && selectedScheduledTime == null) || (timeOpt == selectedScheduledTime)
-                Surface(
-                    onClick = {
-                        selectedScheduledTime = if (timeOpt == "No Time") null else timeOpt
-                    },
-                    shape = RoundedCornerShape(10.dp),
-                    color = if (isSelected) Color(0xFF8B5CF6).copy(alpha = 0.25f) else colors.surfaceVariant,
-                    border = BorderStroke(1.dp, if (isSelected) Color(0xFF8B5CF6) else colors.border)
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Surface(
+                onClick = { showDatePicker = true },
+                shape = RoundedCornerShape(12.dp),
+                color = colors.surfaceVariant,
+                border = BorderStroke(1.dp, colors.border),
+                modifier = Modifier
+                    .weight(1f)
+                    .bounceClick()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        if (timeOpt != "No Time") {
-                            Icon(
-                                imageVector = Icons.Default.Schedule,
-                                contentDescription = null,
-                                tint = if (isSelected) Color(0xFFA78BFA) else colors.textMuted,
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                        }
+                    Icon(
+                        imageVector = Icons.Default.CalendarMonth,
+                        contentDescription = "Pick Date",
+                        tint = colors.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text("Deadline Date", fontSize = 10.sp, color = colors.textMuted)
                         Text(
-                            text = timeOpt,
-                            fontSize = 12.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSelected) Color(0xFFA78BFA) else colors.textMuted
+                            text = selectedDueDate.ifBlank { "Select Date" },
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.textPrimary,
+                            maxLines = 1
                         )
                     }
+                }
+            }
+
+            Surface(
+                onClick = openTimePicker,
+                shape = RoundedCornerShape(12.dp),
+                color = if (selectedScheduledTime != null) Color(0xFF8B5CF6).copy(alpha = 0.12f) else colors.surfaceVariant,
+                border = BorderStroke(1.dp, if (selectedScheduledTime != null) Color(0xFF8B5CF6).copy(alpha = 0.40f) else colors.border),
+                modifier = Modifier
+                    .weight(1f)
+                    .bounceClick()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Schedule,
+                        contentDescription = "Pick Time",
+                        tint = if (selectedScheduledTime != null) Color(0xFF8B5CF6) else colors.textMuted,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text("Deadline Time", fontSize = 10.sp, color = colors.textMuted)
+                        Text(
+                            text = selectedScheduledTime ?: "Set Time",
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (selectedScheduledTime != null) Color(0xFF8B5CF6) else colors.textPrimary,
+                            maxLines = 1
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Surface(
+                onClick = { setOffsetHours(1) },
+                shape = RoundedCornerShape(8.dp),
+                color = colors.surfaceVariant,
+                border = BorderStroke(1.dp, colors.border)
+            ) {
+                Text("+1 Hour", fontSize = 11.sp, color = colors.textPrimary, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
+            }
+            Surface(
+                onClick = { setOffsetHours(3) },
+                shape = RoundedCornerShape(8.dp),
+                color = colors.surfaceVariant,
+                border = BorderStroke(1.dp, colors.border)
+            ) {
+                Text("+3 Hours", fontSize = 11.sp, color = colors.textPrimary, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
+            }
+            Surface(
+                onClick = setTonight,
+                shape = RoundedCornerShape(8.dp),
+                color = colors.surfaceVariant,
+                border = BorderStroke(1.dp, colors.border)
+            ) {
+                Text("Tonight 9 PM", fontSize = 11.sp, color = colors.textPrimary, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
+            }
+            Surface(
+                onClick = setTomorrowMorning,
+                shape = RoundedCornerShape(8.dp),
+                color = colors.surfaceVariant,
+                border = BorderStroke(1.dp, colors.border)
+            ) {
+                Text("Tomorrow 9 AM", fontSize = 11.sp, color = colors.textPrimary, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
+            }
+            if (selectedDeadlineTimestamp != null || selectedScheduledTime != null) {
+                Surface(
+                    onClick = clearDeadline,
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFFFF5A5F).copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, Color(0xFFFF5A5F).copy(alpha = 0.35f))
+                ) {
+                    Text("Clear", fontSize = 11.sp, color = Color(0xFFFF5A5F), fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
+                }
+            }
+        }
+
+        if (selectedDeadlineTimestamp != null) {
+            Spacer(modifier = Modifier.height(10.dp))
+            val now = System.currentTimeMillis()
+            val diff = selectedDeadlineTimestamp!! - now
+            val remainingText = if (diff > 0) formatCountdown(diff) else "Overdue target"
+            val badgeColor = if (diff > 0) Color(0xFF38BDF8) else Color(0xFFFF5A5F)
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = badgeColor.copy(alpha = 0.12f),
+                border = BorderStroke(1.dp, badgeColor.copy(alpha = 0.35f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = if (diff > 0) Icons.Default.Schedule else Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = badgeColor,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Target: $selectedDueDate at ${selectedScheduledTime ?: ""} ($remainingText)",
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = badgeColor
+                    )
                 }
             }
         }
@@ -798,7 +1202,29 @@ private fun AddTaskBottomSheetContent(
         Button(
             onClick = {
                 if (title.isNotBlank()) {
-                    onCreateTask(title, description, selectedPriority, selectedDueDate, selectedCategory, selectedScheduledTime)
+                    if (taskToEdit != null) {
+                        onUpdateTask(
+                            taskToEdit.id,
+                            title,
+                            description,
+                            selectedPriority,
+                            selectedDueDate,
+                            selectedCategory,
+                            selectedScheduledTime,
+                            selectedDeadlineTimestamp,
+                            taskToEdit.clientId
+                        )
+                    } else {
+                        onCreateTask(
+                            title,
+                            description,
+                            selectedPriority,
+                            selectedDueDate,
+                            selectedCategory,
+                            selectedScheduledTime,
+                            selectedDeadlineTimestamp
+                        )
+                    }
                 }
             },
             enabled = title.isNotBlank(),
@@ -815,7 +1241,7 @@ private fun AddTaskBottomSheetContent(
             )
         ) {
             Text(
-                text = "Create Task",
+                text = if (taskToEdit != null) "Save Changes" else "Create Task",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White

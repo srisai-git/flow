@@ -31,11 +31,17 @@ data class TaskItem(
     @SerializedName("scheduled_time")
     val scheduledTime: String? = null,
 
+    @SerializedName("deadline_timestamp")
+    val deadlineTimestamp: Long? = null,
+
     @SerializedName("is_completed")
     val isCompleted: Boolean = false,
 
     @SerializedName("created_at")
-    val createdAt: String? = null
+    val createdAt: String? = null,
+
+    val isSynced: Boolean = true,
+    val clientId: String = ""
 )
 
 @Immutable
@@ -300,7 +306,9 @@ data class FocusSessionRecord(
     val taskCategory: String = "",
 
     @SerializedName("session_uuid")
-    val sessionUuid: String = ""
+    val sessionUuid: String = "",
+
+    val isSynced: Boolean = true
 )
 
 data class FocusSessionsResponse(
@@ -331,7 +339,42 @@ data class CreateTaskRequest(
     val scheduledTime: String? = null,
 
     @SerializedName("category")
-    val category: String = "General"
+    val category: String = "General",
+
+    @SerializedName("deadline_timestamp")
+    val deadlineTimestamp: Long? = null
+)
+
+data class UpdateTaskRequest(
+    @SerializedName("action")
+    val action: String = "update",
+
+    @SerializedName("user_id")
+    val userId: Int,
+
+    @SerializedName("task_id")
+    val taskId: Int,
+
+    @SerializedName("title")
+    val title: String,
+
+    @SerializedName("description")
+    val description: String = "",
+
+    @SerializedName("priority")
+    val priority: String = "medium",
+
+    @SerializedName("due_date")
+    val dueDate: String = "",
+
+    @SerializedName("scheduled_time")
+    val scheduledTime: String? = null,
+
+    @SerializedName("category")
+    val category: String = "General",
+
+    @SerializedName("deadline_timestamp")
+    val deadlineTimestamp: Long? = null
 )
 
 data class ToggleTaskRequest(
@@ -585,7 +628,9 @@ data class DistractionLogItem(
     @SerializedName("reason") val reason: String = "",
     @SerializedName("category") val category: String = "Other",
     @SerializedName("duration_seconds") val durationSeconds: Int = 0,
-    @SerializedName("created_at") val createdAt: String = ""
+    @SerializedName("created_at") val createdAt: String = "",
+    val isSynced: Boolean = true,
+    val clientId: String = ""
 )
 
 data class LogDistractionRequest(
