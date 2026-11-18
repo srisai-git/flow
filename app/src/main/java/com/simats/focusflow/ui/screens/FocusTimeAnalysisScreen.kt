@@ -6,9 +6,11 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.*
@@ -16,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -252,7 +255,7 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF07060D))
+            .background(colors.background)
             .statusBarsPadding()
             .padding(top = 16.dp, bottom = 24.dp, start = 20.dp, end = 20.dp)
             .verticalScroll(rememberScrollState())
@@ -326,13 +329,8 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
 
         Surface(
             shape = RoundedCornerShape(20.dp),
-            color = Color(0xFF1E1A2E).copy(alpha = 0.95f),
-            border = BorderStroke(
-                1.dp,
-                androidx.compose.ui.graphics.Brush.horizontalGradient(
-                    listOf(Color(0xFF8B5CF6).copy(alpha = 0.45f), Color(0xFF06B6D4).copy(alpha = 0.45f))
-                )
-            ),
+            color = colors.surface,
+            border = BorderStroke(1.dp, colors.cardBorderBrush),
             shadowElevation = 8.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -358,7 +356,7 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                         text = primaryStat,
                         fontSize = 30.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = Color.White,
+                        color = colors.textPrimary,
                         style = androidx.compose.ui.text.TextStyle(fontFeatureSettings = "tnum")
                     )
                     Spacer(modifier = Modifier.height(4.dp))
@@ -394,6 +392,82 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                         color = colors.textMuted
                     )
                 }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Surface(
+            shape = RoundedCornerShape(18.dp),
+            color = colors.surface,
+            border = BorderStroke(1.dp, Brush.horizontalGradient(listOf(colors.primary.copy(alpha = 0.55f), colors.border))),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(18.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(colors.primary.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = colors.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "GROOT AI ANALYSIS",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.primary,
+                            letterSpacing = 1.sp
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFF10B981).copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.35f))
+                    ) {
+                        Text(
+                            text = "Smart Recommendation",
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF10B981),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                val aiAnalysisText = when {
+                    selectedMinutes == 0 -> "You have not logged focus time for $selectedPeriod yet. Complete an initial 25-minute Pomodoro sprint to activate deep flow and establish baseline rhythm."
+                    selectedMinutes < 60 -> "Strong start with ${selectedMinutes}m of deep work. Adding one more 25m interval will push your momentum past the 1-hour focus milestone."
+                    selectedMinutes in 60..180 -> "Optimal flow state reached! You have maintained steady concentration with ${selectedHours}h ${selectedRemainingMins}m logged. Maintain consistency with regular hydration breaks."
+                    else -> "Exceptional productivity immersion (${selectedHours}h ${selectedRemainingMins}m logged). Ensure to take restorative downtime to prevent cognitive fatigue and protect sleep quality."
+                }
+
+                Text(
+                    text = aiAnalysisText,
+                    fontSize = 13.5.sp,
+                    color = colors.textPrimary,
+                    lineHeight = 19.sp
+                )
             }
         }
 
@@ -646,7 +720,7 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                                 modifier = Modifier
                                     .background(colors.primary.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
                                     .padding(horizontal = 8.dp, vertical = 4.dp)
-                            ) {
+                                ) {
                                 Text(
                                     text = "Avg ${selectedMinutes / 4}m / wk",
                                     fontSize = 11.sp,

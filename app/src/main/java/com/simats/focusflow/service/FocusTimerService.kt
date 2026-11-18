@@ -472,17 +472,19 @@ class FocusTimerService : Service() {
             cal.add(Calendar.MINUTE, -sessionDuration)
             val startTime = sdf.format(cal.time)
 
+            val targetEnd = SystemClock.elapsedRealtime() + (nextSecs * 1000L)
             _timerStateFlow.update {
                 it.copy(
-                    isRunning = false,
+                    isRunning = true,
                     completedSessions = newCompletedCount,
                     currentMode = nextMode,
                     totalSeconds = nextSecs,
                     remainingSeconds = nextSecs,
-                    targetEndTimeMillis = 0L,
-                    toastMessage = "Focus session logged ($sessionDuration min). Great job!"
+                    targetEndTimeMillis = targetEnd,
+                    toastMessage = "Focus completed! Break started automatically."
                 )
             }
+            startTickerLoop()
 
             val sessionUuid = java.util.UUID.randomUUID().toString()
             serviceScope.launch {

@@ -184,14 +184,14 @@ fun TimerScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = Color(0xFF07060D),
+        containerColor = colors.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color(0xFF07060D))
+                .background(colors.background)
         ) {
             AmbientMeshGlowHeader(height = 260.dp)
 
@@ -229,45 +229,47 @@ fun TimerScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(colors.surface)
-                    .border(1.dp, colors.border, RoundedCornerShape(16.dp))
-                    .padding(4.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                TimerMode.values().forEach { mode ->
-                    val isSelected = state.currentMode == mode
-                    val tabBgColor by animateColorAsState(
-                        targetValue = if (isSelected) colors.primary else Color.Transparent,
-                        label = "tabBg"
-                    )
-                    val tabTextColor by animateColorAsState(
-                        targetValue = if (isSelected) Color.White else colors.textMuted,
-                        label = "tabText"
-                    )
-
-                    Surface(
-                        onClick = { viewModel.selectMode(mode) },
-                        shape = RoundedCornerShape(12.dp),
-                        color = tabBgColor,
+            if (state.currentMode != TimerMode.FOCUS) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color(0xFF10B981).copy(alpha = 0.14f),
+                    border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.4f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
                         modifier = Modifier
-                            .weight(1f)
-                            .height(42.dp)
-                            .bounceClick()
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
+                        Column {
                             Text(
-                                text = "${mode.title} (${state.getDurationMinutes(mode)}m)",
-                                fontSize = 12.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = tabTextColor
+                                text = "Break in Progress",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF10B981)
                             )
+                            Text(
+                                text = "Rest and recharge before next flow interval",
+                                fontSize = 11.5.sp,
+                                color = colors.textMuted
+                            )
+                        }
+                        Button(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                viewModel.skipSession()
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text("Skip Break", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         }
                     }
                 }
+                Spacer(modifier = Modifier.height(14.dp))
             }
 
             Spacer(modifier = Modifier.height(18.dp))
@@ -369,12 +371,7 @@ fun TimerScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            val hairlineBorder = Brush.verticalGradient(
-                listOf(
-                    Color.White.copy(alpha = 0.14f),
-                    Color.White.copy(alpha = 0.03f)
-                )
-            )
+            val hairlineBorder = colors.cardBorderBrush
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -387,7 +384,7 @@ fun TimerScreen(
                         viewModel.resetTimer()
                     },
                     shape = CircleShape,
-                    color = Color(0xFF11101C),
+                    color = colors.surface,
                     border = BorderStroke(1.dp, hairlineBorder),
                     modifier = Modifier
                         .size(54.dp)
@@ -397,7 +394,7 @@ fun TimerScreen(
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = "Reset Timer",
-                            tint = Color(0xFF94A3B8),
+                            tint = colors.textMuted,
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -456,7 +453,7 @@ fun TimerScreen(
                         viewModel.skipSession()
                     },
                     shape = CircleShape,
-                    color = Color(0xFF11101C),
+                    color = colors.surface,
                     border = BorderStroke(1.dp, hairlineBorder),
                     modifier = Modifier
                         .size(54.dp)
@@ -466,7 +463,7 @@ fun TimerScreen(
                         Icon(
                             imageVector = Icons.Default.SkipNext,
                             contentDescription = "Skip Session",
-                            tint = Color(0xFF94A3B8),
+                            tint = colors.textMuted,
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -477,13 +474,13 @@ fun TimerScreen(
 
             Surface(
                 shape = RoundedCornerShape(20.dp),
-                color = Color(0xFF11101C),
+                color = colors.surface,
                 border = BorderStroke(1.dp, hairlineBorder)
             ) {
                 Text(
                     text = "Sessions completed today: ${state.completedSessions}",
                     fontSize = 12.sp,
-                    color = Color(0xFFC4B5FD),
+                    color = if (colors.isDark) Color(0xFFC4B5FD) else colors.primary,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
@@ -504,7 +501,7 @@ fun TimerScreen(
 
             Surface(
                 shape = RoundedCornerShape(20.dp),
-                color = if (isStrictFocus) Color(0xFF16132A) else Color(0xFF11101C),
+                color = if (isStrictFocus) (if (colors.isDark) Color(0xFF16132A) else Color(0xFFF3E8FF)) else colors.surface,
                 border = strictBorder,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -539,7 +536,7 @@ fun TimerScreen(
                             Icon(
                                 imageVector = Icons.Default.Security,
                                 contentDescription = null,
-                                tint = if (isStrictFocus) Color(0xFF10B981) else Color(0xFF94A3B8),
+                                tint = if (isStrictFocus) Color(0xFF10B981) else colors.textMuted,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -550,7 +547,7 @@ fun TimerScreen(
                                     text = "Strict Focus Mode",
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFF1F1F5)
+                                    color = colors.textPrimary
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 if (isStrictFocus) {
@@ -584,7 +581,7 @@ fun TimerScreen(
                             Text(
                                 text = if (isStrictFocus) "App blocker actively shields session" else "Lock out distracting social & game apps",
                                 fontSize = 11.5.sp,
-                                color = Color(0xFF94A3B8)
+                                color = colors.textMuted
                             )
                         }
                     }
@@ -608,8 +605,8 @@ fun TimerScreen(
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = Color.White,
                             checkedTrackColor = Color(0xFF8B5CF6),
-                            uncheckedThumbColor = Color(0xFF94A3B8),
-                            uncheckedTrackColor = Color(0xFF232035)
+                            uncheckedThumbColor = colors.textMuted,
+                            uncheckedTrackColor = colors.border
                         )
                     )
                 }
@@ -1365,7 +1362,7 @@ private fun TimerCountdownDial(
                 )
 
                 if (totalSeconds > 0) {
-                    val currentStartAngle = -90f + if (isRunning) (ringRotation * 0.1f) else 0f
+                    val currentStartAngle = -90f
                     drawArc(
                         brush = sweepBrush,
                         startAngle = currentStartAngle,

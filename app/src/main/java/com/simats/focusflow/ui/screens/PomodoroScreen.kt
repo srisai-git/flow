@@ -204,7 +204,7 @@ fun PomodoroScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF07060D))
+            .background(colors.background)
     ) {
         AmbientMeshGlowHeader(height = 240.dp)
 
@@ -215,12 +215,7 @@ fun PomodoroScreen(
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-        val hairlineBorder = Brush.verticalGradient(
-            listOf(
-                Color.White.copy(alpha = 0.14f),
-                Color.White.copy(alpha = 0.03f)
-            )
-        )
+        val hairlineBorder = colors.cardBorderBrush
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -230,7 +225,7 @@ fun PomodoroScreen(
             Surface(
                 onClick = onNavigateBack,
                 shape = CircleShape,
-                color = Color(0xFF11101C),
+                color = colors.surface,
                 border = BorderStroke(1.dp, hairlineBorder),
                 modifier = Modifier
                     .size(42.dp)
@@ -240,7 +235,7 @@ fun PomodoroScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = Color(0xFFF1F1F5),
+                        tint = colors.textPrimary,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -258,14 +253,14 @@ fun PomodoroScreen(
                     text = "Deep Sprint Timer",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFFF1F1F5)
+                    color = colors.textPrimary
                 )
             }
 
             Surface(
                 onClick = { showInfoModal = true },
                 shape = CircleShape,
-                color = Color(0xFF11101C),
+                color = colors.surface,
                 border = BorderStroke(1.dp, hairlineBorder),
                 modifier = Modifier
                     .size(42.dp)
@@ -286,7 +281,7 @@ fun PomodoroScreen(
 
         Surface(
             shape = RoundedCornerShape(20.dp),
-            color = Color(0xFF11101C),
+            color = colors.surface,
             border = BorderStroke(1.dp, hairlineBorder),
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -305,7 +300,7 @@ fun PomodoroScreen(
                         text = "TASK TAG",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFC4B5FD),
+                        color = if (colors.isDark) Color(0xFFC4B5FD) else colors.primary,
                         letterSpacing = 1.sp
                     )
 
@@ -345,10 +340,10 @@ fun PomodoroScreen(
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             },
                             shape = RoundedCornerShape(14.dp),
-                            color = if (isSelected) tag.color.copy(alpha = 0.20f) else Color(0xFF181628),
+                            color = if (isSelected) tag.color.copy(alpha = 0.20f) else colors.surfaceVariant,
                             border = BorderStroke(
                                 1.5.dp,
-                                if (isSelected) tag.color else Color.White.copy(alpha = 0.05f)
+                                if (isSelected) tag.color else colors.border
                             ),
                             modifier = Modifier.bounceClick()
                         ) {
@@ -367,7 +362,7 @@ fun PomodoroScreen(
                                     text = tag.name,
                                     fontSize = 13.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) Color(0xFFF1F1F5) else Color(0xFF94A3B8)
+                                    color = if (isSelected) colors.textPrimary else colors.textMuted
                                 )
                             }
                         }
@@ -615,7 +610,7 @@ fun PomodoroScreen(
                     isRunning = false
                 },
                 shape = CircleShape,
-                color = Color(0xFF11101C),
+                color = colors.surface,
                 border = BorderStroke(1.dp, hairlineBorder),
                 modifier = Modifier
                     .size(54.dp)
@@ -625,7 +620,7 @@ fun PomodoroScreen(
                     Icon(
                         imageVector = Icons.Default.Refresh,
                         contentDescription = "Reset",
-                        tint = Color(0xFF94A3B8),
+                        tint = colors.textMuted,
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -679,6 +674,24 @@ fun PomodoroScreen(
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     if (currentPhase == PomodoroPhase.POMODORO) {
+                        val elapsedSeconds = totalSeconds - remainingSeconds
+                        if (elapsedSeconds >= 60) {
+                            val activeTag = customTags.firstOrNull { it.id == selectedTagId }?.name ?: "Work"
+                            val elapsedMinutes = (elapsedSeconds / 60).coerceAtLeast(1)
+                            scope.launch(Dispatchers.IO) {
+                                try {
+                                    val sessionMgr = SessionManager.getInstance(context)
+                                    val uId = sessionMgr.userSessionFlow.first().userId ?: 1
+                                    repository.logSession(
+                                        userId = uId,
+                                        durationMinutes = elapsedMinutes,
+                                        sessionType = "pomodoro",
+                                        tag = activeTag,
+                                        status = "completed"
+                                    )
+                                } catch (_: Exception) {}
+                            }
+                        }
                         val nextCount = completedSprints + 1
                         completedSprints = nextCount
                         val nextMode = if (nextCount % 4 == 0) PomodoroPhase.LONG_BREAK else PomodoroPhase.SHORT_BREAK
@@ -694,7 +707,7 @@ fun PomodoroScreen(
                     }
                 },
                 shape = CircleShape,
-                color = Color(0xFF11101C),
+                color = colors.surface,
                 border = BorderStroke(1.dp, hairlineBorder),
                 modifier = Modifier
                     .size(54.dp)
@@ -704,7 +717,7 @@ fun PomodoroScreen(
                     Icon(
                         imageVector = Icons.Default.SkipNext,
                         contentDescription = "Skip",
-                        tint = Color(0xFF94A3B8),
+                        tint = colors.textMuted,
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -715,7 +728,7 @@ fun PomodoroScreen(
 
         Surface(
             shape = RoundedCornerShape(20.dp),
-            color = Color(0xFF11101C),
+            color = colors.surface,
             border = BorderStroke(1.dp, hairlineBorder),
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -731,14 +744,14 @@ fun PomodoroScreen(
                         text = "FOCUS DURATION",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF94A3B8)
+                        color = colors.textMuted
                     )
                     Spacer(modifier = Modifier.height(3.dp))
                     Text(
                         text = "${currentPhase.minutes} min",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFF1F1F5)
+                        color = colors.textPrimary
                     )
                 }
 
@@ -746,7 +759,7 @@ fun PomodoroScreen(
                     modifier = Modifier
                         .width(1.dp)
                         .height(32.dp)
-                        .background(Color.White.copy(alpha = 0.08f))
+                        .background(colors.border)
                 )
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -754,14 +767,14 @@ fun PomodoroScreen(
                         text = "SHORT BREAK",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF94A3B8)
+                        color = colors.textMuted
                     )
                     Spacer(modifier = Modifier.height(3.dp))
                     Text(
                         text = "5 min",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFF1F1F5)
+                        color = colors.textPrimary
                     )
                 }
 
@@ -769,7 +782,7 @@ fun PomodoroScreen(
                     modifier = Modifier
                         .width(1.dp)
                         .height(32.dp)
-                        .background(Color.White.copy(alpha = 0.08f))
+                        .background(colors.border)
                 )
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -777,7 +790,7 @@ fun PomodoroScreen(
                         text = "COMPLETED",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF94A3B8)
+                        color = colors.textMuted
                     )
                     Spacer(modifier = Modifier.height(3.dp))
                     Text(
@@ -797,7 +810,7 @@ fun PomodoroScreen(
     if (showInfoModal) {
         ModalBottomSheet(
             onDismissRequest = { showInfoModal = false },
-            containerColor = Color(0xFF11101C),
+            containerColor = colors.surface,
             scrimColor = Color.Black.copy(alpha = 0.65f),
             shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
             dragHandle = {
@@ -807,7 +820,7 @@ fun PomodoroScreen(
                         .width(44.dp)
                         .height(4.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF232035))
+                        .background(colors.border)
                 )
             }
         ) {
@@ -836,7 +849,7 @@ fun PomodoroScreen(
                         text = "How Pomodoro Works",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFF1F1F5)
+                        color = colors.textPrimary
                     )
                 }
 
@@ -849,8 +862,8 @@ fun PomodoroScreen(
                 ).forEach { (stepTitle, stepDesc) ->
                     Surface(
                         shape = RoundedCornerShape(14.dp),
-                        color = Color(0xFF181628),
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f)),
+                        color = colors.surfaceVariant,
+                        border = BorderStroke(1.dp, colors.border),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 6.dp)
@@ -860,13 +873,13 @@ fun PomodoroScreen(
                                 text = stepTitle,
                                 fontSize = 13.5.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFFC4B5FD)
+                                color = if (colors.isDark) Color(0xFFC4B5FD) else colors.primary
                             )
                             Spacer(modifier = Modifier.height(3.dp))
                             Text(
                                 text = stepDesc,
                                 fontSize = 12.sp,
-                                color = Color(0xFF94A3B8),
+                                color = colors.textMuted,
                                 lineHeight = 16.sp
                             )
                         }

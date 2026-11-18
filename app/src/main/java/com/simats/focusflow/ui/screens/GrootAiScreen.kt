@@ -128,8 +128,8 @@ fun GrootAiScreen(
                     Surface(
                         onClick = onBack,
                         shape = CircleShape,
-                        color = Color(0xFF181628),
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+                        color = colors.surfaceVariant,
+                        border = BorderStroke(1.dp, colors.border),
                         modifier = Modifier
                             .size(38.dp)
                             .bounceClick()
@@ -138,7 +138,7 @@ fun GrootAiScreen(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Back",
-                                tint = Color(0xFFF1F1F5),
+                                tint = colors.textPrimary,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -201,8 +201,8 @@ fun GrootAiScreen(
                     Surface(
                         onClick = { viewModel.clearChat() },
                         shape = CircleShape,
-                        color = Color(0xFF181628),
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+                        color = colors.surfaceVariant,
+                        border = BorderStroke(1.dp, colors.border),
                         modifier = Modifier
                             .size(38.dp)
                             .bounceClick()
@@ -211,7 +211,7 @@ fun GrootAiScreen(
                             Icon(
                                 imageVector = Icons.Outlined.DeleteSweep,
                                 contentDescription = "Clear Chat",
-                                tint = Color(0xFF94A3B8),
+                                tint = colors.textMuted,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -220,13 +220,6 @@ fun GrootAiScreen(
             }
         },
         bottomBar = {
-            val hairlineBorder = Brush.verticalGradient(
-                listOf(
-                    Color.White.copy(alpha = 0.16f),
-                    Color.White.copy(alpha = 0.04f)
-                )
-            )
-
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -236,8 +229,8 @@ fun GrootAiScreen(
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(26.dp),
-                    color = Color(0xF211101C),
-                    border = BorderStroke(1.dp, hairlineBorder)
+                    color = if (colors.isDark) Color(0xF211101C) else colors.surface.copy(alpha = 0.95f),
+                    border = BorderStroke(1.dp, colors.cardBorderBrush)
                 ) {
                     Column(
                         modifier = Modifier
@@ -252,8 +245,8 @@ fun GrootAiScreen(
                                 Surface(
                                     onClick = { viewModel.sendMessage(item.label) },
                                     shape = RoundedCornerShape(12.dp),
-                                    color = Color(0xFF181628),
-                                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.06f)),
+                                    color = colors.surfaceVariant,
+                                    border = BorderStroke(1.dp, colors.border),
                                     modifier = Modifier.bounceClick(),
                                     enabled = !state.isAiThinking
                                 ) {
@@ -269,7 +262,7 @@ fun GrootAiScreen(
                                                 else -> Icons.Outlined.Star
                                             },
                                             contentDescription = null,
-                                            tint = Color(0xFFC4B5FD),
+                                            tint = if (colors.isDark) Color(0xFFC4B5FD) else colors.primary,
                                             modifier = Modifier.size(12.dp)
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
@@ -277,7 +270,7 @@ fun GrootAiScreen(
                                             text = item.label,
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Medium,
-                                            color = Color(0xFFF1F1F5)
+                                            color = colors.textPrimary
                                         )
                                     }
                                 }
@@ -297,7 +290,7 @@ fun GrootAiScreen(
                                     Text(
                                         text = "Ask Groot anything or command actions...",
                                         fontSize = 13.sp,
-                                        color = Color(0xFF94A3B8)
+                                        color = colors.textMuted
                                     )
                                 },
                                 modifier = Modifier
@@ -311,8 +304,8 @@ fun GrootAiScreen(
                                     unfocusedBorderColor = Color.Transparent,
                                     focusedContainerColor = Color.Transparent,
                                     unfocusedContainerColor = Color.Transparent,
-                                    focusedTextColor = Color(0xFFF1F1F5),
-                                    unfocusedTextColor = Color(0xFFF1F1F5)
+                                    focusedTextColor = colors.textPrimary,
+                                    unfocusedTextColor = colors.textPrimary
                                 ),
                                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
                                 keyboardActions = KeyboardActions(onSend = { viewModel.sendMessage() })
@@ -329,7 +322,7 @@ fun GrootAiScreen(
                                         if (state.inputText.isNotBlank() && !state.isAiThinking)
                                             Brush.linearGradient(listOf(Color(0xFF8B5CF6), Color(0xFF6366F1)))
                                         else
-                                            Brush.linearGradient(listOf(Color(0xFF232035), Color(0xFF232035)))
+                                            Brush.linearGradient(listOf(colors.surfaceVariant, colors.surfaceVariant))
                                     )
                                     .bounceClick(),
                                 enabled = state.inputText.isNotBlank() && !state.isAiThinking
@@ -337,7 +330,7 @@ fun GrootAiScreen(
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.Send,
                                     contentDescription = "Send",
-                                    tint = if (state.inputText.isNotBlank() && !state.isAiThinking) Color.White else Color(0xFF94A3B8),
+                                    tint = if (state.inputText.isNotBlank() && !state.isAiThinking) Color.White else colors.textMuted,
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -734,7 +727,7 @@ fun MarkdownChatMessage(
                     Spacer(modifier = Modifier.height(6.dp))
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFF0D0B18),
+                        color = if (colors.isDark) Color(0xFF0D0B18) else Color(0xFFF1F5F9),
                         border = BorderStroke(1.dp, colors.border.copy(alpha = 0.6f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -753,7 +746,7 @@ fun MarkdownChatMessage(
                             Text(
                                 text = part.code,
                                 fontSize = 12.5.sp,
-                                color = Color(0xFFE2E8F0),
+                                color = if (colors.isDark) Color(0xFFE2E8F0) else Color(0xFF0F172A),
                                 fontFamily = FontFamily.Monospace,
                                 lineHeight = 18.sp
                             )

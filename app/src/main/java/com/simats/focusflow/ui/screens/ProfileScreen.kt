@@ -145,14 +145,14 @@ fun ProfileScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = Color(0xFF07060D),
+        containerColor = colors.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color(0xFF07060D))
+                .background(colors.background)
         ) {
             AmbientMeshGlowHeader(height = 260.dp)
 
@@ -184,7 +184,7 @@ fun ProfileScreen(
             Surface(
                 onClick = onNavigateToEditProfile,
                 shape = RoundedCornerShape(20.dp),
-                color = Color(0xFF11101C),
+                color = colors.surface,
                 border = BorderStroke(1.dp, colors.cardBorderBrush),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -197,9 +197,7 @@ fun ProfileScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
-                        modifier = Modifier
-                            .size(76.dp)
-                            .clip(CircleShape),
+                        modifier = Modifier.size(78.dp),
                         contentAlignment = Alignment.BottomEnd
                     ) {
                         Box(
@@ -546,7 +544,7 @@ fun ProfileScreen(
                 },
                 text = {
                     Text(
-                        text = "Your local session will be terminated and you will return to the sign in screen.",
+                        text = "You will be logged out of your Focusflow account. However this doesn't affect your logged data.",
                         fontSize = 13.sp,
                         color = colors.textMuted
                     )
@@ -1449,7 +1447,7 @@ private fun StatSummaryCard(
         onClick = onClick,
         modifier = modifier.bounceClick(),
         shape = RoundedCornerShape(16.dp),
-        color = Color(0xFF11101C),
+        color = colors.surface,
         border = BorderStroke(1.dp, colors.cardBorderBrush)
     ) {
         Column(

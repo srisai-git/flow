@@ -30,27 +30,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.simats.focusflow.R
 import com.simats.focusflow.ui.components.bounceClick
-
-private val CanvasDark = Color(0xFF0F0F14)
-private val CardDark = Color(0xFF181722)
-private val BorderDark = Color(0xFF262433)
-private val VioletPrimary = Color(0xFF8B5CF6)
-private val VioletLight = Color(0xFFC4B5FD)
-private val TextWhite = Color(0xFFF1F1F5)
-private val TextMuted = Color(0xFF9CA3AF)
+import com.simats.focusflow.ui.theme.FocusFlowTheme
 
 @Composable
 fun AboutFlowScreen(
     onBack: () -> Unit = {}
 ) {
+    val colors = FocusFlowTheme.colors
+
     Scaffold(
-        containerColor = CanvasDark
+        containerColor = colors.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(CanvasDark)
+                .background(colors.background)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
         ) {
@@ -65,14 +60,14 @@ fun AboutFlowScreen(
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
-                        .background(CardDark)
-                        .border(1.dp, BorderDark, CircleShape)
+                        .background(colors.surface)
+                        .border(1.dp, colors.border, CircleShape)
                         .bounceClick()
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = TextWhite,
+                        tint = colors.textPrimary,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -84,14 +79,14 @@ fun AboutFlowScreen(
                         text = "ABOUT FOCUSFLOW",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = VioletLight,
+                        color = colors.primaryLight,
                         letterSpacing = 1.5.sp
                     )
                     Text(
                         text = "Architecture & Engine",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextWhite
+                        color = colors.textPrimary
                     )
                 }
             }
@@ -101,8 +96,8 @@ fun AboutFlowScreen(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                color = CardDark,
-                border = BorderStroke(1.dp, BorderDark)
+                color = colors.surface,
+                border = BorderStroke(1.dp, colors.border)
             ) {
                 Column(
                     modifier = Modifier
@@ -114,8 +109,8 @@ fun AboutFlowScreen(
                         modifier = Modifier
                             .size(76.dp)
                             .clip(CircleShape)
-                            .background(VioletPrimary.copy(alpha = 0.18f))
-                            .border(1.5.dp, VioletPrimary.copy(alpha = 0.5f), CircleShape),
+                            .background(colors.primary.copy(alpha = 0.18f))
+                            .border(1.5.dp, colors.primary.copy(alpha = 0.5f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Image(
@@ -131,7 +126,7 @@ fun AboutFlowScreen(
                         text = "FOCUSFLOW",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = TextWhite,
+                        color = colors.textPrimary,
                         letterSpacing = 2.sp
                     )
 
@@ -139,14 +134,14 @@ fun AboutFlowScreen(
 
                     Surface(
                         shape = RoundedCornerShape(20.dp),
-                        color = VioletPrimary.copy(alpha = 0.15f),
-                        border = BorderStroke(1.dp, VioletPrimary.copy(alpha = 0.35f))
+                        color = colors.primary.copy(alpha = 0.15f),
+                        border = BorderStroke(1.dp, colors.primary.copy(alpha = 0.35f))
                     ) {
                         Text(
                             text = "Version 1.0.0 (Production)",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = VioletLight,
+                            color = colors.primaryLight,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
                         )
                     }
@@ -156,7 +151,7 @@ fun AboutFlowScreen(
                     Text(
                         text = "Mindful, distraction-free productivity engine designed for deep work sessions and deliberate habit formation.",
                         fontSize = 13.sp,
-                        color = TextMuted,
+                        color = colors.textMuted,
                         lineHeight = 19.sp,
                         modifier = Modifier.padding(horizontal = 8.dp)
                     )
@@ -184,15 +179,15 @@ fun AboutFlowScreen(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
-                color = CardDark,
-                border = BorderStroke(1.dp, BorderDark)
+                color = colors.surface,
+                border = BorderStroke(1.dp, colors.border)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Default.Code,
                             contentDescription = null,
-                            tint = VioletLight,
+                            tint = colors.primaryLight,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
@@ -200,7 +195,7 @@ fun AboutFlowScreen(
                             text = "Technology Stack",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextWhite
+                            color = colors.textPrimary
                         )
                     }
 
@@ -228,8 +223,8 @@ fun AboutFlowScreen(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
-                color = CardDark,
-                border = BorderStroke(1.dp, VioletPrimary.copy(alpha = 0.45f))
+                color = colors.surface,
+                border = BorderStroke(1.dp, colors.primary.copy(alpha = 0.45f))
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -237,13 +232,13 @@ fun AboutFlowScreen(
                             modifier = Modifier
                                 .size(36.dp)
                                 .clip(CircleShape)
-                                .background(VioletPrimary.copy(alpha = 0.18f)),
+                                .background(colors.primary.copy(alpha = 0.18f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.AutoAwesome,
                                 contentDescription = null,
-                                tint = VioletLight,
+                                tint = colors.primaryLight,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -252,7 +247,7 @@ fun AboutFlowScreen(
                             text = "About Groot AI",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextWhite
+                            color = colors.textPrimary
                         )
                     }
 
@@ -261,7 +256,7 @@ fun AboutFlowScreen(
                     Text(
                         text = "Groot is FocusFlow's native AI companion, named after the resilient and loyal guardian from Guardians of the Galaxy. Groot symbolizes steady growth, grounded focus, and quiet strength.\n\nBuilt exclusively for deliberate productivity, Groot guides your mindful focus intervals, tracks habit streaks, analyzes digital distractions, and automates in-app actions without unneeded digital noise.",
                         fontSize = 13.5.sp,
-                        color = TextMuted,
+                        color = colors.textMuted,
                         lineHeight = 20.sp
                     )
                 }
@@ -278,18 +273,19 @@ private fun InfoSectionCard(
     title: String,
     content: String
 ) {
+    val colors = FocusFlowTheme.colors
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
-        color = CardDark,
-        border = BorderStroke(1.dp, BorderDark)
+        color = colors.surface,
+        border = BorderStroke(1.dp, colors.border)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = VioletLight,
+                    tint = colors.primaryLight,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
@@ -297,14 +293,14 @@ private fun InfoSectionCard(
                     text = title,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextWhite
+                    color = colors.textPrimary
                 )
             }
             Spacer(modifier = Modifier.height(10.dp))
             Text(
                 text = content,
                 fontSize = 13.sp,
-                color = TextMuted,
+                color = colors.textMuted,
                 lineHeight = 19.sp
             )
         }
@@ -316,6 +312,7 @@ private fun TechSpecItem(
     label: String,
     value: String
 ) {
+    val colors = FocusFlowTheme.colors
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -326,13 +323,13 @@ private fun TechSpecItem(
         Text(
             text = label,
             fontSize = 13.sp,
-            color = TextMuted,
+            color = colors.textMuted,
             fontWeight = FontWeight.Medium
         )
         Text(
             text = value,
             fontSize = 13.sp,
-            color = TextWhite,
+            color = colors.textPrimary,
             fontWeight = FontWeight.SemiBold
         )
     }

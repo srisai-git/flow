@@ -106,7 +106,7 @@ fun TasksScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color(0xFF07060D))
+                .background(colors.background)
         ) {
             AmbientMeshGlowHeader(height = 240.dp)
 
@@ -341,19 +341,14 @@ private fun TaskItemCard(
         else -> Color(0xFF10B981)
     }
 
-    val hairlineBorder = Brush.verticalGradient(
-        listOf(
-            Color.White.copy(alpha = 0.14f),
-            Color.White.copy(alpha = 0.03f)
-        )
-    )
+    val hairlineBorder = colors.cardBorderBrush
 
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .bounceClick(),
         shape = RoundedCornerShape(18.dp),
-        color = Color(0xFF11101C),
+        color = colors.surface,
         border = BorderStroke(1.dp, hairlineBorder)
     ) {
         Row(
@@ -367,7 +362,7 @@ private fun TaskItemCard(
                 onCheckedChange = { onToggle() },
                 colors = CheckboxDefaults.colors(
                     checkedColor = Color(0xFF8B5CF6),
-                    uncheckedColor = Color(0xFF94A3B8),
+                    uncheckedColor = colors.textMuted,
                     checkmarkColor = Color.White
                 )
             )
@@ -379,7 +374,7 @@ private fun TaskItemCard(
                     text = task.title,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (task.isCompleted) Color(0xFF94A3B8) else Color(0xFFF1F1F5),
+                    color = if (task.isCompleted) colors.textMuted else colors.textPrimary,
                     textDecoration = if (task.isCompleted) TextDecoration.LineThrough else TextDecoration.None
                 )
 
@@ -388,7 +383,7 @@ private fun TaskItemCard(
                     Text(
                         text = task.description,
                         fontSize = 12.sp,
-                        color = Color(0xFF94A3B8),
+                        color = colors.textMuted,
                         maxLines = 2
                     )
                 }
@@ -411,7 +406,7 @@ private fun TaskItemCard(
                             Text(
                                 text = task.category,
                                 fontSize = 10.5.sp,
-                                color = Color(0xFFC4B5FD),
+                                color = if (colors.isDark) Color(0xFFC4B5FD) else colors.primary,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -421,22 +416,22 @@ private fun TaskItemCard(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFF181628))
-                                .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(8.dp))
+                                .background(colors.surfaceVariant)
+                                .border(1.dp, colors.border, RoundedCornerShape(8.dp))
                                 .padding(horizontal = 8.dp, vertical = 3.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     imageVector = Icons.Default.DateRange,
                                     contentDescription = null,
-                                    tint = Color(0xFF94A3B8),
+                                    tint = colors.textMuted,
                                     modifier = Modifier.size(11.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = task.dueDate,
                                     fontSize = 10.5.sp,
-                                    color = Color(0xFF94A3B8),
+                                    color = colors.textMuted,
                                     fontWeight = FontWeight.Medium
                                 )
                             }

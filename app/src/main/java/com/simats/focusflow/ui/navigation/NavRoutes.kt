@@ -18,8 +18,8 @@ sealed class Screen(
 ) {
     object Home : Screen("home", "Home", Icons.Outlined.Home)
     object Dashboard : Screen("home", "Home", Icons.Outlined.Home)
-    object Activities : Screen("activities", "Activities", Icons.Outlined.Checklist)
-    object Timer : Screen("timer", "Timer", Icons.Outlined.Timer)
+    object Activities : Screen("activities", "Tasks", Icons.Outlined.Checklist)
+    object Timer : Screen("timer", "Focus", Icons.Outlined.Timer)
     object Insights : Screen("insights", "Insights", Icons.Outlined.Insights)
     object Profile : Screen("profile", "Profile", Icons.Outlined.Person)
 
@@ -29,7 +29,7 @@ sealed class Screen(
 
     companion object {
         val bottomNavScreens: List<Screen> by lazy {
-            listOfNotNull(Home, Activities, Timer, Insights, Profile)
+            listOfNotNull(Home, Timer, Activities, Profile)
         }
 
         fun isMainScreen(route: String?): Boolean {

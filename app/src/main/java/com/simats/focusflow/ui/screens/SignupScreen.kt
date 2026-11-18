@@ -1,8 +1,11 @@
 package com.simats.focusflow.ui.screens
 
+import android.os.Build
+import android.view.View
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -24,10 +27,10 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -39,33 +42,30 @@ import com.simats.focusflow.R
 import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.ui.components.CustomTopBar
 import com.simats.focusflow.ui.components.bounceClick
-import com.simats.focusflow.ui.theme.DarkBackground
-import com.simats.focusflow.ui.theme.DarkBorder
-import com.simats.focusflow.ui.theme.DarkPrimary
-import com.simats.focusflow.ui.theme.DarkPrimaryLight
-import com.simats.focusflow.ui.theme.DarkSurface
-import com.simats.focusflow.ui.theme.DarkSurfaceVariant
-import com.simats.focusflow.ui.theme.DarkTextMuted
-import com.simats.focusflow.ui.theme.DarkTextPrimary
-import com.simats.focusflow.ui.theme.SuccessGreen
-import com.simats.focusflow.ui.viewmodel.AuthUiState
 import com.simats.focusflow.ui.viewmodel.AuthViewModel
 import com.simats.focusflow.utils.AuthValidator
-
-
 
 @Composable
 fun SignupScreen(
     onBack: () -> Unit = {},
-    onNavigateToLogin: () -> Unit = {},
-    onLogin: () -> Unit = onNavigateToLogin,
-    onSignupSuccess: (userId: Int) -> Unit = {},
     onContinue: () -> Unit = {},
+    onSignupSuccess: (userId: Int) -> Unit = {},
+    onNavigateToLogin: () -> Unit = {},
     viewModel: AuthViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val sessionManager = remember { SessionManager.getInstance(context) }
+
+    val view = LocalView.current
+    DisposableEffect(view) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            view.importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
+        }
+        onDispose {}
+    }
+
     LaunchedEffect(Unit) {
-        viewModel.initSessionManager(SessionManager.getInstance(context))
+        viewModel.initSessionManager(context, sessionManager)
     }
 
     var name by remember { mutableStateOf("") }
@@ -104,13 +104,13 @@ fun SignupScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = DarkBackground
+        containerColor = Color.White
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(DarkBackground)
+                .background(Color.White)
                 .padding(horizontal = 20.dp)
                 .imePadding()
                 .verticalScroll(rememberScrollState())
@@ -120,7 +120,7 @@ fun SignupScreen(
             CustomTopBar(
                 title = "Create Account",
                 onBack = onBack,
-                titleColor = DarkTextPrimary
+                titleColor = Color(0xFF0F172A)
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -130,7 +130,8 @@ fun SignupScreen(
                     modifier = Modifier
                         .size(42.dp)
                         .clip(CircleShape)
-                        .background(DarkSurfaceVariant),
+                        .background(Color(0xFFF1F5F9))
+                        .border(1.dp, Color(0xFFE2E8F0), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
@@ -145,12 +146,12 @@ fun SignupScreen(
                         text = "FocusFlow",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = DarkTextPrimary
+                        color = Color(0xFF0F172A)
                     )
                     Text(
-                        text = "Deep work and mindful habits",
+                        text = "Start your intentional routine today",
                         fontSize = 12.sp,
-                        color = DarkTextMuted
+                        color = Color(0xFF64748B)
                     )
                 }
             }
@@ -158,9 +159,9 @@ fun SignupScreen(
             Spacer(modifier = Modifier.height(14.dp))
 
             Text(
-                text = "Join mindful achievers building focused work habits.",
+                text = "Join thousands of builders cultivating authentic focus daily.",
                 fontSize = 14.sp,
-                color = DarkTextMuted,
+                color = Color(0xFF64748B),
                 lineHeight = 20.sp
             )
 
@@ -171,9 +172,9 @@ fun SignupScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 16.dp),
-                    color = Color(0xFF2A1519),
+                    color = Color(0xFFFEF2F2),
                     shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.5f))
+                    border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.4f))
                 ) {
                     Row(
                         modifier = Modifier
@@ -184,20 +185,20 @@ fun SignupScreen(
                         Icon(
                             imageVector = Icons.Default.Warning,
                             contentDescription = null,
-                            tint = Color(0xFFEF4444),
+                            tint = Color(0xFFDC2626),
                             modifier = Modifier.padding(end = 10.dp).size(18.dp)
                         )
                         Text(
                             text = uiState.errorMessage ?: "",
                             fontSize = 13.sp,
-                            color = Color(0xFFFCA5A5),
+                            color = Color(0xFFB91C1C),
                             fontWeight = FontWeight.Medium,
                             modifier = Modifier.weight(1f)
                         )
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Clear",
-                            tint = Color(0xFFFCA5A5),
+                            tint = Color(0xFFDC2626),
                             modifier = Modifier
                                 .clickable { viewModel.clearError() }
                                 .padding(start = 8.dp)
@@ -210,8 +211,8 @@ fun SignupScreen(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                color = DarkSurface,
-                border = BorderStroke(1.dp, DarkBorder)
+                color = Color(0xFFF8FAFC),
+                border = BorderStroke(1.dp, Color(0xFFE2E8F0))
             ) {
                 Column(
                     modifier = Modifier
@@ -219,9 +220,9 @@ fun SignupScreen(
                         .padding(20.dp)
                 ) {
                     Text(
-                        text = "Full Name",
+                        text = "Your Full Name",
                         fontSize = 13.sp,
-                        color = DarkTextMuted,
+                        color = Color(0xFF475569),
                         fontWeight = FontWeight.Medium
                     )
                     Spacer(modifier = Modifier.height(6.dp))
@@ -231,54 +232,47 @@ fun SignupScreen(
                             name = it
                             if (uiState.errorMessage != null) viewModel.clearError()
                         },
-                        placeholder = { Text("e.g. Alex Morgan", color = DarkTextMuted, fontSize = 14.sp) },
+                        placeholder = { Text("e.g. Alex Morgan", color = Color(0xFF94A3B8), fontSize = 14.sp) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .defaultMinSize(minHeight = 48.dp),
                         shape = RoundedCornerShape(12.dp),
                         isError = hasAttemptedSubmit && (name.isBlank() || !isNameValid),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color(0xFFF1F1F5),
-                            unfocusedTextColor = Color(0xFFF1F1F5),
-                            errorTextColor = Color(0xFFF1F1F5),
-                            cursorColor = Color(0xFF8B5CF6),
-                            errorCursorColor = Color(0xFFEF4444),
-                            focusedContainerColor = Color(0xFF181722),
-                            unfocusedContainerColor = Color(0xFF181722),
-                            errorContainerColor = Color(0xFF181722),
-                            focusedBorderColor = Color(0xFF8B5CF6),
-                            unfocusedBorderColor = Color(0xFF262433),
-                            errorBorderColor = Color(0xFFEF4444)
+                            focusedTextColor = Color(0xFF0F172A),
+                            unfocusedTextColor = Color(0xFF0F172A),
+                            errorTextColor = Color(0xFF0F172A),
+                            cursorColor = Color(0xFF7C3AED),
+                            errorCursorColor = Color(0xFFDC2626),
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            errorContainerColor = Color.White,
+                            focusedBorderColor = Color(0xFF7C3AED),
+                            unfocusedBorderColor = Color(0xFFCBD5E1),
+                            errorBorderColor = Color(0xFFDC2626)
                         ),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(
-                            capitalization = KeyboardCapitalization.Words,
+                            keyboardType = KeyboardType.Text,
                             imeAction = ImeAction.Next
                         ),
-                        trailingIcon = {
-                            if (name.isNotBlank() && isNameValid) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = "Valid name",
-                                    tint = SuccessGreen,
-                                    modifier = Modifier.padding(end = 12.dp).size(18.dp)
-                                )
-                            }
-                        }
+                        keyboardActions = KeyboardActions(
+                            onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                        )
                     )
                     if (hasAttemptedSubmit && name.isBlank()) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Full name is required",
+                            text = "Name is required",
                             fontSize = 12.sp,
-                            color = Color(0xFFEF4444)
+                            color = Color(0xFFDC2626)
                         )
-                    } else if (!isNameValid) {
+                    } else if (hasAttemptedSubmit && !isNameValid) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Name must be at least 2 characters long",
+                            text = "Name must be at least 2 characters",
                             fontSize = 12.sp,
-                            color = Color(0xFFEF4444)
+                            color = Color(0xFFDC2626)
                         )
                     }
 
@@ -287,7 +281,7 @@ fun SignupScreen(
                     Text(
                         text = "Email Address",
                         fontSize = 13.sp,
-                        color = DarkTextMuted,
+                        color = Color(0xFF475569),
                         fontWeight = FontWeight.Medium
                     )
                     Spacer(modifier = Modifier.height(6.dp))
@@ -297,24 +291,24 @@ fun SignupScreen(
                             email = it
                             if (uiState.errorMessage != null) viewModel.clearError()
                         },
-                        placeholder = { Text("you@example.com", color = DarkTextMuted, fontSize = 14.sp) },
+                        placeholder = { Text("you@example.com", color = Color(0xFF94A3B8), fontSize = 14.sp) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .defaultMinSize(minHeight = 48.dp),
                         shape = RoundedCornerShape(12.dp),
                         isError = hasAttemptedSubmit && (email.isBlank() || !isEmailValid),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color(0xFFF1F1F5),
-                            unfocusedTextColor = Color(0xFFF1F1F5),
-                            errorTextColor = Color(0xFFF1F1F5),
-                            cursorColor = Color(0xFF8B5CF6),
-                            errorCursorColor = Color(0xFFEF4444),
-                            focusedContainerColor = Color(0xFF181722),
-                            unfocusedContainerColor = Color(0xFF181722),
-                            errorContainerColor = Color(0xFF181722),
-                            focusedBorderColor = Color(0xFF8B5CF6),
-                            unfocusedBorderColor = Color(0xFF262433),
-                            errorBorderColor = Color(0xFFEF4444)
+                            focusedTextColor = Color(0xFF0F172A),
+                            unfocusedTextColor = Color(0xFF0F172A),
+                            errorTextColor = Color(0xFF0F172A),
+                            cursorColor = Color(0xFF7C3AED),
+                            errorCursorColor = Color(0xFFDC2626),
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            errorContainerColor = Color.White,
+                            focusedBorderColor = Color(0xFF7C3AED),
+                            unfocusedBorderColor = Color(0xFFCBD5E1),
+                            errorBorderColor = Color(0xFFDC2626)
                         ),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(
@@ -326,7 +320,7 @@ fun SignupScreen(
                                 Icon(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = "Valid email",
-                                    tint = SuccessGreen,
+                                    tint = Color(0xFF10B981),
                                     modifier = Modifier.padding(end = 12.dp).size(18.dp)
                                 )
                             }
@@ -337,14 +331,14 @@ fun SignupScreen(
                         Text(
                             text = "Email address is required",
                             fontSize = 12.sp,
-                            color = Color(0xFFEF4444)
+                            color = Color(0xFFDC2626)
                         )
-                    } else if (!isEmailValid) {
+                    } else if (hasAttemptedSubmit && !isEmailValid) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = AuthValidator.INVALID_EMAIL_MESSAGE,
                             fontSize = 12.sp,
-                            color = Color(0xFFEF4444)
+                            color = Color(0xFFDC2626)
                         )
                     }
 
@@ -353,7 +347,7 @@ fun SignupScreen(
                     Text(
                         text = "Password",
                         fontSize = 13.sp,
-                        color = DarkTextMuted,
+                        color = Color(0xFF475569),
                         fontWeight = FontWeight.Medium
                     )
                     Spacer(modifier = Modifier.height(6.dp))
@@ -363,29 +357,30 @@ fun SignupScreen(
                             password = it
                             if (uiState.errorMessage != null) viewModel.clearError()
                         },
-                        placeholder = { Text("e.g. FlowFocus#2026!", color = DarkTextMuted, fontSize = 14.sp) },
+                        placeholder = { Text("At least 6 characters", color = Color(0xFF94A3B8), fontSize = 14.sp) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .defaultMinSize(minHeight = 48.dp),
                         shape = RoundedCornerShape(12.dp),
                         isError = hasAttemptedSubmit && (password.isBlank() || !isPasswordValid),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color(0xFFF1F1F5),
-                            unfocusedTextColor = Color(0xFFF1F1F5),
-                            errorTextColor = Color(0xFFF1F1F5),
-                            cursorColor = Color(0xFF8B5CF6),
-                            errorCursorColor = Color(0xFFEF4444),
-                            focusedContainerColor = Color(0xFF181722),
-                            unfocusedContainerColor = Color(0xFF181722),
-                            errorContainerColor = Color(0xFF181722),
-                            focusedBorderColor = Color(0xFF8B5CF6),
-                            unfocusedBorderColor = Color(0xFF262433),
-                            errorBorderColor = Color(0xFFEF4444)
+                            focusedTextColor = Color(0xFF0F172A),
+                            unfocusedTextColor = Color(0xFF0F172A),
+                            errorTextColor = Color(0xFF0F172A),
+                            cursorColor = Color(0xFF7C3AED),
+                            errorCursorColor = Color(0xFFDC2626),
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            errorContainerColor = Color.White,
+                            focusedBorderColor = Color(0xFF7C3AED),
+                            unfocusedBorderColor = Color(0xFFCBD5E1),
+                            errorBorderColor = Color(0xFFDC2626)
                         ),
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Password,
-                            imeAction = ImeAction.Next
+                            imeAction = ImeAction.Next,
+                            autoCorrectEnabled = false
                         ),
                         keyboardActions = KeyboardActions(
                             onNext = { focusManager.moveFocus(FocusDirection.Down) }
@@ -400,13 +395,13 @@ fun SignupScreen(
                                     Icon(
                                         imageVector = Icons.Default.Check,
                                         contentDescription = null,
-                                        tint = SuccessGreen,
+                                        tint = Color(0xFF10B981),
                                         modifier = Modifier.padding(end = 8.dp).size(16.dp)
                                     )
                                 }
                                 Text(
                                     text = if (passwordVisible) "Hide" else "Show",
-                                    color = DarkPrimaryLight,
+                                    color = Color(0xFF7C3AED),
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.clickable { passwordVisible = !passwordVisible }
@@ -419,14 +414,14 @@ fun SignupScreen(
                         Text(
                             text = "Password is required",
                             fontSize = 12.sp,
-                            color = Color(0xFFEF4444)
+                            color = Color(0xFFDC2626)
                         )
-                    } else if (!isPasswordValid) {
+                    } else if (hasAttemptedSubmit && !isPasswordValid) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Password must be at least 6 characters",
                             fontSize = 12.sp,
-                            color = Color(0xFFEF4444)
+                            color = Color(0xFFDC2626)
                         )
                     }
 
@@ -435,7 +430,7 @@ fun SignupScreen(
                     Text(
                         text = "Confirm Password",
                         fontSize = 13.sp,
-                        color = DarkTextMuted,
+                        color = Color(0xFF475569),
                         fontWeight = FontWeight.Medium
                     )
                     Spacer(modifier = Modifier.height(6.dp))
@@ -445,35 +440,43 @@ fun SignupScreen(
                             confirmPassword = it
                             if (uiState.errorMessage != null) viewModel.clearError()
                         },
-                        placeholder = { Text("Re-enter your password", color = DarkTextMuted, fontSize = 14.sp) },
+                        placeholder = { Text("Re-enter your password", color = Color(0xFF94A3B8), fontSize = 14.sp) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .defaultMinSize(minHeight = 48.dp),
                         shape = RoundedCornerShape(12.dp),
                         isError = hasAttemptedSubmit && (confirmPassword.isBlank() || !passwordsMatch),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color(0xFFF1F1F5),
-                            unfocusedTextColor = Color(0xFFF1F1F5),
-                            errorTextColor = Color(0xFFF1F1F5),
-                            cursorColor = Color(0xFF8B5CF6),
-                            errorCursorColor = Color(0xFFEF4444),
-                            focusedContainerColor = Color(0xFF181722),
-                            unfocusedContainerColor = Color(0xFF181722),
-                            errorContainerColor = Color(0xFF181722),
-                            focusedBorderColor = Color(0xFF8B5CF6),
-                            unfocusedBorderColor = Color(0xFF262433),
-                            errorBorderColor = Color(0xFFEF4444)
+                            focusedTextColor = Color(0xFF0F172A),
+                            unfocusedTextColor = Color(0xFF0F172A),
+                            errorTextColor = Color(0xFF0F172A),
+                            cursorColor = Color(0xFF7C3AED),
+                            errorCursorColor = Color(0xFFDC2626),
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            errorContainerColor = Color.White,
+                            focusedBorderColor = Color(0xFF7C3AED),
+                            unfocusedBorderColor = Color(0xFFCBD5E1),
+                            errorBorderColor = Color(0xFFDC2626)
                         ),
                         visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Password,
-                            imeAction = ImeAction.Done
+                            imeAction = ImeAction.Done,
+                            autoCorrectEnabled = false
                         ),
                         keyboardActions = KeyboardActions(
                             onDone = {
                                 focusManager.clearFocus()
                                 hasAttemptedSubmit = true
                                 if (agreedToTerms) {
+                                    if (name.isBlank() || name.trim().length < 2 ||
+                                        email.isBlank() || !AuthValidator.isValidEmail(email) ||
+                                        password.isBlank() || password.length < 6 ||
+                                        confirmPassword.isBlank() || password != confirmPassword
+                                    ) {
+                                        return@KeyboardActions
+                                    }
                                     viewModel.onRegister(
                                         name = name,
                                         email = email,
@@ -493,13 +496,13 @@ fun SignupScreen(
                                     Icon(
                                         imageVector = Icons.Default.Check,
                                         contentDescription = null,
-                                        tint = SuccessGreen,
+                                        tint = Color(0xFF10B981),
                                         modifier = Modifier.padding(end = 8.dp).size(16.dp)
                                     )
                                 }
                                 Text(
                                     text = if (confirmPasswordVisible) "Hide" else "Show",
-                                    color = DarkPrimaryLight,
+                                    color = Color(0xFF7C3AED),
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.clickable { confirmPasswordVisible = !confirmPasswordVisible }
@@ -512,14 +515,14 @@ fun SignupScreen(
                         Text(
                             text = "Please confirm your password",
                             fontSize = 12.sp,
-                            color = Color(0xFFEF4444)
+                            color = Color(0xFFDC2626)
                         )
-                    } else if (!passwordsMatch) {
+                    } else if (hasAttemptedSubmit && !passwordsMatch) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Passwords do not match",
                             fontSize = 12.sp,
-                            color = Color(0xFFEF4444)
+                            color = Color(0xFFDC2626)
                         )
                     }
 
@@ -535,8 +538,8 @@ fun SignupScreen(
                             checked = agreedToTerms,
                             onCheckedChange = { agreedToTerms = it },
                             colors = CheckboxDefaults.colors(
-                                checkedColor = DarkPrimary,
-                                uncheckedColor = DarkTextMuted,
+                                checkedColor = Color(0xFF7C3AED),
+                                uncheckedColor = Color(0xFF94A3B8),
                                 checkmarkColor = Color.White
                             )
                         )
@@ -544,7 +547,7 @@ fun SignupScreen(
                         Text(
                             text = "I agree to the Terms of Service & Privacy Policy",
                             fontSize = 13.sp,
-                            color = DarkTextMuted
+                            color = Color(0xFF475569)
                         )
                     }
 
@@ -558,6 +561,13 @@ fun SignupScreen(
                                 viewModel.clearError()
                                 return@Button
                             }
+                            if (name.isBlank() || name.trim().length < 2 ||
+                                email.isBlank() || !AuthValidator.isValidEmail(email) ||
+                                password.isBlank() || password.length < 6 ||
+                                confirmPassword.isBlank() || password != confirmPassword
+                            ) {
+                                return@Button
+                            }
                             viewModel.onRegister(
                                 name = name,
                                 email = email,
@@ -568,11 +578,11 @@ fun SignupScreen(
                         enabled = !uiState.isLoading && agreedToTerms,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp)
+                            .height(54.dp)
                             .bounceClick(),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = DarkPrimary,
-                            disabledContainerColor = DarkPrimary.copy(alpha = 0.5f)
+                            containerColor = Color(0xFF7C3AED),
+                            disabledContainerColor = Color(0xFF7C3AED).copy(alpha = 0.5f)
                         ),
                         shape = RoundedCornerShape(16.dp)
                     ) {
@@ -608,12 +618,12 @@ fun SignupScreen(
                 ) {
                     Text(
                         text = "Already have an account? ",
-                        color = DarkTextMuted,
+                        color = Color(0xFF64748B),
                         fontSize = 14.sp
                     )
                     Text(
                         text = "Log In",
-                        color = DarkPrimaryLight,
+                        color = Color(0xFF7C3AED),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier
@@ -628,8 +638,6 @@ fun SignupScreen(
         }
     }
 }
-
-
 
 @Composable
 fun CreateAccountScreen(

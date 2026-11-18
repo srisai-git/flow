@@ -150,19 +150,23 @@ class TimerViewModel(
                 }
             } ?: emptyList()
 
+            val todayPrefix = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
+
             val distinctLocal = rawLocalSessions
                 .filter { it.userId == currentUserId }
                 .distinctBy { session ->
-                    if (session.id > 0) "id_${session.id}" else "${session.startedAt}_${session.durationMinutes}"
+                    val uuid = session.sessionUuid.trim()
+                    if (uuid.isNotEmpty()) "uuid_$uuid" else "${session.userId}_${session.startedAt.take(16)}_${session.durationMinutes}"
                 }
                 .sortedByDescending { it.id }
 
             if (distinctLocal.isNotEmpty()) {
+                val localTodayCount = distinctLocal.count { it.startedAt.startsWith(todayPrefix) }
                 withContext(Dispatchers.Main) {
                     _uiState.update { current ->
                         current.copy(
                             recentSessions = distinctLocal,
-                            completedSessions = maxOf(current.completedSessions, distinctLocal.size)
+                            completedSessions = localTodayCount
                         )
                     }
                 }
@@ -180,14 +184,16 @@ class TimerViewModel(
                         val distinct = (distinctLocal + list)
                             .filter { it.userId == currentUserId }
                             .distinctBy { session ->
-                                if (session.id > 0) "id_${session.id}" else "${session.startedAt}_${session.durationMinutes}"
+                                val uuid = session.sessionUuid.trim()
+                                if (uuid.isNotEmpty()) "uuid_$uuid" else "${session.userId}_${session.startedAt.take(16)}_${session.durationMinutes}"
                             }
                             .sortedByDescending { it.id }
 
+                        val todayCount = distinct.count { it.startedAt.startsWith(todayPrefix) }
                         _uiState.update { current ->
                             current.copy(
                                 recentSessions = distinct,
-                                completedSessions = maxOf(current.completedSessions, distinct.size)
+                                completedSessions = todayCount
                             )
                         }
                     },

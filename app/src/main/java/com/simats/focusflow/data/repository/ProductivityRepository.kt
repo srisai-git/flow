@@ -266,7 +266,13 @@ class ProductivityRepository(
             if (response.isSuccessful && response.body()?.status == true) {
                 val remoteList = response.body()?.data ?: emptyList()
                 val merged = (localList + remoteList).distinctBy { session ->
-                    if (session.id > 0) "id_${session.id}" else "${session.startedAt}_${session.durationMinutes}"
+                    val uuid = session.sessionUuid.trim()
+                    if (uuid.isNotEmpty()) {
+                        "uuid_$uuid"
+                    } else {
+                        val timeKey = session.startedAt.take(16)
+                        "${session.userId}_${timeKey}_${session.durationMinutes}"
+                    }
                 }
                 Result.success(merged)
             } else {

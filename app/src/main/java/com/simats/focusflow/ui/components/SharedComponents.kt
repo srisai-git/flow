@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
+import com.simats.focusflow.ui.theme.FocusFlowTheme
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -97,6 +98,7 @@ fun AmbientMeshGlowHeader(
     modifier: Modifier = Modifier,
     height: Dp = 220.dp
 ) {
+    val colors = FocusFlowTheme.colors
     val transition = rememberInfiniteTransition(label = "ambientMesh")
     val driftX by transition.animateFloat(
         initialValue = -25f,
@@ -117,6 +119,9 @@ fun AmbientMeshGlowHeader(
         label = "driftY"
     )
 
+    val glowColor1 = if (colors.isDark) Color(0xFF1A103C).copy(alpha = 0.18f) else Color(0xFF8B5CF6).copy(alpha = 0.08f)
+    val glowColor2 = if (colors.isDark) Color(0xFF0D1B2A).copy(alpha = 0.18f) else Color(0xFF38BDF8).copy(alpha = 0.06f)
+
     Canvas(
         modifier = modifier
             .fillMaxWidth()
@@ -128,7 +133,7 @@ fun AmbientMeshGlowHeader(
         drawCircle(
             brush = Brush.radialGradient(
                 colors = listOf(
-                    Color(0xFF1A103C).copy(alpha = 0.18f),
+                    glowColor1,
                     Color.Transparent
                 ),
                 center = Offset(w * 0.25f + driftX, h * 0.4f + driftY),
@@ -141,7 +146,7 @@ fun AmbientMeshGlowHeader(
         drawCircle(
             brush = Brush.radialGradient(
                 colors = listOf(
-                    Color(0xFF0D1B2A).copy(alpha = 0.18f),
+                    glowColor2,
                     Color.Transparent
                 ),
                 center = Offset(w * 0.8f - driftX, h * 0.3f - driftY),
@@ -157,20 +162,18 @@ fun AmbientMeshGlowHeader(
 fun GlassCard(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(20.dp),
-    backgroundColor: Color = Color(0xFF11101C),
-    borderBrush: Brush = Brush.verticalGradient(
-        listOf(
-            Color.White.copy(alpha = 0.14f),
-            Color.White.copy(alpha = 0.03f)
-        )
-    ),
+    backgroundColor: Color = Color.Unspecified,
+    borderBrush: Brush? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val colors = FocusFlowTheme.colors
+    val resolvedBg = if (backgroundColor != Color.Unspecified) backgroundColor else colors.surface
+    val resolvedBorder = borderBrush ?: colors.cardBorderBrush
     Surface(
         modifier = modifier,
         shape = shape,
-        color = backgroundColor,
-        border = BorderStroke(1.dp, borderBrush)
+        color = resolvedBg,
+        border = BorderStroke(1.dp, resolvedBorder)
     ) {
         Column(content = content)
     }
@@ -178,6 +181,7 @@ fun GlassCard(
 
 @Composable
 fun rememberDarkShimmerBrush(): Brush {
+    val colors = FocusFlowTheme.colors
     val transition = rememberInfiniteTransition(label = "darkShimmer")
     val translateAnim by transition.animateFloat(
         initialValue = 0f,
@@ -189,12 +193,22 @@ fun rememberDarkShimmerBrush(): Brush {
         label = "darkShimmerTranslate"
     )
 
-    return Brush.linearGradient(
-        colors = listOf(
+    val shimmerColors = if (colors.isDark) {
+        listOf(
             Color(0xFF19162A),
             Color(0xFF282342),
             Color(0xFF19162A)
-        ),
+        )
+    } else {
+        listOf(
+            Color(0xFFE2E8F0),
+            Color(0xFFF1F5F9),
+            Color(0xFFE2E8F0)
+        )
+    }
+
+    return Brush.linearGradient(
+        colors = shimmerColors,
         start = Offset(translateAnim - 300f, translateAnim - 300f),
         end = Offset(translateAnim, translateAnim)
     )
@@ -211,6 +225,7 @@ fun DarkShimmerSkeletonItem(
 
 @Composable
 fun DashboardSkeleton() {
+    val colors = FocusFlowTheme.colors
     val brush = rememberDarkShimmerBrush()
     Column(
         modifier = Modifier
@@ -234,8 +249,8 @@ fun DashboardSkeleton() {
         Surface(
             modifier = Modifier.fillMaxWidth().height(150.dp),
             shape = RoundedCornerShape(22.dp),
-            color = Color(0xFF19162A),
-            border = BorderStroke(1.dp, Color(0xFF282342))
+            color = colors.surfaceVariant,
+            border = BorderStroke(1.dp, colors.border)
         ) {
             Row(
                 modifier = Modifier.fillMaxSize().padding(18.dp),
@@ -256,8 +271,8 @@ fun DashboardSkeleton() {
         Surface(
             modifier = Modifier.fillMaxWidth().height(80.dp),
             shape = RoundedCornerShape(18.dp),
-            color = Color(0xFF19162A),
-            border = BorderStroke(1.dp, Color(0xFF282342))
+            color = colors.surfaceVariant,
+            border = BorderStroke(1.dp, colors.border)
         ) {
             Row(
                 modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -277,8 +292,8 @@ fun DashboardSkeleton() {
             Surface(
                 modifier = Modifier.fillMaxWidth().height(68.dp),
                 shape = RoundedCornerShape(16.dp),
-                color = Color(0xFF19162A),
-                border = BorderStroke(1.dp, Color(0xFF282342))
+                color = colors.surfaceVariant,
+                border = BorderStroke(1.dp, colors.border)
             ) {
                 Row(
                     modifier = Modifier.fillMaxSize().padding(14.dp),
@@ -299,6 +314,7 @@ fun DashboardSkeleton() {
 
 @Composable
 fun TasksSkeleton() {
+    val colors = FocusFlowTheme.colors
     val brush = rememberDarkShimmerBrush()
     Column(
         modifier = Modifier
@@ -310,8 +326,8 @@ fun TasksSkeleton() {
             Surface(
                 modifier = Modifier.fillMaxWidth().height(88.dp),
                 shape = RoundedCornerShape(16.dp),
-                color = Color(0xFF19162A),
-                border = BorderStroke(1.dp, Color(0xFF282342))
+                color = colors.surfaceVariant,
+                border = BorderStroke(1.dp, colors.border)
             ) {
                 Row(
                     modifier = Modifier.fillMaxSize().padding(14.dp),
@@ -338,6 +354,7 @@ fun TasksSkeleton() {
 
 @Composable
 fun InsightsSkeleton() {
+    val colors = FocusFlowTheme.colors
     val brush = rememberDarkShimmerBrush()
     Column(
         modifier = Modifier
@@ -348,8 +365,8 @@ fun InsightsSkeleton() {
         Surface(
             modifier = Modifier.fillMaxWidth().height(220.dp),
             shape = RoundedCornerShape(18.dp),
-            color = Color(0xFF19162A),
-            border = BorderStroke(1.dp, Color(0xFF282342))
+            color = colors.surfaceVariant,
+            border = BorderStroke(1.dp, colors.border)
         ) {
             Column(modifier = Modifier.fillMaxSize().padding(18.dp)) {
                 Spacer(modifier = Modifier.width(120.dp).height(24.dp).background(brush, RoundedCornerShape(6.dp)))
@@ -381,8 +398,8 @@ fun InsightsSkeleton() {
                 Surface(
                     modifier = Modifier.weight(1f).height(100.dp),
                     shape = RoundedCornerShape(16.dp),
-                    color = Color(0xFF19162A),
-                    border = BorderStroke(1.dp, Color(0xFF282342))
+                    color = colors.surfaceVariant,
+                    border = BorderStroke(1.dp, colors.border)
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
                         Spacer(modifier = Modifier.size(28.dp).background(brush, CircleShape))
@@ -617,6 +634,7 @@ fun SegmentedControl(
     onOptionSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val colors = FocusFlowTheme.colors
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -629,11 +647,11 @@ fun SegmentedControl(
                     .height(48.dp)
                     .border(
                         width = 1.dp,
-                        color = if (isSelected) Color(0xFF7158E2) else Color(0xFFE5E7EB),
+                        color = if (isSelected) colors.primary else colors.border,
                         shape = RoundedCornerShape(12.dp)
                     )
                     .background(
-                        color = if (isSelected) Color(0xFFF0EDFF) else Color.Transparent,
+                        color = if (isSelected) (if (colors.isDark) colors.primary.copy(alpha = 0.22f) else colors.primary.copy(alpha = 0.12f)) else Color.Transparent,
                         shape = RoundedCornerShape(12.dp)
                     )
                     .clip(RoundedCornerShape(12.dp))
@@ -643,7 +661,7 @@ fun SegmentedControl(
             ) {
                 Text(
                     text = option,
-                    color = if (isSelected) Color(0xFF7158E2) else Color(0xFF6B7280),
+                    color = if (isSelected) (if (colors.isDark) Color.White else colors.primary) else colors.textMuted,
                     fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
                     fontSize = 14.sp
                 )

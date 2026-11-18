@@ -132,17 +132,17 @@ fun ProgressConsistencyScreen(onBack: () -> Unit = {}) {
         label = "efficiency_anim"
     )
 
-    val neonBorder = Brush.horizontalGradient(
+    val neonBorder = if (colors.isDark) Brush.horizontalGradient(
         listOf(
             Color(0xFF8B5CF6).copy(alpha = 0.45f),
             Color(0xFF06B6D4).copy(alpha = 0.45f)
         )
-    )
+    ) else colors.cardBorderBrush
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF07060D))
+            .background(colors.background)
     ) {
         AmbientMeshGlowHeader(height = 240.dp)
 
@@ -235,7 +235,7 @@ fun ProgressConsistencyScreen(onBack: () -> Unit = {}) {
                             text = "$currentStreak Days",
                             fontSize = 22.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = Color.White
+                            color = colors.textPrimary
                         )
 
                         Spacer(modifier = Modifier.height(2.dp))
@@ -290,7 +290,7 @@ fun ProgressConsistencyScreen(onBack: () -> Unit = {}) {
                             text = "$longestStreak Days",
                             fontSize = 22.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = Color.White
+                            color = colors.textPrimary
                         )
 
                         Spacer(modifier = Modifier.height(2.dp))
@@ -336,7 +336,7 @@ fun ProgressConsistencyScreen(onBack: () -> Unit = {}) {
                                 text = if (selectedDay != null) "${selectedDay.day}: ${selectedDay.focusMinutes}m focused" else "$totalWeekMins mins total",
                                 fontSize = 17.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = colors.textPrimary
                             )
                         }
 
@@ -450,8 +450,8 @@ fun ProgressConsistencyScreen(onBack: () -> Unit = {}) {
                         if (selectedDayItem != null) {
                             Surface(
                                 shape = RoundedCornerShape(10.dp),
-                                color = Color(0xF211101C),
-                                border = BorderStroke(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.18f), Color.White.copy(alpha = 0.04f)))),
+                                color = colors.surface,
+                                border = BorderStroke(1.dp, colors.cardBorderBrush),
                                 modifier = Modifier
                                     .align(Alignment.TopCenter)
                                     .padding(top = 2.dp)
@@ -471,7 +471,7 @@ fun ProgressConsistencyScreen(onBack: () -> Unit = {}) {
                                         text = "${selectedDayItem.day}: ${selectedDayItem.focusMinutes}m focus",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = Color(0xFFF1F1F5)
+                                        color = colors.textPrimary
                                     )
                                 }
                             }
@@ -573,7 +573,7 @@ fun ProgressConsistencyScreen(onBack: () -> Unit = {}) {
                                     text = "$efficiencyPercent%",
                                     fontSize = 24.sp,
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = Color.White
+                                    color = colors.textPrimary
                                 )
                                 Text(
                                     text = "Efficiency",
@@ -599,7 +599,7 @@ fun ProgressConsistencyScreen(onBack: () -> Unit = {}) {
                                         text = "Focus Sprint Time",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = Color.White
+                                        color = colors.textPrimary
                                     )
                                     Text(
                                         text = "${totalWeekMins}m logged",
@@ -622,7 +622,7 @@ fun ProgressConsistencyScreen(onBack: () -> Unit = {}) {
                                         text = "Distraction Alerts",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = Color.White
+                                        color = colors.textPrimary
                                     )
                                     Text(
                                         text = "$totalDistractions events recorded",
@@ -667,7 +667,7 @@ fun ProgressConsistencyScreen(onBack: () -> Unit = {}) {
                                 text = "4-Week Habit Trajectory",
                                 fontSize = 17.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = colors.textPrimary
                             )
                         }
 

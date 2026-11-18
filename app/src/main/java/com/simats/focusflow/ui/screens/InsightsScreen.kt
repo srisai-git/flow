@@ -109,14 +109,14 @@ fun InsightsScreen(
     }
 
     Scaffold(
-        containerColor = Color(0xFF07060D),
+        containerColor = colors.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color(0xFF07060D))
+                .background(colors.background)
         ) {
             AmbientMeshGlowHeader(height = 240.dp)
 
@@ -200,17 +200,12 @@ fun InsightsScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            val hairlineBorder = Brush.verticalGradient(
-                listOf(
-                    Color.White.copy(alpha = 0.14f),
-                    Color.White.copy(alpha = 0.03f)
-                )
-            )
+            val hairlineBorder = colors.cardBorderBrush
 
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                color = Color(0xFF11101C),
+                color = colors.surface,
                 border = BorderStroke(1.dp, hairlineBorder)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
@@ -231,13 +226,13 @@ fun InsightsScreen(
                                 text = "${hours}h ${mins}m",
                                 fontSize = 32.sp,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = Color(0xFFF1F1F5)
+                                color = colors.textPrimary
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = if (selectedTab == "Week") "recorded focus time this week" else "recorded focus time this month",
                                 fontSize = 12.sp,
-                                color = Color(0xFF94A3B8)
+                                color = colors.textMuted
                             )
                         }
 
@@ -260,11 +255,11 @@ fun InsightsScreen(
                         ) {
                             Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF10B981)))
                             Spacer(modifier = Modifier.width(5.dp))
-                            Text("Focus (min)", fontSize = 10.5.sp, color = Color(0xFF94A3B8))
+                            Text("Focus (min)", fontSize = 10.5.sp, color = colors.textMuted)
                             Spacer(modifier = Modifier.width(14.dp))
                             Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFF59E0B)))
                             Spacer(modifier = Modifier.width(5.dp))
-                            Text("Distractions", fontSize = 10.5.sp, color = Color(0xFF94A3B8))
+                            Text("Distractions", fontSize = 10.5.sp, color = colors.textMuted)
                         }
                     } else {
                         Spacer(modifier = Modifier.height(24.dp))
@@ -423,7 +418,7 @@ fun InsightsScreen(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                color = Color(0xFF11101C),
+                color = colors.surface,
                 border = BorderStroke(1.dp, hairlineBorder)
             ) {
                 Column(modifier = Modifier.padding(18.dp)) {
@@ -562,7 +557,7 @@ fun InsightsScreen(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                color = Color(0xFF11101C),
+                color = colors.surface,
                 border = BorderStroke(1.dp, hairlineBorder)
             ) {
                 Column {

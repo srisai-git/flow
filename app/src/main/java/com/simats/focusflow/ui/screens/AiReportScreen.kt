@@ -81,7 +81,7 @@ fun AiReportScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF07060D))
+            .background(colors.background)
             .padding(top = 48.dp, bottom = 24.dp, start = 24.dp, end = 24.dp)
             .verticalScroll(rememberScrollState())
     ) {

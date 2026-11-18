@@ -228,13 +228,22 @@ class MainActivity : ComponentActivity() {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color(0xFF0D0B14))
+                            .background(Color.White)
                     )
                 } else {
-                    FOCUSFLOWTheme(themeMode = themeMode) {
-                        val navController = rememberNavController()
-                        val navBackStackEntry by navController.currentBackStackEntryAsState()
-                        val currentRoute = navBackStackEntry?.destination?.route
+                    val navController = rememberNavController()
+                    val navBackStackEntry by navController.currentBackStackEntryAsState()
+                    val currentRoute = navBackStackEntry?.destination?.route
+                    val isPreHome = when {
+                        currentRoute != null -> currentRoute in setOf(
+                            "welcome_start", "onboarding", "login", "signup", "create_account",
+                            "forgot_password", "account_recovery", "splash", "setup"
+                        ) || currentRoute.startsWith("make_it_yours")
+                        else -> effectiveRoute != Screen.Home.route && effectiveRoute != "home" && effectiveRoute != "dashboard"
+                    }
+                    val effectiveThemeMode = if (isPreHome) "light" else themeMode
+
+                    FOCUSFLOWTheme(themeMode = effectiveThemeMode) {
                         val isMainScreen = Screen.isMainScreen(currentRoute)
 
                         val targetRoute by pendingRoute.collectAsState()
@@ -263,12 +272,16 @@ class MainActivity : ComponentActivity() {
                                         onNavigate = { route ->
                                             val target = if (route == "dashboard") Screen.Home.route else route
                                             val isHome = (target == Screen.Home.route || target == "home")
+                                            val current = currentRoute
+                                            if (current == target || (isHome && (current == "home" || current == "dashboard"))) {
+                                                return@FocusFlowBottomBar
+                                            }
                                             navController.navigate(target) {
                                                 popUpTo(navController.graph.findStartDestination().id) {
-                                                    saveState = !isHome
+                                                    saveState = false
                                                 }
                                                 launchSingleTop = true
-                                                restoreState = !isHome
+                                                restoreState = false
                                             }
                                         }
                                     )
@@ -405,7 +418,7 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToHabits = { navController.navigate(Screen.Habits.route) },
                                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                                 onNavigateToNotifications = { navController.navigate("notifications") },
-                                onNavigateToInsights = { navController.navigate("insights") },
+                                onNavigateToInsights = { navController.navigate("focus_time_analysis") },
                                 onNavigateToSetIntention = { navController.navigate(Screen.Timer.route) },
                                 onNavigateToSessionHistory = { navController.navigate("session_history") },
                                 onNavigateToSearchFilters = { navController.navigate("search_filters") },
@@ -424,7 +437,7 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToHabits = { navController.navigate(Screen.Habits.route) },
                                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                                 onNavigateToNotifications = { navController.navigate("notifications") },
-                                onNavigateToInsights = { navController.navigate("insights") },
+                                onNavigateToInsights = { navController.navigate("focus_time_analysis") },
                                 onNavigateToSetIntention = { navController.navigate(Screen.Timer.route) },
                                 onNavigateToSessionHistory = { navController.navigate("session_history") },
                                 onNavigateToSearchFilters = { navController.navigate("search_filters") },
@@ -448,7 +461,7 @@ class MainActivity : ComponentActivity() {
                                         restoreState = true
                                     }
                                 },
-                                onNavigateToInsights = { navController.navigate("insights") },
+                                onNavigateToInsights = { navController.navigate("focus_time_analysis") },
                                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                                 onNavigateToProgressConsistency = { navController.navigate("progress_consistency") },
                                 onNavigateToEditTask = { navController.navigate("edit_task") },
@@ -467,7 +480,7 @@ class MainActivity : ComponentActivity() {
                                         restoreState = true
                                     }
                                 },
-                                onNavigateToInsights = { navController.navigate("insights") },
+                                onNavigateToInsights = { navController.navigate("focus_time_analysis") },
                                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                                 onNavigateToProgressConsistency = { navController.navigate("progress_consistency") },
                                 onNavigateToEditTask = { navController.navigate("edit_task") },
@@ -491,7 +504,7 @@ class MainActivity : ComponentActivity() {
                                         restoreState = true
                                     }
                                 },
-                                onNavigateToInsights = { navController.navigate("insights") },
+                                onNavigateToInsights = { navController.navigate("focus_time_analysis") },
                                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                                 onNavigateToProgressConsistency = { navController.navigate("progress_consistency") },
                                 onNavigateToEditTask = { navController.navigate("edit_task") },
@@ -523,7 +536,7 @@ class MainActivity : ComponentActivity() {
                                         restoreState = true
                                     }
                                 },
-                                onNavigateToInsights = { navController.navigate("insights") },
+                                onNavigateToInsights = { navController.navigate("focus_time_analysis") },
                                 onNavigateToNotifications = { navController.navigate("notifications") },
                                 onNavigateToDataAi = { navController.navigate("data_ai_preferences") },
                                 onNavigateToDailyGoal = { navController.navigate("daily_focus_goal") },

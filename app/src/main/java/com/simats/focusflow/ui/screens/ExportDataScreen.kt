@@ -26,20 +26,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.ui.components.bounceClick
+import com.simats.focusflow.ui.theme.FocusFlowTheme
 import com.simats.focusflow.utils.ExportDataHelper
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-private val CanvasDark = Color(0xFF0F0F14)
-private val CardDark = Color(0xFF181722)
-private val BorderDark = Color(0xFF262433)
-private val VioletPrimary = Color(0xFF8B5CF6)
-private val VioletLight = Color(0xFFC4B5FD)
-private val TextWhite = Color(0xFFF1F1F5)
-private val TextMuted = Color(0xFF9CA3AF)
-
 @Composable
 fun ExportDataScreen(onBack: () -> Unit = {}) {
+    val colors = FocusFlowTheme.colors
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val sessionManager = remember { SessionManager.getInstance(context) }
@@ -50,13 +44,13 @@ fun ExportDataScreen(onBack: () -> Unit = {}) {
     var isExporting by remember { mutableStateOf(false) }
 
     Scaffold(
-        containerColor = CanvasDark
+        containerColor = colors.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(CanvasDark)
+                .background(colors.background)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
         ) {
@@ -71,14 +65,14 @@ fun ExportDataScreen(onBack: () -> Unit = {}) {
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
-                        .background(CardDark)
-                        .border(1.dp, BorderDark, CircleShape)
+                        .background(colors.surface)
+                        .border(1.dp, colors.border, CircleShape)
                         .bounceClick()
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = TextWhite,
+                        tint = colors.textPrimary,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -90,14 +84,14 @@ fun ExportDataScreen(onBack: () -> Unit = {}) {
                         text = "DATA MANAGEMENT",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = VioletLight,
+                        color = colors.primaryLight,
                         letterSpacing = 1.5.sp
                     )
                     Text(
                         text = "Export Productivity Data",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextWhite
+                        color = colors.textPrimary
                     )
                 }
             }
@@ -107,7 +101,7 @@ fun ExportDataScreen(onBack: () -> Unit = {}) {
             Text(
                 text = "Export your verified focus logs, task records, and habit consistency into structured Markdown and CSV files for external analysis, reporting, or backup.",
                 fontSize = 13.sp,
-                color = TextMuted,
+                color = colors.textMuted,
                 lineHeight = 19.sp
             )
 
@@ -116,15 +110,15 @@ fun ExportDataScreen(onBack: () -> Unit = {}) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
-                color = CardDark,
-                border = BorderStroke(1.dp, BorderDark)
+                color = colors.surface,
+                border = BorderStroke(1.dp, colors.border)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Text(
                         text = "INCLUDE RECORD TYPES",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = VioletLight,
+                        color = colors.primaryLight,
                         letterSpacing = 1.sp
                     )
                     Spacer(modifier = Modifier.height(14.dp))
@@ -139,10 +133,10 @@ fun ExportDataScreen(onBack: () -> Unit = {}) {
                         Checkbox(
                             checked = incSessions,
                             onCheckedChange = { incSessions = it },
-                            colors = CheckboxDefaults.colors(checkedColor = VioletPrimary, uncheckedColor = TextMuted)
+                            colors = CheckboxDefaults.colors(checkedColor = colors.primary, uncheckedColor = colors.textMuted)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Focus Sessions & Duration Logs", fontSize = 14.sp, color = TextWhite)
+                        Text("Focus Sessions & Duration Logs", fontSize = 14.sp, color = colors.textPrimary)
                     }
 
                     Row(
@@ -155,10 +149,10 @@ fun ExportDataScreen(onBack: () -> Unit = {}) {
                         Checkbox(
                             checked = incTasks,
                             onCheckedChange = { incTasks = it },
-                            colors = CheckboxDefaults.colors(checkedColor = VioletPrimary, uncheckedColor = TextMuted)
+                            colors = CheckboxDefaults.colors(checkedColor = colors.primary, uncheckedColor = colors.textMuted)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Task History & Completions", fontSize = 14.sp, color = TextWhite)
+                        Text("Task History & Completions", fontSize = 14.sp, color = colors.textPrimary)
                     }
 
                     Row(
@@ -171,10 +165,10 @@ fun ExportDataScreen(onBack: () -> Unit = {}) {
                         Checkbox(
                             checked = incStreaks,
                             onCheckedChange = { incStreaks = it },
-                            colors = CheckboxDefaults.colors(checkedColor = VioletPrimary, uncheckedColor = TextMuted)
+                            colors = CheckboxDefaults.colors(checkedColor = colors.primary, uncheckedColor = colors.textMuted)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Habit Streaks & Daily Routine Metrics", fontSize = 14.sp, color = TextWhite)
+                        Text("Habit Streaks & Daily Routine Metrics", fontSize = 14.sp, color = colors.textPrimary)
                     }
                 }
             }
@@ -184,30 +178,31 @@ fun ExportDataScreen(onBack: () -> Unit = {}) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
-                color = CardDark,
-                border = BorderStroke(1.dp, BorderDark)
+                color = colors.surface,
+                border = BorderStroke(1.dp, colors.border)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Structured Formats Included", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextMuted)
-                        Text(".csv & .txt / .md", fontSize = 12.sp, color = VioletLight, fontFamily = FontFamily.Monospace)
+                        Text("Structured Formats Included", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = colors.textMuted)
+                        Text(".csv & .txt / .md", fontSize = 12.sp, color = colors.primaryLight, fontFamily = FontFamily.Monospace)
                     }
                     Spacer(modifier = Modifier.height(10.dp))
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFF111019),
-                        border = BorderStroke(1.dp, BorderDark)
+                        color = colors.surfaceVariant,
+                        border = BorderStroke(1.dp, colors.border)
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
-                            Text("SECTION 1: FOCUS SESSIONS (Date | Time | Duration | Tag | Status)", fontSize = 11.sp, color = VioletLight, fontFamily = FontFamily.Monospace)
+                            Text("SECTION 1: FOCUS SESSIONS (Date | Time | Duration | Tag | Status)", fontSize = 11.sp, color = colors.primaryLight, fontFamily = FontFamily.Monospace)
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text("SECTION 2: HABIT CONSISTENCY (Name | Frequency | Streaks | Count)", fontSize = 11.sp, color = TextMuted, fontFamily = FontFamily.Monospace)
+                            Text("SECTION 2: HABIT CONSISTENCY (Name | Frequency | Streaks | Count)", fontSize = 11.sp, color = colors.textMuted, fontFamily = FontFamily.Monospace)
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text("SECTION 3: TASKS COMPLETED (Title | Priority | Completed Date)", fontSize = 11.sp, color = TextMuted, fontFamily = FontFamily.Monospace)
+                            Text("SECTION 3: TASKS COMPLETED (Title | Priority | Completed Date)", fontSize = 11.sp, color = colors.textMuted, fontFamily = FontFamily.Monospace)
                         }
                     }
                 }
@@ -239,7 +234,7 @@ fun ExportDataScreen(onBack: () -> Unit = {}) {
                     .fillMaxWidth()
                     .height(54.dp)
                     .bounceClick(),
-                colors = ButtonDefaults.buttonColors(containerColor = VioletPrimary),
+                colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
                 shape = RoundedCornerShape(16.dp),
                 enabled = !isExporting && (incSessions || incTasks || incStreaks)
             ) {
@@ -250,11 +245,11 @@ fun ExportDataScreen(onBack: () -> Unit = {}) {
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(10.dp))
-                    Text("Preparing Export...", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                    Text("Preparing Export...", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 } else {
                     Icon(Icons.Default.Share, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Export & Share Structured Data", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                    Text("Export & Share Structured Data", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
             }
 

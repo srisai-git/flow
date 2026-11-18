@@ -24,6 +24,7 @@ class FocusBlockerAccessibilityService : AccessibilityService() {
     private val serviceScope = CoroutineScope(Dispatchers.Main + serviceJob)
     private val repository = ProductivityRepository()
     private var lastLogTimestamp = 0L
+    private var lastBlockedPkg: String? = null
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null || event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
@@ -49,8 +50,9 @@ class FocusBlockerAccessibilityService : AccessibilityService() {
             startActivity(shieldIntent)
 
             val now = System.currentTimeMillis()
-            if (now - lastLogTimestamp > 8000L) {
+            if (now - lastLogTimestamp > 60000L || lastBlockedPkg != pkgName) {
                 lastLogTimestamp = now
+                lastBlockedPkg = pkgName
                 val activeUid = timerState.activeUserId
                 val cat = UsageStatsHelper.categorizePackage(pkgName, appLabel, applicationContext)
                 serviceScope.launch(Dispatchers.IO) {

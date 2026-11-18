@@ -50,19 +50,14 @@ fun FocusFlowBottomBar(
             .padding(horizontal = 14.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
     ) {
-        val hairlineBorder = Brush.verticalGradient(
-            listOf(
-                Color.White.copy(alpha = 0.16f),
-                Color.White.copy(alpha = 0.03f)
-            )
-        )
+        val hairlineBorder = colors.cardBorderBrush
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(62.dp)
                 .clip(RoundedCornerShape(28.dp))
-                .background(Color(0xF211101C))
+                .background(if (colors.isDark) Color(0xF211101C) else Color(0xF8FFFFFF))
                 .border(1.dp, hairlineBorder, RoundedCornerShape(28.dp))
                 .padding(horizontal = 4.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceAround,
@@ -84,11 +79,11 @@ fun FocusFlowBottomBar(
                     label = "iconScale"
                 )
                 val iconColor by animateColorAsState(
-                    targetValue = if (isSelected) Color(0xFFC4B5FD) else Color(0xFF94A3B8),
+                    targetValue = if (isSelected) (if (colors.isDark) Color(0xFFC4B5FD) else colors.primary) else colors.textMuted,
                     label = "iconColor"
                 )
                 val textColor by animateColorAsState(
-                    targetValue = if (isSelected) Color(0xFFF1F1F5) else Color(0xFF94A3B8),
+                    targetValue = if (isSelected) colors.textPrimary else colors.textMuted,
                     label = "textColor"
                 )
                 val pillAlpha by animateFloatAsState(
@@ -108,14 +103,14 @@ fun FocusFlowBottomBar(
                         .background(
                             Brush.verticalGradient(
                                 listOf(
-                                    Color(0xFF8B5CF6).copy(alpha = 0.22f * pillAlpha),
-                                    Color(0xFF6366F1).copy(alpha = 0.10f * pillAlpha)
+                                    colors.primary.copy(alpha = if (colors.isDark) 0.22f * pillAlpha else 0.14f * pillAlpha),
+                                    colors.primary.copy(alpha = if (colors.isDark) 0.10f * pillAlpha else 0.05f * pillAlpha)
                                 )
                             )
                         )
                         .border(
                             1.dp,
-                            Color(0xFF8B5CF6).copy(alpha = 0.35f * pillAlpha),
+                            colors.primary.copy(alpha = if (colors.isDark) 0.35f * pillAlpha else 0.25f * pillAlpha),
                             RoundedCornerShape(24.dp)
                         )
                         .clickable(

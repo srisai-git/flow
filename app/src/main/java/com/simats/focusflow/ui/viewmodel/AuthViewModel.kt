@@ -121,7 +121,7 @@ class AuthViewModel(
         }
 
         if (!isValidEmail(trimmedEmail)) {
-            _uiState.update { it.copy(errorMessage = "Please enter a valid email address.", isSuccess = false) }
+            _uiState.update { it.copy(errorMessage = com.simats.focusflow.utils.AuthValidator.INVALID_EMAIL_MESSAGE, isSuccess = false) }
             return
         }
 
@@ -226,7 +226,7 @@ class AuthViewModel(
         }
 
         if (!isValidEmail(trimmedEmail)) {
-            _uiState.update { it.copy(errorMessage = "Please enter a valid email address.", isSuccess = false) }
+            _uiState.update { it.copy(errorMessage = com.simats.focusflow.utils.AuthValidator.INVALID_EMAIL_MESSAGE, isSuccess = false) }
             return
         }
 
@@ -366,6 +366,6 @@ class AuthViewModel(
     }
 
     private fun isValidEmail(email: String): Boolean {
-        return android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
+        return com.simats.focusflow.utils.AuthValidator.isValidEmail(email)
     }
 }

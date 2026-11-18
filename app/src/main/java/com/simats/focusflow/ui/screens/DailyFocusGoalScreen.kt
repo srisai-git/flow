@@ -22,18 +22,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.simats.focusflow.ui.components.bounceClick
+import com.simats.focusflow.ui.theme.FocusFlowTheme
 import kotlin.math.roundToInt
-
-private val CanvasDark = Color(0xFF0F0F14)
-private val CardDark = Color(0xFF181722)
-private val BorderDark = Color(0xFF262433)
-private val VioletPrimary = Color(0xFF8B5CF6)
-private val VioletLight = Color(0xFFC4B5FD)
-private val TextWhite = Color(0xFFF1F1F5)
-private val TextMuted = Color(0xFF9CA3AF)
 
 @Composable
 fun DailyFocusGoalScreen(onBack: () -> Unit = {}, onSave: () -> Unit = {}) {
+    val colors = FocusFlowTheme.colors
     var goalHours by remember { mutableFloatStateOf(4f) }
     var selectedRhythm by remember { mutableIntStateOf(45) }
     val rhythmOptions = listOf(25, 45, 60)
@@ -42,13 +36,13 @@ fun DailyFocusGoalScreen(onBack: () -> Unit = {}, onSave: () -> Unit = {}) {
     var selectedDays by remember { mutableStateOf(setOf(0, 1, 2, 3, 4)) }
 
     Scaffold(
-        containerColor = CanvasDark
+        containerColor = colors.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(CanvasDark)
+                .background(colors.background)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
         ) {
@@ -63,14 +57,14 @@ fun DailyFocusGoalScreen(onBack: () -> Unit = {}, onSave: () -> Unit = {}) {
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
-                        .background(CardDark)
-                        .border(1.dp, BorderDark, CircleShape)
+                        .background(colors.surface)
+                        .border(1.dp, colors.border, CircleShape)
                         .bounceClick()
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = TextWhite,
+                        tint = colors.textPrimary,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -82,14 +76,14 @@ fun DailyFocusGoalScreen(onBack: () -> Unit = {}, onSave: () -> Unit = {}) {
                         text = "FOCUS PREFERENCES",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = VioletLight,
+                        color = colors.primaryLight,
                         letterSpacing = 1.5.sp
                     )
                     Text(
                         text = "Daily Target & Rhythm",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextWhite
+                        color = colors.textPrimary
                     )
                 }
             }
@@ -99,7 +93,7 @@ fun DailyFocusGoalScreen(onBack: () -> Unit = {}, onSave: () -> Unit = {}) {
             Text(
                 text = "Configure your target focus hours and interval cadence to maintain deep work rhythm across your week.",
                 fontSize = 13.sp,
-                color = TextMuted,
+                color = colors.textMuted,
                 lineHeight = 19.sp
             )
 
@@ -108,8 +102,8 @@ fun DailyFocusGoalScreen(onBack: () -> Unit = {}, onSave: () -> Unit = {}) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
-                color = CardDark,
-                border = BorderStroke(1.dp, BorderDark)
+                color = colors.surface,
+                border = BorderStroke(1.dp, colors.border)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Row(
@@ -117,8 +111,8 @@ fun DailyFocusGoalScreen(onBack: () -> Unit = {}, onSave: () -> Unit = {}) {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Daily Target Goal", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextWhite)
-                        Text("${goalHours.roundToInt()} hours / day", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = VioletLight)
+                        Text("Daily Target Goal", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = colors.textPrimary)
+                        Text("${goalHours.roundToInt()} hours / day", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colors.primaryLight)
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     Slider(
@@ -127,9 +121,9 @@ fun DailyFocusGoalScreen(onBack: () -> Unit = {}, onSave: () -> Unit = {}) {
                         valueRange = 1f..12f,
                         steps = 10,
                         colors = SliderDefaults.colors(
-                            thumbColor = VioletPrimary,
-                            activeTrackColor = VioletPrimary,
-                            inactiveTrackColor = Color(0xFF262433)
+                            thumbColor = colors.primary,
+                            activeTrackColor = colors.primary,
+                            inactiveTrackColor = colors.border
                         )
                     )
                 }
@@ -140,11 +134,11 @@ fun DailyFocusGoalScreen(onBack: () -> Unit = {}, onSave: () -> Unit = {}) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
-                color = CardDark,
-                border = BorderStroke(1.dp, BorderDark)
+                color = colors.surface,
+                border = BorderStroke(1.dp, colors.border)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
-                    Text("PREFERRED FOCUS BLOCK", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = VioletLight, letterSpacing = 1.sp)
+                    Text("PREFERRED FOCUS BLOCK", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = colors.primaryLight, letterSpacing = 1.sp)
                     Spacer(modifier = Modifier.height(14.dp))
 
                     Row(
@@ -156,8 +150,8 @@ fun DailyFocusGoalScreen(onBack: () -> Unit = {}, onSave: () -> Unit = {}) {
                             Surface(
                                 onClick = { selectedRhythm = rhythm },
                                 shape = RoundedCornerShape(12.dp),
-                                color = if (isSelected) VioletPrimary else CanvasDark,
-                                border = BorderStroke(1.dp, if (isSelected) VioletPrimary else BorderDark),
+                                color = if (isSelected) colors.primary else colors.surfaceVariant,
+                                border = BorderStroke(1.dp, if (isSelected) colors.primary else colors.border),
                                 modifier = Modifier
                                     .weight(1f)
                                     .bounceClick()
@@ -170,7 +164,7 @@ fun DailyFocusGoalScreen(onBack: () -> Unit = {}, onSave: () -> Unit = {}) {
                                         text = "${rhythm}m",
                                         fontSize = 15.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (isSelected) Color.White else TextWhite
+                                        color = if (isSelected) Color.White else colors.textPrimary
                                     )
                                     Spacer(modifier = Modifier.height(2.dp))
                                     Text(
@@ -180,7 +174,7 @@ fun DailyFocusGoalScreen(onBack: () -> Unit = {}, onSave: () -> Unit = {}) {
                                             else -> "Deep Block"
                                         },
                                         fontSize = 10.sp,
-                                        color = if (isSelected) Color.White.copy(alpha = 0.85f) else TextMuted
+                                        color = if (isSelected) Color.White.copy(alpha = 0.85f) else colors.textMuted
                                     )
                                 }
                             }
@@ -194,11 +188,11 @@ fun DailyFocusGoalScreen(onBack: () -> Unit = {}, onSave: () -> Unit = {}) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
-                color = CardDark,
-                border = BorderStroke(1.dp, BorderDark)
+                color = colors.surface,
+                border = BorderStroke(1.dp, colors.border)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
-                    Text("ACTIVE FOCUS DAYS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = VioletLight, letterSpacing = 1.sp)
+                    Text("ACTIVE FOCUS DAYS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = colors.primaryLight, letterSpacing = 1.sp)
                     Spacer(modifier = Modifier.height(14.dp))
 
                     Row(
@@ -211,8 +205,8 @@ fun DailyFocusGoalScreen(onBack: () -> Unit = {}, onSave: () -> Unit = {}) {
                                 modifier = Modifier
                                     .size(40.dp)
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(if (isSelected) VioletPrimary else CanvasDark)
-                                    .border(1.dp, if (isSelected) VioletPrimary else BorderDark, RoundedCornerShape(10.dp))
+                                    .background(if (isSelected) colors.primary else colors.surfaceVariant)
+                                    .border(1.dp, if (isSelected) colors.primary else colors.border, RoundedCornerShape(10.dp))
                                     .clickable {
                                         val newSet = selectedDays.toMutableSet()
                                         if (isSelected) newSet.remove(index) else newSet.add(index)
@@ -225,7 +219,7 @@ fun DailyFocusGoalScreen(onBack: () -> Unit = {}, onSave: () -> Unit = {}) {
                                     text = day,
                                     fontSize = 13.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isSelected) Color.White else TextMuted
+                                    color = if (isSelected) Color.White else colors.textMuted
                                 )
                             }
                         }
@@ -241,12 +235,12 @@ fun DailyFocusGoalScreen(onBack: () -> Unit = {}, onSave: () -> Unit = {}) {
                     .fillMaxWidth()
                     .height(54.dp)
                     .bounceClick(),
-                colors = ButtonDefaults.buttonColors(containerColor = VioletPrimary),
+                colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Save Preferences", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                Text("Save Preferences", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
             }
 
             Spacer(modifier = Modifier.height(40.dp))

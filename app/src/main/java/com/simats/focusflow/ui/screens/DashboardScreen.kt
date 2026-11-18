@@ -141,7 +141,7 @@ fun DashboardScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF07060D))
+            .background(colors.background)
     ) {
         AmbientMeshGlowHeader()
 
@@ -214,21 +214,21 @@ fun DashboardScreen(
                     Text(
                         text = "Welcome back,",
                         fontSize = 12.sp,
-                        color = Color(0xFF94A3B8),
+                        color = colors.textMuted,
                         fontWeight = FontWeight.Medium
                     )
                     Text(
                         text = data.userName.ifBlank { "Focus User" },
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFF1F1F5),
+                        color = colors.textPrimary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = currentDateStr,
                         fontSize = 11.sp,
-                        color = Color(0xFFC4B5FD),
+                        color = if (colors.isDark) Color(0xFFC4B5FD) else colors.primary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -308,12 +308,7 @@ fun DashboardScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        val cardHairlineBorder = Brush.verticalGradient(
-            listOf(
-                Color.White.copy(alpha = 0.14f),
-                Color.White.copy(alpha = 0.03f)
-            )
-        )
+        val cardHairlineBorder = colors.cardBorderBrush
 
         Surface(
             onClick = onNavigateToTimer,
@@ -321,7 +316,7 @@ fun DashboardScreen(
                 .fillMaxWidth()
                 .bounceClick(),
             shape = RoundedCornerShape(22.dp),
-            color = Color(0xFF11101C),
+            color = colors.surface,
             border = BorderStroke(1.dp, cardHairlineBorder)
         ) {
             Column(
@@ -338,20 +333,20 @@ fun DashboardScreen(
                         text = "FOCUS READINESS",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFC4B5FD),
+                        color = if (colors.isDark) Color(0xFFC4B5FD) else colors.primary,
                         letterSpacing = 1.2.sp
                     )
 
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFF8B5CF6).copy(alpha = 0.15f),
-                        border = BorderStroke(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.35f))
+                        color = colors.primary.copy(alpha = 0.15f),
+                        border = BorderStroke(1.dp, colors.primary.copy(alpha = 0.35f))
                     ) {
                         Text(
                             text = "${(progressFraction * 100).toInt()}% Target",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFFC4B5FD),
+                            color = if (colors.isDark) Color(0xFFC4B5FD) else colors.primary,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                         )
                     }
@@ -370,12 +365,12 @@ fun DashboardScreen(
                                 text = String.format(Locale.US, "%.1f", completedHours),
                                 fontSize = 34.sp,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = Color(0xFFF1F1F5)
+                                color = colors.textPrimary
                             )
                             Text(
                                 text = " / ${goalHours.toInt()} hrs",
                                 fontSize = 16.sp,
-                                color = Color(0xFF94A3B8),
+                                color = colors.textMuted,
                                 fontWeight = FontWeight.Medium,
                                 modifier = Modifier.padding(bottom = 5.dp, start = 4.dp)
                             )
@@ -392,7 +387,7 @@ fun DashboardScreen(
                             },
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
-                            color = if (completedHours >= goalHours) Color(0xFF10B981) else Color(0xFF94A3B8)
+                            color = if (completedHours >= goalHours) Color(0xFF10B981) else colors.textMuted
                         )
 
                         Spacer(modifier = Modifier.height(10.dp))
@@ -401,7 +396,7 @@ fun DashboardScreen(
                             text = "${data.focusMinutesToday} focused minutes today across your active deep work intervals.",
                             fontSize = 12.sp,
                             lineHeight = 17.sp,
-                            color = Color(0xFF94A3B8)
+                            color = colors.textMuted
                         )
                     }
 
@@ -438,14 +433,14 @@ fun DashboardScreen(
             )
 
             BentoSparklineTile(
-                label = "Daily Streak",
-                value = "${data.streakDays}d",
-                subValue = "Record ${data.longestStreak}d active",
-                accentColor = Color(0xFFF59E0B),
-                icon = Icons.Rounded.LocalFireDepartment,
+                label = "Groot AI",
+                value = "Assistant",
+                subValue = "Active AI companion",
+                accentColor = Color(0xFF8B5CF6),
+                icon = Icons.Default.AutoAwesome,
                 sparklineData = streakTrend,
                 modifier = Modifier.weight(1f),
-                onClick = { viewModel.setStreakModalOpen(true) }
+                onClick = onNavigateToGrootAi
             )
         }
 
@@ -476,174 +471,6 @@ fun DashboardScreen(
                 modifier = Modifier.weight(1f),
                 onClick = onNavigateToDistraction
             )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Surface(
-            onClick = onNavigateToPomodoro,
-            shape = RoundedCornerShape(20.dp),
-            color = Color(0xFF11101C),
-            border = BorderStroke(1.dp, cardHairlineBorder),
-            modifier = Modifier
-                .fillMaxWidth()
-                .bounceClick()
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 18.dp, vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(
-                                Brush.linearGradient(
-                                    listOf(Color(0xFF8B5CF6), Color(0xFF6366F1))
-                                )
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = "Start Timer",
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(14.dp))
-
-                    Column {
-                        Text(
-                            text = "Quick Start Pomodoro",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFF1F1F5)
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "25 min Deep Work Interval",
-                            fontSize = 12.sp,
-                            color = Color(0xFF94A3B8)
-                        )
-                    }
-                }
-
-                Surface(
-                    shape = CircleShape,
-                    color = Color(0xFF8B5CF6).copy(alpha = 0.15f),
-                    border = BorderStroke(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.35f)),
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = null,
-                            tint = Color(0xFFC4B5FD),
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Surface(
-            onClick = onNavigateToGrootAi,
-            shape = RoundedCornerShape(18.dp),
-            color = colors.surface,
-            border = BorderStroke(1.dp, Brush.horizontalGradient(listOf(colors.primary.copy(alpha = 0.55f), colors.border))),
-            modifier = Modifier
-                .fillMaxWidth()
-                .bounceClick()
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Box(
-                        modifier = Modifier
-                            .size(38.dp)
-                            .clip(CircleShape)
-                            .background(colors.primary.copy(alpha = 0.14f))
-                    )
-                    GrootAvatar(
-                        size = 32.dp,
-                        containerColor = colors.primary.copy(alpha = 0.2f),
-                        borderColor = colors.primary.copy(alpha = 0.5f),
-                        tint = colors.primary
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "GROOT AI ASSISTANT",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.primary,
-                            letterSpacing = 1.sp
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF10B981))
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(3.dp))
-                    Text(
-                        text = "Ask Groot to analyze your habits and guide your focus.",
-                        fontSize = 12.5.sp,
-                        color = colors.textPrimary,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        lineHeight = 16.sp
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = colors.primary.copy(alpha = 0.12f),
-                    border = BorderStroke(1.dp, colors.primary.copy(alpha = 0.35f))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Chat",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.primary
-                        )
-                        Spacer(modifier = Modifier.width(3.dp))
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = null,
-                            tint = colors.primary,
-                            modifier = Modifier.size(12.dp)
-                        )
-                    }
-                }
-            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -763,121 +590,6 @@ fun DashboardScreen(
                     HabitSnapshotChip(
                         habit = habit,
                         onToggle = { viewModel.toggleHabit(habit.id) }
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "INSIGHTS & ANALYTICS",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = colors.primaryLight,
-                letterSpacing = 1.sp
-            )
-            Text(
-                text = "View All",
-                fontSize = 12.sp,
-                color = colors.primaryLight,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .clickable { onNavigateToInsights() }
-                    .bounceClick()
-            )
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        Surface(
-            onClick = onNavigateToFocusAnalysis,
-            shape = RoundedCornerShape(20.dp),
-            color = colors.surface,
-            border = BorderStroke(1.dp, Brush.horizontalGradient(listOf(Color(0xFF4FD1C5).copy(alpha = 0.5f), colors.border))),
-            modifier = Modifier
-                .fillMaxWidth()
-                .bounceClick()
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        Brush.linearGradient(
-                            listOf(
-                                Color(0xFF4FD1C5).copy(alpha = 0.12f),
-                                Color(0xFF0F0F14).copy(alpha = 0.4f)
-                            )
-                        )
-                    )
-                    .padding(18.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFF4FD1C5).copy(alpha = 0.2f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.HourglassBottom,
-                                    contentDescription = null,
-                                    tint = Color(0xFF4FD1C5),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Column {
-                                Text(
-                                    text = "Focus Time Analysis",
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.textPrimary
-                                )
-                                Text(
-                                    text = "Peak productivity windows & distribution",
-                                    fontSize = 11.5.sp,
-                                    color = colors.textMuted
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Row(verticalAlignment = Alignment.Bottom) {
-                            Text(
-                                text = "${data.focusMinutesToday}m",
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = Color(0xFF4FD1C5)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "logged today • ${(data.focusMinutesToday / 60f).let { String.format(Locale.US, "%.1fh", it) }}",
-                                fontSize = 12.sp,
-                                color = colors.textMuted,
-                                modifier = Modifier.padding(bottom = 2.dp)
-                            )
-                        }
-                    }
-
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = null,
-                        tint = Color(0xFF4FD1C5),
-                        modifier = Modifier.size(18.dp)
                     )
                 }
             }
@@ -1388,17 +1100,13 @@ private fun BentoSparklineTile(
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {}
 ) {
-    val hairlineBorder = Brush.verticalGradient(
-        listOf(
-            Color.White.copy(alpha = 0.14f),
-            Color.White.copy(alpha = 0.03f)
-        )
-    )
+    val colors = FocusFlowTheme.colors
+    val hairlineBorder = colors.cardBorderBrush
 
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(20.dp),
-        color = Color(0xFF11101C),
+        color = colors.surface,
         border = BorderStroke(1.dp, hairlineBorder),
         modifier = modifier.bounceClick()
     ) {
@@ -1416,7 +1124,7 @@ private fun BentoSparklineTile(
                     text = label.uppercase(),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF94A3B8),
+                    color = colors.textMuted,
                     letterSpacing = 0.5.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -1445,7 +1153,7 @@ private fun BentoSparklineTile(
                 text = value,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = Color(0xFFF1F1F5)
+                color = colors.textPrimary
             )
 
             Spacer(modifier = Modifier.height(2.dp))
@@ -1453,7 +1161,7 @@ private fun BentoSparklineTile(
             Text(
                 text = subValue,
                 fontSize = 11.sp,
-                color = Color(0xFF94A3B8),
+                color = colors.textMuted,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )

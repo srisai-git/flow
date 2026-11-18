@@ -1,7 +1,6 @@
 package com.simats.focusflow.ui.screens
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,11 +17,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,16 +30,13 @@ import com.simats.focusflow.ui.viewmodel.MakeItYoursState
 import com.simats.focusflow.ui.viewmodel.MakeItYoursViewModel
 import kotlin.math.roundToInt
 
-private val BackgroundDark = Color(0xFF0F0F14)
-private val SurfaceCard = Color(0xFF181722)
-private val SurfaceCardActive = Color(0xFF221F33)
-private val BorderInactive = Color(0xFF272535)
-private val VioletAccent = Color(0xFF8B5CF6)
-private val VioletMuted = Color(0xFFC4B5FD)
-private val TextPrimary = Color(0xFFF9FAFB)
-private val TextSecondary = Color(0xFFA1A1AA)
-
-
+private val BackgroundLight = Color(0xFFFFFFFF)
+private val SurfaceCardLight = Color(0xFFF8FAFC)
+private val SurfaceCardActiveLight = Color(0xFFEDE9FE)
+private val BorderInactiveLight = Color(0xFFE2E8F0)
+private val PrimaryViolet = Color(0xFF7C3AED)
+private val TextPrimaryLight = Color(0xFF0F172A)
+private val TextSecondaryLight = Color(0xFF475569)
 
 @Composable
 fun MakeItYoursScreen(
@@ -60,13 +54,16 @@ fun MakeItYoursScreen(
     }
 
     val state by viewModel.uiState.collectAsState()
+    var customFocusArea by remember { mutableStateOf("") }
 
-    val focusAreas = listOf(
+    val standardAreas = listOf(
         "Coding & Projects",
         "Study & Academics",
         "Creative Work",
         "Deep Work"
     )
+    val allOptions = standardAreas + "Others"
+    val isOthersSelected = state.selectedFocusArea == "Others" || (!standardAreas.contains(state.selectedFocusArea) && state.selectedFocusArea.isNotBlank())
 
     val focusStyles = listOf(
         FocusStyleOption(
@@ -87,13 +84,13 @@ fun MakeItYoursScreen(
     )
 
     Scaffold(
-        containerColor = BackgroundDark
+        containerColor = BackgroundLight
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(BackgroundDark)
+                .background(BackgroundLight)
                 .padding(horizontal = 24.dp)
                 .verticalScroll(rememberScrollState())
         ) {
@@ -102,13 +99,13 @@ fun MakeItYoursScreen(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xFF8B5CF6).copy(alpha = 0.15f))
-                    .border(1.dp, VioletAccent.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
+                    .background(PrimaryViolet.copy(alpha = 0.12f))
+                    .border(1.dp, PrimaryViolet.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
                     .padding(horizontal = 12.dp, vertical = 6.dp)
             ) {
                 Text(
                     text = "STEP 2 OF 2 • CUSTOMIZE",
-                    color = VioletMuted,
+                    color = PrimaryViolet,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp
@@ -121,7 +118,7 @@ fun MakeItYoursScreen(
                 text = "MAKE IT YOURS",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = TextPrimary,
+                color = TextPrimaryLight,
                 letterSpacing = 1.5.sp
             )
 
@@ -130,7 +127,7 @@ fun MakeItYoursScreen(
             Text(
                 text = "Tailor your focus environment to match how your mind works best.",
                 fontSize = 15.sp,
-                color = TextSecondary,
+                color = TextSecondaryLight,
                 lineHeight = 22.sp
             )
 
@@ -140,21 +137,53 @@ fun MakeItYoursScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                for (chunk in focusAreas.chunked(2)) {
+                for (chunk in allOptions.chunked(2)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         for (area in chunk) {
-                            val isSelected = state.selectedFocusArea == area
+                            val isSelected = if (area == "Others") isOthersSelected else state.selectedFocusArea == area
                             FocusAreaChip(
                                 label = area,
                                 isSelected = isSelected,
-                                onClick = { viewModel.onFocusAreaSelected(area) },
+                                onClick = {
+                                    if (area == "Others") {
+                                        viewModel.onFocusAreaSelected(if (customFocusArea.isNotBlank()) customFocusArea else "Others")
+                                    } else {
+                                        viewModel.onFocusAreaSelected(area)
+                                    }
+                                },
                                 modifier = Modifier.weight(1f)
                             )
                         }
+                        if (chunk.size == 1) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
                     }
+                }
+
+                if (isOthersSelected) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = customFocusArea,
+                        onValueChange = {
+                            customFocusArea = it
+                            viewModel.onFocusAreaSelected(if (it.isNotBlank()) it else "Others")
+                        },
+                        placeholder = { Text("Specify your focus area (e.g. Research, Writing)", color = Color(0xFF94A3B8), fontSize = 13.sp) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = TextPrimaryLight,
+                            unfocusedTextColor = TextPrimaryLight,
+                            focusedContainerColor = SurfaceCardLight,
+                            unfocusedContainerColor = SurfaceCardLight,
+                            focusedBorderColor = PrimaryViolet,
+                            unfocusedBorderColor = BorderInactiveLight
+                        ),
+                        singleLine = true
+                    )
                 }
             }
 
@@ -198,8 +227,8 @@ fun MakeItYoursScreen(
                     .height(56.dp)
                     .bounceClick(),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = VioletAccent,
-                    disabledContainerColor = VioletAccent.copy(alpha = 0.5f)
+                    containerColor = PrimaryViolet,
+                    disabledContainerColor = PrimaryViolet.copy(alpha = 0.5f)
                 ),
                 shape = RoundedCornerShape(16.dp)
             ) {
@@ -242,7 +271,7 @@ private fun SectionLabel(title: String) {
         text = title,
         fontSize = 12.sp,
         fontWeight = FontWeight.Bold,
-        color = VioletMuted,
+        color = PrimaryViolet,
         letterSpacing = 1.2.sp
     )
 }
@@ -255,11 +284,11 @@ private fun FocusAreaChip(
     modifier: Modifier = Modifier
 ) {
     val borderColor by animateColorAsState(
-        targetValue = if (isSelected) VioletAccent else BorderInactive,
+        targetValue = if (isSelected) PrimaryViolet else BorderInactiveLight,
         label = "chipBorder"
     )
     val backgroundColor by animateColorAsState(
-        targetValue = if (isSelected) SurfaceCardActive else SurfaceCard,
+        targetValue = if (isSelected) SurfaceCardActiveLight else SurfaceCardLight,
         label = "chipBg"
     )
 
@@ -283,14 +312,14 @@ private fun FocusAreaChip(
                 text = label,
                 fontSize = 13.sp,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                color = if (isSelected) TextPrimary else TextSecondary,
+                color = if (isSelected) PrimaryViolet else TextSecondaryLight,
                 modifier = Modifier.weight(1f)
             )
             if (isSelected) {
                 Box(
                     modifier = Modifier
                         .size(18.dp)
-                        .background(VioletAccent, CircleShape),
+                        .background(PrimaryViolet, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
@@ -315,8 +344,8 @@ private fun DailyGoalCard(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = SurfaceCard,
-        border = BorderStroke(1.dp, BorderInactive)
+        color = SurfaceCardLight,
+        border = BorderStroke(1.dp, BorderInactiveLight)
     ) {
         Column(
             modifier = Modifier
@@ -332,7 +361,7 @@ private fun DailyGoalCard(
                     Text(
                         text = "Target Time",
                         fontSize = 13.sp,
-                        color = TextSecondary,
+                        color = TextSecondaryLight,
                         fontWeight = FontWeight.Medium
                     )
                     Spacer(modifier = Modifier.height(2.dp))
@@ -340,19 +369,19 @@ private fun DailyGoalCard(
                         text = "$hours ${if (hours == 1) "Hour" else "Hours"} / day",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = TextPrimary
+                        color = TextPrimaryLight
                     )
                 }
 
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(10.dp))
-                        .background(VioletAccent.copy(alpha = 0.15f))
+                        .background(PrimaryViolet.copy(alpha = 0.12f))
                         .padding(horizontal = 10.dp, vertical = 6.dp)
                 ) {
                     Text(
                         text = "${hours * 60}m goal",
-                        color = VioletMuted,
+                        color = PrimaryViolet,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -364,7 +393,7 @@ private fun DailyGoalCard(
             Text(
                 text = subtitle,
                 fontSize = 12.sp,
-                color = if (hours in 3..5) VioletMuted else TextSecondary,
+                color = if (hours in 3..5) PrimaryViolet else TextSecondaryLight,
                 fontWeight = if (hours in 3..5) FontWeight.SemiBold else FontWeight.Normal
             )
 
@@ -376,9 +405,9 @@ private fun DailyGoalCard(
                 valueRange = 1f..12f,
                 steps = 10,
                 colors = SliderDefaults.colors(
-                    thumbColor = VioletAccent,
-                    activeTrackColor = VioletAccent,
-                    inactiveTrackColor = BorderInactive,
+                    thumbColor = PrimaryViolet,
+                    activeTrackColor = PrimaryViolet,
+                    inactiveTrackColor = BorderInactiveLight,
                     activeTickColor = Color.Transparent,
                     inactiveTickColor = Color.Transparent
                 ),
@@ -392,19 +421,19 @@ private fun DailyGoalCard(
                 Text(
                     text = "1 hr",
                     fontSize = 11.sp,
-                    color = TextSecondary,
+                    color = TextSecondaryLight,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
                     text = "6 hrs",
                     fontSize = 11.sp,
-                    color = TextSecondary,
+                    color = TextSecondaryLight,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
                     text = "12 hrs",
                     fontSize = 11.sp,
-                    color = TextSecondary,
+                    color = TextSecondaryLight,
                     fontWeight = FontWeight.Medium
                 )
             }
@@ -425,11 +454,11 @@ private fun FocusStyleCard(
     onClick: () -> Unit
 ) {
     val borderColor by animateColorAsState(
-        targetValue = if (isSelected) VioletAccent else BorderInactive,
+        targetValue = if (isSelected) PrimaryViolet else BorderInactiveLight,
         label = "styleBorder"
     )
     val backgroundColor by animateColorAsState(
-        targetValue = if (isSelected) SurfaceCardActive else SurfaceCard,
+        targetValue = if (isSelected) SurfaceCardActiveLight else SurfaceCardLight,
         label = "styleBg"
     )
 
@@ -448,68 +477,61 @@ private fun FocusStyleCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = option.title,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
-                    )
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(
-                                if (isSelected) VioletAccent.copy(alpha = 0.25f)
-                                else Color(0xFF272535)
-                            )
-                            .padding(horizontal = 7.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = option.badge,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isSelected) VioletMuted else TextSecondary
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Text(
-                    text = option.description,
-                    fontSize = 13.sp,
-                    color = TextSecondary,
-                    lineHeight = 18.sp
-                )
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
             Box(
                 modifier = Modifier
-                    .size(22.dp)
-                    .border(
-                        width = 2.dp,
-                        color = if (isSelected) VioletAccent else BorderInactive,
-                        shape = CircleShape
-                    )
-                    .background(
-                        if (isSelected) VioletAccent else Color.Transparent,
-                        shape = CircleShape
-                    ),
+                    .size(20.dp)
+                    .clip(CircleShape)
+                    .border(2.dp, if (isSelected) PrimaryViolet else Color(0xFFCBD5E1), CircleShape)
+                    .background(if (isSelected) PrimaryViolet else Color.Transparent),
                 contentAlignment = Alignment.Center
             ) {
                 if (isSelected) {
                     Box(
                         modifier = Modifier
                             .size(8.dp)
-                            .background(Color.White, CircleShape)
+                            .clip(CircleShape)
+                            .background(Color.White)
                     )
                 }
+            }
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = option.title,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimaryLight
+                    )
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (isSelected) PrimaryViolet.copy(alpha = 0.15f) else Color(0xFFF1F5F9))
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                    ) {
+                        Text(
+                            text = option.badge,
+                            color = if (isSelected) PrimaryViolet else Color(0xFF64748B),
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = option.description,
+                    fontSize = 12.sp,
+                    color = TextSecondaryLight,
+                    lineHeight = 17.sp
+                )
             }
         }
     }
@@ -520,4 +542,3 @@ private fun FocusStyleCard(
 fun MakeItYoursScreenPreview() {
     MakeItYoursScreen()
 }
-

@@ -174,18 +174,17 @@ fun EditProfileScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(86.dp)
-                            .clip(CircleShape)
+                            .size(96.dp)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null
                             ) { showAvatarPickerSheet = true }
-                            .bounceClick(),
-                        contentAlignment = Alignment.BottomEnd
+                            .bounceClick()
                     ) {
                         Box(
                             modifier = Modifier
                                 .size(82.dp)
+                                .align(Alignment.Center)
                                 .clip(CircleShape)
                                 .background(colors.primary.copy(alpha = 0.15f))
                                 .border(2.dp, colors.primary, CircleShape),
@@ -242,6 +241,8 @@ fun EditProfileScreen(
 
                         Box(
                             modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .offset(x = 2.dp, y = 2.dp)
                                 .size(28.dp)
                                 .clip(CircleShape)
                                 .background(colors.primary)

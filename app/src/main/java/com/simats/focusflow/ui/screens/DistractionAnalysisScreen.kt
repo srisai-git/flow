@@ -275,7 +275,7 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF07060D))
+            .background(colors.background)
             .statusBarsPadding()
             .padding(top = 16.dp, bottom = 24.dp, start = 20.dp, end = 20.dp)
             .verticalScroll(rememberScrollState())
@@ -350,8 +350,11 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
                             center = Offset(cx, cy)
                         )
 
+                        val trackOuterColor = if (colors.isDark) Color(0xFF1C1830) else colors.border.copy(alpha = 0.5f)
+                        val trackInnerColor = if (colors.isDark) Color(0xFF282245) else colors.surfaceVariant
+
                         drawArc(
-                            color = Color(0xFF1C1830),
+                            color = trackOuterColor,
                             startAngle = 0f,
                             sweepAngle = 360f,
                             useCenter = false,
@@ -361,7 +364,7 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
                         )
 
                         drawArc(
-                            color = Color(0xFF282245),
+                            color = trackInnerColor,
                             startAngle = 0f,
                             sweepAngle = 360f,
                             useCenter = false,
@@ -419,7 +422,7 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
                             text = if (totalMins > 0) totalHoursStr else "0m",
                             fontSize = 32.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = Color.White,
+                            color = colors.textPrimary,
                             style = androidx.compose.ui.text.TextStyle(fontFeatureSettings = "tnum")
                         )
                         Spacer(modifier = Modifier.height(2.dp))

@@ -18,8 +18,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.MenuBook
@@ -99,8 +101,8 @@ fun EmptyHabitsCard(
     val colors = FocusFlowTheme.colors
     Surface(
         shape = RoundedCornerShape(20.dp),
-        color = Color(0xFF11101C),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+        color = colors.surface,
+        border = BorderStroke(1.dp, colors.cardBorderBrush),
         modifier = modifier.fillMaxWidth()
     ) {
         Column(
@@ -197,7 +199,7 @@ fun HabitsScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = Color(0xFF07060D),
+        containerColor = colors.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
             if (state.selectedTab == HabitTab.ROUTINE) {
@@ -223,7 +225,7 @@ fun HabitsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color(0xFF07060D))
+                .background(colors.background)
                 .padding(horizontal = 20.dp)
         ) {
             Spacer(modifier = Modifier.height(10.dp))
@@ -451,7 +453,10 @@ fun HabitsScreen(
                     onHabitClick = {
                         viewModel.selectHabitForStreak(it)
                         isStreakModalOpen = true
-                    }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
                 )
             }
         }
@@ -512,11 +517,11 @@ private fun HabitCard(
     val colors = FocusFlowTheme.colors
     val isDone = habit.isCompletedToday
     val cardBg by animateColorAsState(
-        targetValue = if (isDone) Color(0xFF8B5CF6).copy(alpha = 0.16f) else Color(0xFF11101C),
+        targetValue = if (isDone) colors.primary.copy(alpha = 0.16f) else colors.surface,
         label = "habitBg"
     )
     val borderColor by animateColorAsState(
-        targetValue = if (isDone) Color(0xFF8B5CF6).copy(alpha = 0.45f) else Color.White.copy(alpha = 0.08f),
+        targetValue = if (isDone) colors.primary.copy(alpha = 0.45f) else colors.border,
         label = "habitBorder"
     )
 
@@ -633,14 +638,15 @@ private fun HabitsInsightsView(
     onSelectTimeframe: (HabitInsightTimeframe) -> Unit,
     onRefreshAi: () -> Unit,
     onNavigateToGrootAi: () -> Unit,
-    onHabitClick: (HabitItem) -> Unit
+    onHabitClick: (HabitItem) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val colors = FocusFlowTheme.colors
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 100.dp)
+        modifier = modifier
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = 24.dp)
     ) {
         AiProductivityInsightsCard(
             insight = aiInsight,
