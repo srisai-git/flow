@@ -14,3 +14,10 @@
 .cxx
 local.properties
 .kotlin/
+
+# Secrets & Keystores
+*.jks
+*.keystore
+*.key
+.env
+.env.*
