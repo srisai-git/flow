@@ -3,10 +3,12 @@ package com.simats.focusflow.ui.screens
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -45,6 +47,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -57,6 +60,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -68,9 +72,12 @@ import com.simats.focusflow.data.local.FocusSessionDatabase
 import com.simats.focusflow.data.models.FocusSessionRecord
 import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.session.SessionManager
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import com.simats.focusflow.data.session.BlockedAppsManager
 import com.simats.focusflow.service.NotificationHelper
 import com.simats.focusflow.ui.components.AmbientMeshGlowHeader
 import com.simats.focusflow.ui.components.FocusFlowShieldBadge
+import com.simats.focusflow.ui.components.SelectBlockedAppsSheet
 import com.simats.focusflow.ui.components.bounceClick
 import com.simats.focusflow.ui.theme.FocusFlowTheme
 import com.simats.focusflow.ui.viewmodel.TimerMode
@@ -90,6 +97,10 @@ fun TimerScreen(
 ) {
     val context = LocalContext.current
     val colors = FocusFlowTheme.colors
+
+    val blockedAppsManager = remember { BlockedAppsManager.getInstance(context) }
+    val blockedPackages by blockedAppsManager.blockedPackagesFlow.collectAsState()
+    var showSelectBlockedAppsSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.initSessionManager(context, SessionManager.getInstance(context))
@@ -182,6 +193,12 @@ fun TimerScreen(
             snackbarHostState.showSnackbar(it)
             viewModel.clearToast()
         }
+    }
+
+    if (showSelectBlockedAppsSheet) {
+        SelectBlockedAppsSheet(
+            onDismiss = { showSelectBlockedAppsSheet = false }
+        )
     }
 
     Scaffold(
@@ -490,11 +507,24 @@ fun TimerScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            val strictBorder = if (isStrictFocus) {
-                BorderStroke(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.35f))
-            } else {
-                BorderStroke(1.dp, if (colors.isDark) Color(0xFF2D264B) else Color(0xFFE5E7EB))
-            }
+            val strictScale by animateFloatAsState(
+                targetValue = if (isStrictFocus) 1.04f else 1.0f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                ),
+                label = "StrictShieldScale"
+            )
+
+            val strictBorderColor by animateColorAsState(
+                targetValue = if (isStrictFocus) {
+                    Color(0xFF8B5CF6).copy(alpha = 0.50f)
+                } else {
+                    if (colors.isDark) Color(0xFF2D264B) else Color(0xFFE5E7EB)
+                },
+                animationSpec = tween(durationMillis = 350),
+                label = "StrictBorderGlow"
+            )
 
             Surface(
                 shape = RoundedCornerShape(20.dp),
@@ -503,83 +533,112 @@ fun TimerScreen(
                 } else {
                     if (colors.isDark) Color(0xFF13111C) else Color(0xFFFFFFFF)
                 },
-                border = strictBorder,
+                border = BorderStroke(1.dp, strictBorderColor),
                 shadowElevation = if (isStrictFocus) 2.dp else 1.dp,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 4.dp)
                     .bounceClick()
             ) {
-                Row(
-                    modifier = Modifier.padding(18.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
+                Column(modifier = Modifier.padding(18.dp)) {
                     Row(
-                        modifier = Modifier.weight(1f),
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        FocusFlowShieldBadge(modifier = Modifier.size(44.dp))
-                        Spacer(modifier = Modifier.width(14.dp))
-                        Column {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            FocusFlowShieldBadge(
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .scale(strictScale)
+                            )
+                            Spacer(modifier = Modifier.width(14.dp))
+                            Column {
                                 Text(
                                     text = "Strict Focus Mode",
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = if (colors.isDark) colors.textPrimary else Color(0xFF111827)
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = if (isStrictFocus) Color(0xFFEDE9FE) else Color(0xFFF3F4F6),
-                                    border = BorderStroke(
-                                        1.dp,
-                                        if (isStrictFocus) Color(0xFF7C3AED).copy(alpha = 0.25f) else Color(0xFFE5E7EB)
-                                    )
-                                ) {
-                                    Text(
-                                        text = if (isStrictFocus) "ACTIVE" else "OFF",
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isStrictFocus) Color(0xFF7C3AED) else Color(0xFF6B7280),
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
+                                Spacer(modifier = Modifier.height(3.dp))
+                                Text(
+                                    text = "Blocks distracting apps during focus.",
+                                    fontSize = 13.sp,
+                                    color = if (colors.isDark) colors.textMuted else Color(0xFF6B7280),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
-                            Spacer(modifier = Modifier.height(3.dp))
+                        }
+                        Switch(
+                            checked = isStrictFocus,
+                            onCheckedChange = { checked ->
+                                if (checked) {
+                                    isStrictFocus = true
+                                    com.simats.focusflow.service.FocusTimerService.setStrictFocus(context, true)
+                                    refreshPermissions()
+                                    if (!com.simats.focusflow.service.FocusBlockerAccessibilityService.isAccessibilityServiceEnabled(context)) {
+                                        com.simats.focusflow.service.FocusBlockerAccessibilityService.openAccessibilitySettings(context)
+                                    } else if (!com.simats.focusflow.service.FocusBlockerAccessibilityService.canDrawOverlays(context)) {
+                                        com.simats.focusflow.service.FocusBlockerAccessibilityService.openOverlaySettings(context)
+                                    }
+                                } else {
+                                    isStrictFocus = false
+                                    com.simats.focusflow.service.FocusTimerService.setStrictFocus(context, false)
+                                }
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = Color(0xFF7C3AED),
+                                uncheckedThumbColor = Color.White,
+                                uncheckedTrackColor = Color(0xFFE5E7EB),
+                                uncheckedBorderColor = Color(0xFFD1D5DB)
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    HorizontalDivider(
+                        color = if (colors.isDark) Color(0xFF262338) else Color(0xFFE5E7EB),
+                        thickness = 1.dp
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable { showSelectBlockedAppsSheet = true }
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Blocked apps (${blockedPackages.size} selected)",
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = if (colors.isDark) Color(0xFFC4B5FD) else Color(0xFF7C3AED)
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "Blocks distracting apps while keeping essential productivity tools accessible.",
-                                fontSize = 13.sp,
-                                color = if (colors.isDark) colors.textMuted else Color(0xFF6B7280)
+                                text = "Customize",
+                                fontSize = 12.sp,
+                                color = colors.textMuted
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = "Select Apps",
+                                tint = if (colors.isDark) Color(0xFFC4B5FD) else Color(0xFF7C3AED),
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
-                    Switch(
-                        checked = isStrictFocus,
-                        onCheckedChange = { checked ->
-                            if (checked) {
-                                isStrictFocus = true
-                                com.simats.focusflow.service.FocusTimerService.setStrictFocus(context, true)
-                                refreshPermissions()
-                                if (!com.simats.focusflow.service.FocusBlockerAccessibilityService.isAccessibilityServiceEnabled(context)) {
-                                    com.simats.focusflow.service.FocusBlockerAccessibilityService.openAccessibilitySettings(context)
-                                } else if (!com.simats.focusflow.service.FocusBlockerAccessibilityService.canDrawOverlays(context)) {
-                                    com.simats.focusflow.service.FocusBlockerAccessibilityService.openOverlaySettings(context)
-                                }
-                            } else {
-                                isStrictFocus = false
-                                com.simats.focusflow.service.FocusTimerService.setStrictFocus(context, false)
-                            }
-                        },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color.White,
-                            checkedTrackColor = Color(0xFF7C3AED),
-                            uncheckedThumbColor = Color.White,
-                            uncheckedTrackColor = Color(0xFFE5E7EB),
-                            uncheckedBorderColor = Color(0xFFD1D5DB)
-                        )
-                    )
                 }
             }
 

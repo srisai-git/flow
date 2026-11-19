@@ -426,15 +426,6 @@ class FocusTimerService : Service() {
         val fgPkg = com.simats.focusflow.utils.UsageStatsHelper.getForegroundPackageName(applicationContext) ?: return
         if (com.simats.focusflow.utils.UsageStatsHelper.isBlockedDistractingApp(applicationContext, fgPkg)) {
             val appLabel = com.simats.focusflow.utils.UsageStatsHelper.getAppLabel(applicationContext, fgPkg)
-            try {
-                val shieldIntent = Intent(applicationContext, com.simats.focusflow.ui.screens.FocusShieldActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                    putExtra("EXTRA_BLOCKED_APP", appLabel)
-                    putExtra("EXTRA_PACKAGE_NAME", fgPkg)
-                }
-                applicationContext.startActivity(shieldIntent)
-            } catch (_: Exception) {}
-
             val currentTimestamp = System.currentTimeMillis()
             if (currentTimestamp - lastDistractionLogTime > 15000L) {
                 lastDistractionLogTime = currentTimestamp
