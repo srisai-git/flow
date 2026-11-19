@@ -71,6 +71,7 @@ private val AccentGreen = Color(0xFF10B981)
 
 data class QuickPrompt(val label: String, val category: String)
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun GrootAiScreen(
     onBack: () -> Unit = {},
@@ -92,9 +93,16 @@ fun GrootAiScreen(
 
     val state by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
+    val isImeVisible = WindowInsets.isImeVisible
 
     LaunchedEffect(state.messages.size, state.isAiThinking) {
         if (state.messages.isNotEmpty()) {
+            listState.animateScrollToItem(state.messages.size - 1)
+        }
+    }
+
+    LaunchedEffect(isImeVisible) {
+        if (isImeVisible && state.messages.isNotEmpty()) {
             listState.animateScrollToItem(state.messages.size - 1)
         }
     }
@@ -220,120 +228,130 @@ fun GrootAiScreen(
             }
         },
         bottomBar = {
-            Box(
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .navigationBarsPadding()
-                    .padding(horizontal = 14.dp, vertical = 8.dp)
+                    .imePadding(),
+                color = colors.surface,
+                border = BorderStroke(1.dp, colors.border)
             ) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(26.dp),
-                    color = if (colors.isDark) Color(0xF211101C) else colors.surface.copy(alpha = 0.95f),
-                    border = BorderStroke(1.dp, colors.cardBorderBrush)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 8.dp)
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 14.dp, vertical = 10.dp)
-                    ) {
-                        LazyRow(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            items(quickActionPrompts, key = { it.label }) { item ->
-                                Surface(
-                                    onClick = { viewModel.sendMessage(item.label) },
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = colors.surfaceVariant,
-                                    border = BorderStroke(1.dp, colors.border),
-                                    modifier = Modifier.bounceClick(),
-                                    enabled = !state.isAiThinking
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                        verticalAlignment = Alignment.CenterVertically
+                    AnimatedVisibility(visible = !isImeVisible) {
+                        Column {
+                            LazyRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(quickActionPrompts, key = { it.label }) { item ->
+                                    Surface(
+                                        onClick = { viewModel.sendMessage(item.label) },
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = colors.surfaceVariant,
+                                        border = BorderStroke(1.dp, colors.border),
+                                        modifier = Modifier.bounceClick(),
+                                        enabled = !state.isAiThinking
                                     ) {
-                                        Icon(
-                                            imageVector = when (item.category) {
-                                                "Action" -> Icons.Outlined.Timer
-                                                "Insights" -> Icons.Outlined.TrackChanges
-                                                "Coding" -> Icons.Outlined.AutoAwesome
-                                                else -> Icons.Outlined.Star
-                                            },
-                                            contentDescription = null,
-                                            tint = if (colors.isDark) Color(0xFFC4B5FD) else colors.primary,
-                                            modifier = Modifier.size(12.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            text = item.label,
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = colors.textPrimary
-                                        )
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = when (item.category) {
+                                                    "Action" -> Icons.Outlined.Timer
+                                                    "Insights" -> Icons.Outlined.TrackChanges
+                                                    "Coding" -> Icons.Outlined.AutoAwesome
+                                                    else -> Icons.Outlined.Star
+                                                },
+                                                contentDescription = null,
+                                                tint = if (colors.isDark) Color(0xFFC4B5FD) else colors.primary,
+                                                modifier = Modifier.size(12.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = item.label,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = colors.textPrimary
+                                            )
+                                        }
                                     }
                                 }
                             }
+                            Spacer(modifier = Modifier.height(8.dp))
                         }
+                    }
 
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            OutlinedTextField(
-                                value = state.inputText,
-                                onValueChange = { viewModel.onInputTextChanged(it) },
-                                placeholder = {
-                                    Text(
-                                        text = "Ask Groot anything or command actions...",
-                                        fontSize = 13.sp,
-                                        color = colors.textMuted
-                                    )
-                                },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .heightIn(min = 44.dp, max = 110.dp),
-                                shape = RoundedCornerShape(18.dp),
-                                maxLines = 4,
-                                minLines = 1,
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = Color.Transparent,
-                                    unfocusedBorderColor = Color.Transparent,
-                                    focusedContainerColor = Color.Transparent,
-                                    unfocusedContainerColor = Color.Transparent,
-                                    focusedTextColor = colors.textPrimary,
-                                    unfocusedTextColor = colors.textPrimary
-                                ),
-                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
-                                keyboardActions = KeyboardActions(onSend = { viewModel.sendMessage() })
-                            )
-
-                            Spacer(modifier = Modifier.width(8.dp))
-
-                            IconButton(
-                                onClick = { viewModel.sendMessage() },
-                                modifier = Modifier
-                                    .size(42.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (state.inputText.isNotBlank() && !state.isAiThinking)
-                                            Brush.linearGradient(listOf(Color(0xFF8B5CF6), Color(0xFF6366F1)))
-                                        else
-                                            Brush.linearGradient(listOf(colors.surfaceVariant, colors.surfaceVariant))
-                                    )
-                                    .bounceClick(),
-                                enabled = state.inputText.isNotBlank() && !state.isAiThinking
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Send,
-                                    contentDescription = "Send",
-                                    tint = if (state.inputText.isNotBlank() && !state.isAiThinking) Color.White else colors.textMuted,
-                                    modifier = Modifier.size(16.dp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = state.inputText,
+                            onValueChange = { viewModel.onInputTextChanged(it) },
+                            placeholder = {
+                                Text(
+                                    text = "Ask Groot AI...",
+                                    fontSize = 13.5.sp,
+                                    color = colors.textMuted
                                 )
-                            }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 46.dp, max = 110.dp),
+                            shape = RoundedCornerShape(24.dp),
+                            maxLines = 4,
+                            minLines = 1,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFF8B5CF6),
+                                unfocusedBorderColor = colors.border,
+                                focusedContainerColor = colors.surfaceVariant.copy(alpha = 0.7f),
+                                unfocusedContainerColor = colors.surfaceVariant.copy(alpha = 0.5f),
+                                focusedTextColor = colors.textPrimary,
+                                unfocusedTextColor = colors.textPrimary,
+                                cursorColor = Color(0xFF8B5CF6)
+                            ),
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                            keyboardActions = KeyboardActions(
+                                onSend = {
+                                    if (state.inputText.isNotBlank() && !state.isAiThinking) {
+                                        viewModel.sendMessage()
+                                    }
+                                }
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        val sendEnabled = state.inputText.isNotBlank() && !state.isAiThinking
+                        IconButton(
+                            onClick = {
+                                if (sendEnabled) {
+                                    viewModel.sendMessage()
+                                }
+                            },
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (sendEnabled)
+                                        Color(0xFF8B5CF6)
+                                    else
+                                        colors.surfaceVariant
+                                )
+                                .bounceClick(),
+                            enabled = sendEnabled
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Send,
+                                contentDescription = "Send",
+                                tint = if (sendEnabled) Color.White else colors.textMuted,
+                                modifier = Modifier.size(18.dp)
+                            )
                         }
                     }
                 }
@@ -344,6 +362,7 @@ fun GrootAiScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .consumeWindowInsets(paddingValues)
                 .background(colors.background)
         ) {
             Box(
@@ -377,6 +396,7 @@ fun GrootAiScreen(
                 state = listState,
                 modifier = Modifier
                     .fillMaxSize()
+                    .consumeWindowInsets(paddingValues)
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
