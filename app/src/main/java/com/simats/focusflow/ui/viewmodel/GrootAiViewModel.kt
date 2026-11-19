@@ -2,6 +2,7 @@ package com.simats.focusflow.ui.viewmodel
 
 import android.content.Context
 import androidx.compose.runtime.Immutable
+import androidx.core.text.HtmlCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
@@ -13,6 +14,9 @@ import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.repository.ProfileRepository
 import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.service.FocusTimerService
+import com.simats.focusflow.utils.GrootActionExecutor
+import com.simats.focusflow.utils.GrootActionParser
+import com.simats.focusflow.utils.GrootGuardrailHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,9 +38,13 @@ data class ChatMessage(
     val isFromUser: Boolean,
     val text: String,
     val action: AiAction? = null,
+    val actions: List<AiAction> = emptyList(),
     val actionExecuted: Boolean = false,
     val timestamp: String = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
-)
+) {
+    val allActions: List<AiAction>
+        get() = if (actions.isNotEmpty()) actions else listOfNotNull(action)
+}
 
 @Immutable
 data class GrootAiUiState(
@@ -65,11 +73,13 @@ class GrootAiViewModel(
 
     private var appContext: Context? = null
     private var currentUserId: Int = 1
+    private var actionExecutor: GrootActionExecutor? = null
     private val gson = Gson()
 
     fun initContext(context: Context, manager: SessionManager) {
         this.appContext = context.applicationContext
         this.sessionManager = manager
+        this.actionExecutor = GrootActionExecutor(context.applicationContext, productivityRepository, profileRepository)
         loadPersistedMessages()
         viewModelScope.launch(Dispatchers.IO) {
             val session = manager.userSessionFlow.first()
@@ -81,6 +91,9 @@ class GrootAiViewModel(
 
     fun initSessionManager(manager: SessionManager) {
         this.sessionManager = manager
+        if (actionExecutor == null && appContext != null) {
+            this.actionExecutor = GrootActionExecutor(appContext!!, productivityRepository, profileRepository)
+        }
         loadPersistedMessages()
         viewModelScope.launch(Dispatchers.IO) {
             val session = manager.userSessionFlow.first()
@@ -185,27 +198,6 @@ class GrootAiViewModel(
             return
         }
 
-        val parsedAction = com.simats.focusflow.utils.GrootActionParser.parseAction(textToSend)
-        if (parsedAction != null) {
-            val executed = performAutonomousAction(parsedAction.aiAction)
-            val actionMessage = ChatMessage(
-                isFromUser = false,
-                text = parsedAction.confirmationMessage,
-                action = parsedAction.aiAction,
-                actionExecuted = executed
-            )
-            val updatedWithAction = updatedWithUser + actionMessage
-            _uiState.update {
-                it.copy(
-                    messages = updatedWithAction,
-                    inputText = if (query == null) "" else it.inputText,
-                    isAiThinking = false
-                )
-            }
-            persistMessages(updatedWithAction)
-            return
-        }
-
         val currentHistory = updatedWithUser.takeLast(10).map {
             ChatHistoryMessage(
                 role = if (it.isFromUser) "user" else "assistant",
@@ -247,25 +239,80 @@ class GrootAiViewModel(
 
             result.fold(
                 onSuccess = { response ->
-                    val rawAiText = response.insight ?: response.message ?: "I am Groot. Focus on your top priority task."
-                    val aiText = if (rawAiText.trimStart().startsWith("{") && rawAiText.contains("\"insight\"")) {
+                    if (response.status == "offline" || response.status == "fallback") {
+                        val offlineResult = GrootActionParser.parseActions(textToSend)
+                        if (offlineResult != null && offlineResult.actions.isNotEmpty()) {
+                            var anyExec = false
+                            val transcript = (_uiState.value.messages + userMessage).joinToString("\n") {
+                                (if (it.isFromUser) "User: " else "Groot: ") + it.text
+                            }
+                            for (act in offlineResult.actions) {
+                                val prepAct = if (act.type.equals("EXPORT_CHAT", ignoreCase = true) && !act.payload.containsKey("transcript")) {
+                                    act.copy(payload = act.payload + ("transcript" to transcript))
+                                } else act
+                                val ok = actionExecutor?.executeAction(
+                                    action = prepAct,
+                                    userId = currentUserId,
+                                    onNavigate = { _navigationEvent.tryEmit(it) },
+                                    onClearChat = { clearChat() }
+                                ) ?: false
+                                if (ok) anyExec = true
+                            }
+                            val offlineMsg = ChatMessage(
+                                isFromUser = false,
+                                text = offlineResult.confirmationMessage,
+                                action = offlineResult.actions.firstOrNull(),
+                                actions = offlineResult.actions,
+                                actionExecuted = anyExec
+                            )
+                            withContext(Dispatchers.Main) {
+                                val updated = _uiState.value.messages + offlineMsg
+                                _uiState.update {
+                                    it.copy(messages = updated, isAiThinking = false)
+                                }
+                                persistMessages(updated)
+                            }
+                            return@fold
+                        }
+                    }
+
+                    val rawAiText = response.reply ?: response.insight ?: response.message ?: "I am Groot. Focus on your top priority task."
+                    val unescapedText = HtmlCompat.fromHtml(rawAiText, HtmlCompat.FROM_HTML_MODE_LEGACY).toString().trim()
+                    val aiText = if (unescapedText.trimStart().startsWith("{") && unescapedText.contains("\"insight\"")) {
                         response.message ?: "I am Groot, ready to assist."
                     } else {
-                        rawAiText
+                        unescapedText
                     }
                     val safeAiText = if (aiText.isNotBlank()) aiText else "I am Groot, ready to assist. How can I guide your focus or workflow today?"
 
-                    val action = response.action
-                    var actionExecuted = false
+                    val actionsToProcess = when {
+                        response.actions.isNotEmpty() -> response.actions
+                        response.action != null -> listOf(response.action)
+                        else -> GrootActionParser.parseActions(textToSend)?.actions ?: emptyList()
+                    }
 
-                    if (action != null) {
-                        actionExecuted = performAutonomousAction(action)
+                    var actionExecuted = false
+                    val transcript = (_uiState.value.messages + userMessage).joinToString("\n") {
+                        (if (it.isFromUser) "User: " else "Groot: ") + it.text
+                    }
+                    for (act in actionsToProcess) {
+                        val prepAct = if (act.type.equals("EXPORT_CHAT", ignoreCase = true) && !act.payload.containsKey("transcript")) {
+                            act.copy(payload = act.payload + ("transcript" to transcript))
+                        } else act
+                        val ok = actionExecutor?.executeAction(
+                            action = prepAct,
+                            userId = currentUserId,
+                            onNavigate = { _navigationEvent.tryEmit(it) },
+                            onClearChat = { clearChat() }
+                        ) ?: false
+                        if (ok) actionExecuted = true
                     }
 
                     val aiMessage = ChatMessage(
                         isFromUser = false,
                         text = safeAiText,
-                        action = action,
+                        action = actionsToProcess.firstOrNull(),
+                        actions = actionsToProcess,
                         actionExecuted = actionExecuted
                     )
 
@@ -281,98 +328,85 @@ class GrootAiViewModel(
                     }
                 },
                 onFailure = {
-                    val fallbackText = "Unable to connect to Groot AI. Please check your network connection and verify the AI service is active."
-                    val fallbackMessage = ChatMessage(
-                        isFromUser = false,
-                        text = fallbackText
-                    )
-                    withContext(Dispatchers.Main) {
-                        val updatedWithFallback = _uiState.value.messages + fallbackMessage
-                        _uiState.update {
-                            it.copy(
-                                messages = updatedWithFallback,
-                                isAiThinking = false
-                            )
+                    val offlineResult = GrootActionParser.parseActions(textToSend)
+                    if (offlineResult != null && offlineResult.actions.isNotEmpty()) {
+                        var anyExec = false
+                        val transcript = (_uiState.value.messages + userMessage).joinToString("\n") {
+                            (if (it.isFromUser) "User: " else "Groot: ") + it.text
                         }
-                        persistMessages(updatedWithFallback)
+                        for (act in offlineResult.actions) {
+                            val prepAct = if (act.type.equals("EXPORT_CHAT", ignoreCase = true) && !act.payload.containsKey("transcript")) {
+                                act.copy(payload = act.payload + ("transcript" to transcript))
+                            } else act
+                            val ok = actionExecutor?.executeAction(
+                                action = prepAct,
+                                userId = currentUserId,
+                                onNavigate = { _navigationEvent.tryEmit(it) },
+                                onClearChat = { clearChat() }
+                            ) ?: false
+                            if (ok) anyExec = true
+                        }
+                        val offlineMsg = ChatMessage(
+                            isFromUser = false,
+                            text = offlineResult.confirmationMessage,
+                            action = offlineResult.actions.firstOrNull(),
+                            actions = offlineResult.actions,
+                            actionExecuted = anyExec
+                        )
+                        withContext(Dispatchers.Main) {
+                            val updatedWithFallback = _uiState.value.messages + offlineMsg
+                            _uiState.update {
+                                it.copy(
+                                    messages = updatedWithFallback,
+                                    isAiThinking = false
+                                )
+                            }
+                            persistMessages(updatedWithFallback)
+                        }
+                    } else {
+                        val fallbackText = "Unable to connect to Groot AI. Please check your network connection and verify the AI service is active."
+                        val fallbackMessage = ChatMessage(
+                            isFromUser = false,
+                            text = fallbackText
+                        )
+                        withContext(Dispatchers.Main) {
+                            val updatedWithFallback = _uiState.value.messages + fallbackMessage
+                            _uiState.update {
+                                it.copy(
+                                    messages = updatedWithFallback,
+                                    isAiThinking = false
+                                )
+                            }
+                            persistMessages(updatedWithFallback)
+                        }
                     }
                 }
             )
         }
     }
 
-    private fun performAutonomousAction(action: AiAction): Boolean {
-        return try {
-            when (action.type.uppercase()) {
-                "START_TIMER" -> {
-                    appContext?.let { ctx ->
-                        val duration = action.duration.coerceIn(5, 90)
-                        FocusTimerService.setDurations(ctx, duration, 5, 15)
-                        FocusTimerService.startTimer(ctx, currentUserId)
-                        true
-                    } ?: false
-                }
-                "CREATE_TASK" -> {
-                    if (action.title.isNotBlank()) {
-                        viewModelScope.launch(Dispatchers.IO) {
-                            productivityRepository.createTask(
-                                userId = currentUserId,
-                                title = action.title,
-                                description = "Created automatically by Groot AI",
-                                priority = action.priority.ifBlank { "medium" },
-                                dueDate = "",
-                                category = action.category.ifBlank { "General" }
-                            )
-                        }
-                        true
-                    } else false
-                }
-                "CREATE_HABIT" -> {
-                    if (action.title.isNotBlank()) {
-                        viewModelScope.launch(Dispatchers.IO) {
-                            productivityRepository.createHabit(
-                                userId = currentUserId,
-                                title = action.title,
-                                icon = "bolt",
-                                frequency = "daily"
-                            )
-                        }
-                        true
-                    } else false
-                }
-                "SET_GOAL" -> {
-                    if (action.dailyMinutes > 0) {
-                        viewModelScope.launch(Dispatchers.IO) {
-                            profileRepository.updatePreferences(
-                                userId = currentUserId,
-                                dailyFocusGoalMinutes = action.dailyMinutes,
-                                preferredFocusDuration = 45
-                            )
-                        }
-                        true
-                    } else false
-                }
-                "NAVIGATE" -> {
-                    if (action.route.isNotBlank()) {
-                        _navigationEvent.tryEmit(action.route)
-                        true
-                    } else false
-                }
-                else -> false
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            false
-        }
-    }
-
     fun handleActionClick(action: AiAction, onNavigate: (String) -> Unit) {
-        when (action.type.uppercase()) {
-            "START_TIMER" -> onNavigate("timer")
-            "CREATE_TASK" -> onNavigate("tasks")
-            "CREATE_HABIT" -> onNavigate("habits")
-            "SET_GOAL" -> onNavigate("profile")
-            "NAVIGATE" -> onNavigate(action.route.ifBlank { "dashboard" })
+        val type = action.type.uppercase()
+        when {
+            type.contains("TIMER") || type.contains("STRICT") -> onNavigate("timer")
+            type.contains("TASK") -> onNavigate("tasks")
+            type.contains("HABIT") -> onNavigate("habits")
+            type.contains("SUMMARY") || type.contains("ANALYTIC") || type.contains("INSIGHT") -> onNavigate("insights")
+            type.contains("GOAL") -> onNavigate("profile")
+            type.contains("NAVIGATE") -> {
+                val target = action.resolvedRoute.lowercase()
+                val route = when {
+                    target.contains("task") -> "tasks"
+                    target.contains("timer") || target.contains("focus") -> "timer"
+                    target.contains("habit") -> "habits"
+                    target.contains("insight") || target.contains("analytic") -> "insights"
+                    target.contains("profile") || target.contains("setting") -> "profile"
+                    target.contains("home") || target.contains("dash") -> "dashboard"
+                    else -> target.ifBlank { "dashboard" }
+                }
+                onNavigate(route)
+            }
+            else -> onNavigate(action.resolvedRoute.ifBlank { "dashboard" })
         }
     }
 }

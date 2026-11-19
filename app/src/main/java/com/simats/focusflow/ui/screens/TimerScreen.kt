@@ -70,6 +70,7 @@ import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.service.NotificationHelper
 import com.simats.focusflow.ui.components.AmbientMeshGlowHeader
+import com.simats.focusflow.ui.components.FocusFlowShieldBadge
 import com.simats.focusflow.ui.components.bounceClick
 import com.simats.focusflow.ui.theme.FocusFlowTheme
 import com.simats.focusflow.ui.viewmodel.TimerMode
@@ -490,27 +491,27 @@ fun TimerScreen(
             Spacer(modifier = Modifier.height(18.dp))
 
             val strictBorder = if (isStrictFocus) {
-                BorderStroke(
-                    1.dp,
-                    Brush.linearGradient(
-                        listOf(Color(0xFF8B5CF6), Color(0xFF10B981), Color(0xFF8B5CF6))
-                    )
-                )
+                BorderStroke(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.35f))
             } else {
-                BorderStroke(1.dp, hairlineBorder)
+                BorderStroke(1.dp, if (colors.isDark) Color(0xFF2D264B) else Color(0xFFE5E7EB))
             }
 
             Surface(
                 shape = RoundedCornerShape(20.dp),
-                color = if (isStrictFocus) (if (colors.isDark) Color(0xFF16132A) else Color(0xFFF3E8FF)) else colors.surface,
+                color = if (isStrictFocus) {
+                    if (colors.isDark) Color(0xFF181526) else Color(0xFFF5F3FF)
+                } else {
+                    if (colors.isDark) Color(0xFF13111C) else Color(0xFFFFFFFF)
+                },
                 border = strictBorder,
+                shadowElevation = if (isStrictFocus) 2.dp else 1.dp,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 4.dp)
                     .bounceClick()
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+                    modifier = Modifier.padding(18.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -518,71 +519,39 @@ fun TimerScreen(
                         modifier = Modifier.weight(1f),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(42.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(
-                                    if (isStrictFocus)
-                                        Brush.linearGradient(
-                                            listOf(Color(0xFF8B5CF6).copy(alpha = 0.35f), Color(0xFF10B981).copy(alpha = 0.25f))
-                                        )
-                                    else
-                                        Brush.linearGradient(
-                                            listOf(Color.White.copy(alpha = 0.06f), Color.White.copy(alpha = 0.02f))
-                                        )
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Security,
-                                contentDescription = null,
-                                tint = if (isStrictFocus) Color(0xFF10B981) else colors.textMuted,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
+                        FocusFlowShieldBadge(modifier = Modifier.size(44.dp))
                         Spacer(modifier = Modifier.width(14.dp))
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
                                     text = "Strict Focus Mode",
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.textPrimary
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (colors.isDark) colors.textPrimary else Color(0xFF111827)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                if (isStrictFocus) {
-                                    Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = Color(0xFF10B981).copy(alpha = 0.16f),
-                                        border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.4f))
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(5.dp)
-                                                    .clip(CircleShape)
-                                                    .background(Color(0xFF10B981))
-                                            )
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Text(
-                                                text = "SHIELD ARMED",
-                                                fontSize = 9.sp,
-                                                fontWeight = FontWeight.ExtraBold,
-                                                color = Color(0xFF10B981)
-                                            )
-                                        }
-                                    }
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = if (isStrictFocus) Color(0xFFEDE9FE) else Color(0xFFF3F4F6),
+                                    border = BorderStroke(
+                                        1.dp,
+                                        if (isStrictFocus) Color(0xFF7C3AED).copy(alpha = 0.25f) else Color(0xFFE5E7EB)
+                                    )
+                                ) {
+                                    Text(
+                                        text = if (isStrictFocus) "ACTIVE" else "OFF",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isStrictFocus) Color(0xFF7C3AED) else Color(0xFF6B7280),
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
                                 }
                             }
-                            Spacer(modifier = Modifier.height(2.dp))
+                            Spacer(modifier = Modifier.height(3.dp))
                             Text(
-                                text = if (isStrictFocus) "App blocker actively shields session" else "Lock out distracting social & game apps",
-                                fontSize = 11.5.sp,
-                                color = colors.textMuted
+                                text = "Blocks distracting apps while keeping essential productivity tools accessible.",
+                                fontSize = 13.sp,
+                                color = if (colors.isDark) colors.textMuted else Color(0xFF6B7280)
                             )
                         }
                     }
@@ -605,9 +574,10 @@ fun TimerScreen(
                         },
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = Color.White,
-                            checkedTrackColor = Color(0xFF8B5CF6),
-                            uncheckedThumbColor = colors.textMuted,
-                            uncheckedTrackColor = colors.border
+                            checkedTrackColor = Color(0xFF7C3AED),
+                            uncheckedThumbColor = Color.White,
+                            uncheckedTrackColor = Color(0xFFE5E7EB),
+                            uncheckedBorderColor = Color(0xFFD1D5DB)
                         )
                     )
                 }

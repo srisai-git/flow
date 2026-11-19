@@ -11,6 +11,7 @@ import android.os.Looper
 import android.provider.Settings
 import android.text.TextUtils
 import android.view.accessibility.AccessibilityEvent
+import android.view.inputmethod.InputMethodManager
 import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.ui.screens.FocusShieldActivity
 import com.simats.focusflow.ui.viewmodel.TimerMode
@@ -30,10 +31,65 @@ class FocusBlockerAccessibilityService : AccessibilityService() {
     private var lastBlockedPkg: String? = null
     private var lastBlockActionTime = 0L
 
-    private fun isIgnoredPackage(pkgName: String): Boolean {
+    private val allowedPackages = setOf(
+        "android",
+        "com.android.systemui",
+        "com.google.android.systemui",
+        "com.android.settings",
+        "com.google.android.settings",
+        "com.android.packageinstaller",
+        "com.google.android.packageinstaller",
+        "com.android.permissioncontroller",
+        "com.google.android.permissioncontroller",
+        "com.android.dialer",
+        "com.google.android.dialer",
+        "com.samsung.android.dialer",
+        "com.android.incallui",
+        "com.google.android.incallui",
+        "com.android.contacts",
+        "com.google.android.contacts",
+        "com.android.deskclock",
+        "com.google.android.deskclock",
+        "com.sec.android.app.clockpackage",
+        "com.android.camera",
+        "com.google.android.GoogleCamera",
+        "com.sec.android.app.camera",
+        "com.google.android.apps.nexuslauncher",
+        "com.android.launcher3",
+        "com.android.launcher",
+        "com.sec.android.app.launcher",
+        "com.miui.home",
+        "com.oppo.launcher",
+        "com.coloros.launcher",
+        "com.huawei.android.launcher",
+        "com.oneplus.launcher",
+        "com.transsion.hilauncher",
+        "com.teslacoilsw.launcher",
+        "com.microsoft.launcher",
+        "com.openai.chatgpt",
+        "com.google.android.apps.bard",
+        "com.google.android.googlequicksearchbox",
+        "com.google.android.apps.googleassistant",
+        "com.anthropic.claude",
+        "ai.perplexity.app.android",
+        "com.microsoft.copilot",
+        "com.microsoft.bing"
+    )
+
+    private fun isImePackage(pkgName: String): Boolean {
+        return try {
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            imm?.enabledInputMethodList?.any { it.packageName == pkgName } == true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun isAllowedPackage(pkgName: String): Boolean {
         if (pkgName == packageName || pkgName == applicationContext.packageName) return true
-        if (pkgName == "com.android.systemui") return true
+        if (allowedPackages.contains(pkgName)) return true
         if (isLauncherPackage(pkgName)) return true
+        if (isImePackage(pkgName)) return true
         return false
     }
 
@@ -43,11 +99,11 @@ class FocusBlockerAccessibilityService : AccessibilityService() {
             val resolveInfos = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 packageManager.queryIntentActivities(
                     intent,
-                    android.content.pm.PackageManager.ResolveInfoFlags.of(android.content.pm.PackageManager.MATCH_DEFAULT_ONLY.toLong())
+                    android.content.pm.PackageManager.ResolveInfoFlags.of(0L)
                 )
             } else {
                 @Suppress("DEPRECATION")
-                packageManager.queryIntentActivities(intent, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY)
+                packageManager.queryIntentActivities(intent, 0)
             }
             resolveInfos.any { it.activityInfo?.packageName == pkgName }
         } catch (_: Exception) {
@@ -57,50 +113,50 @@ class FocusBlockerAccessibilityService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null || event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
+        if (FocusShieldActivity.isForeground) return
 
         val pkgName = event.packageName?.toString() ?: return
-        if (isIgnoredPackage(pkgName)) return
+        if (isAllowedPackage(pkgName)) return
 
         val timerState = FocusTimerService.timerStateFlow.value
         if (!timerState.isRunning || timerState.currentMode != TimerMode.FOCUS || !timerState.isStrictFocus) {
             return
         }
 
-        if (UsageStatsHelper.isBlockedDistractingApp(applicationContext, pkgName)) {
-            val now = System.currentTimeMillis()
-            if (pkgName == lastBlockedPkg && (now - lastBlockActionTime < 1200L)) {
-                return
-            }
-            lastBlockActionTime = now
-            lastBlockedPkg = pkgName
+        val now = System.currentTimeMillis()
+        if (now - lastBlockActionTime < 600L) {
+            return
+        }
+        lastBlockActionTime = now
+        lastBlockedPkg = pkgName
 
-            val appLabel = UsageStatsHelper.getAppLabel(applicationContext, pkgName)
+        val appLabel = UsageStatsHelper.getAppLabel(applicationContext, pkgName)
 
-            performGlobalAction(GLOBAL_ACTION_HOME)
+        performGlobalAction(GLOBAL_ACTION_HOME)
 
-            handler.postDelayed({
-                try {
-                    val shieldIntent = Intent(applicationContext, FocusShieldActivity::class.java).apply {
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                        putExtra("EXTRA_BLOCKED_APP", appLabel)
-                        putExtra("EXTRA_PACKAGE_NAME", pkgName)
-                    }
-                    startActivity(shieldIntent)
-                } catch (_: Exception) {}
-            }, 200L)
-
-            if (now - lastLogTimestamp > 60000L) {
-                lastLogTimestamp = now
-                val activeUid = timerState.activeUserId
-                val cat = UsageStatsHelper.categorizePackage(pkgName, appLabel, applicationContext)
-                serviceScope.launch(Dispatchers.IO) {
-                    repository.logDistraction(
-                        userId = activeUid,
-                        reason = "Blocked app opened: $appLabel",
-                        category = cat,
-                        durationSeconds = 0
-                    )
+        handler.postDelayed({
+            if (FocusShieldActivity.isForeground) return@postDelayed
+            try {
+                val shieldIntent = Intent(applicationContext, FocusShieldActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    putExtra("EXTRA_BLOCKED_APP", appLabel)
+                    putExtra("EXTRA_PACKAGE_NAME", pkgName)
                 }
+                startActivity(shieldIntent)
+            } catch (_: Exception) {}
+        }, 200L)
+
+        if (now - lastLogTimestamp > 60000L) {
+            lastLogTimestamp = now
+            val activeUid = timerState.activeUserId
+            val cat = UsageStatsHelper.categorizePackage(pkgName, appLabel, applicationContext)
+            serviceScope.launch(Dispatchers.IO) {
+                repository.logDistraction(
+                    userId = activeUid,
+                    reason = "Blocked app opened: $appLabel",
+                    category = cat,
+                    durationSeconds = 0
+                )
             }
         }
     }

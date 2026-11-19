@@ -481,9 +481,18 @@ private fun ChatBubble(
                     )
                 }
 
-                if (message.action != null) {
+                val actionsToRender = message.allActions
+                if (actionsToRender.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(10.dp))
-                    ActionCard(action = message.action, isExecuted = message.actionExecuted, onClick = { onActionClick(message.action) })
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        actionsToRender.forEach { act ->
+                            ActionCard(
+                                action = act,
+                                isExecuted = message.actionExecuted,
+                                onClick = { onActionClick(act) }
+                            )
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(6.dp))
@@ -527,11 +536,15 @@ private fun ActionCard(
 ) {
     val colors = FocusFlowTheme.colors
     val actionType = action.type.uppercase()
-    val isTimer = actionType == "START_TIMER"
-    val isTask = actionType == "CREATE_TASK"
-    val isHabit = actionType == "CREATE_HABIT"
-    val isNav = actionType == "NAVIGATE"
+    val isTimer = actionType.contains("TIMER")
+    val isStrict = actionType.contains("STRICT")
+    val isTask = actionType.contains("TASK")
+    val isHabit = actionType.contains("HABIT")
     val isGoal = actionType == "SET_GOAL"
+    val isSummary = actionType.contains("SUMMARY") || actionType.contains("ANALYTIC")
+    val isNav = actionType.contains("NAVIGATE")
+    val isExport = actionType == "EXPORT_CHAT"
+    val isClear = actionType == "CLEAR_CHAT"
 
     Surface(
         onClick = onClick,
@@ -563,9 +576,12 @@ private fun ActionCard(
                     Icon(
                         imageVector = when {
                             isTimer -> Icons.Outlined.Timer
+                            isStrict -> Icons.Outlined.HourglassBottom
                             isTask -> Icons.Outlined.TaskAlt
                             isHabit -> Icons.Outlined.CheckCircle
                             isGoal -> Icons.Outlined.TrackChanges
+                            isSummary -> Icons.Outlined.AutoAwesome
+                            isClear -> Icons.Outlined.DeleteSweep
                             else -> Icons.Outlined.NearMe
                         },
                         contentDescription = null,
@@ -579,10 +595,28 @@ private fun ActionCard(
                 Column {
                     Text(
                         text = when {
-                            isTimer -> "Focus Timer Active"
-                            isTask -> "Task Scheduled"
-                            isHabit -> "Daily Habit Created"
-                            isGoal -> "Focus Target Saved"
+                            actionType == "START_FOCUS_TIMER" || actionType == "START_TIMER" -> "Focus Timer Active"
+                            actionType == "PAUSE_TIMER" -> "Timer Paused"
+                            actionType == "RESUME_TIMER" -> "Timer Resumed"
+                            actionType == "STOP_TIMER" || actionType == "RESET_TIMER" -> "Timer Stopped"
+                            actionType == "ENABLE_STRICT_MODE" -> "Strict Focus Mode Active"
+                            actionType == "DISABLE_STRICT_MODE" -> "Strict Focus Mode Disabled"
+                            actionType == "CREATE_TASK" -> "Task Scheduled"
+                            actionType == "COMPLETE_TASK" -> "Task Completed"
+                            actionType == "UNCOMPLETE_TASK" -> "Task Reopened"
+                            actionType == "UPDATE_TASK" -> "Task Updated"
+                            actionType == "DELETE_TASK" -> "Task Deleted"
+                            actionType == "CLEAR_COMPLETED_TASKS" -> "Tasks Cleared"
+                            actionType == "LIST_TASKS" -> "Tasks List"
+                            actionType == "CREATE_HABIT" -> "Daily Habit Created"
+                            actionType == "CHECK_OFF_HABIT" || actionType == "LOG_HABIT" -> "Habit Checked Off"
+                            actionType == "UNCHECK_HABIT" -> "Habit Unchecked"
+                            actionType == "DELETE_HABIT" -> "Habit Removed"
+                            actionType == "HABIT_STATUS" -> "Habit Streaks"
+                            actionType == "GET_FOCUS_SUMMARY" -> "Focus Summary"
+                            actionType == "SET_GOAL" -> "Focus Target Saved"
+                            isExport -> "Chat Exported"
+                            isClear -> "Chat Cleared"
                             else -> "In-App Shortcut"
                         },
                         fontSize = 12.sp,
@@ -591,11 +625,26 @@ private fun ActionCard(
                     )
                     Text(
                         text = when {
-                            isTimer -> "${action.duration} min session active"
-                            isTask -> "${action.title} (${action.priority.uppercase()})"
-                            isHabit -> "${action.title} • Daily Streak"
-                            isGoal -> "${action.dailyMinutes / 60.0} Hours / Day"
-                            else -> action.screenName.ifBlank { action.route.uppercase() }
+                            actionType == "START_FOCUS_TIMER" || actionType == "START_TIMER" -> "${action.resolvedDuration} min session active"
+                            actionType == "PAUSE_TIMER" -> "Timer paused"
+                            actionType == "RESUME_TIMER" -> "Timer running"
+                            actionType == "STOP_TIMER" || actionType == "RESET_TIMER" -> "Timer reset"
+                            actionType == "ENABLE_STRICT_MODE" -> "Distracting apps locked"
+                            actionType == "DISABLE_STRICT_MODE" -> "Distracting apps unlocked"
+                            actionType == "CREATE_TASK" -> {
+                                val dl = if (action.resolvedDeadlineTimestamp != null) " • Deadline set" else ""
+                                "${action.resolvedTitle} (${action.resolvedPriority.uppercase()})$dl"
+                            }
+                            actionType == "COMPLETE_TASK" || actionType == "UNCOMPLETE_TASK" || actionType == "UPDATE_TASK" || actionType == "DELETE_TASK" -> action.resolvedTitle
+                            actionType == "CLEAR_COMPLETED_TASKS" -> "Completed tasks removed"
+                            actionType == "LIST_TASKS" -> "All active tasks"
+                            actionType == "CREATE_HABIT" || actionType == "CHECK_OFF_HABIT" || actionType == "LOG_HABIT" || actionType == "UNCHECK_HABIT" || actionType == "DELETE_HABIT" -> "${action.resolvedTitle} • Daily Streak"
+                            actionType == "HABIT_STATUS" -> "Daily habit overview"
+                            actionType == "GET_FOCUS_SUMMARY" -> "Daily productivity metrics"
+                            actionType == "SET_GOAL" -> "${action.dailyMinutes / 60.0} Hours / Day"
+                            isExport -> "Chat transcript ready to share"
+                            isClear -> "Chat history reset"
+                            else -> action.screenName.ifBlank { action.resolvedRoute.uppercase() }
                         },
                         fontSize = 11.sp,
                         color = colors.textMuted,
@@ -637,30 +686,32 @@ private fun ActionCard(
                     shape = RoundedCornerShape(8.dp),
                     color = colors.primary
                 ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = when {
-                            isTimer -> "Open Timer"
-                            isTask -> "View Tasks"
-                            isHabit -> "View Habits"
-                            else -> "Open"
-                        },
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(11.dp)
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = when {
+                                isTimer || isStrict -> "Open Timer"
+                                isTask -> "View Tasks"
+                                isHabit -> "View Habits"
+                                isSummary -> "View Insights"
+                                isGoal -> "View Profile"
+                                else -> "Open"
+                            },
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(11.dp)
+                        )
+                    }
                 }
-            }
             }
         }
     }

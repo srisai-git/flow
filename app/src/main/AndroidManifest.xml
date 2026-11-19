@@ -21,6 +21,10 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.HOME" />
+        </intent>
     </queries>
 
     <application
@@ -59,7 +63,8 @@
         <activity
             android:name=".ui.screens.FocusShieldActivity"
             android:exported="false"
-            android:launchMode="singleTop"
+            android:taskAffinity="com.focusflow.shield"
+            android:launchMode="singleInstance"
             android:excludeFromRecents="true"
             android:theme="@style/Theme.FOCUSFLOW" />
 

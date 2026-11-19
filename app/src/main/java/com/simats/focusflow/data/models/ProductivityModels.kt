@@ -618,7 +618,10 @@ data class GrootResponse(
     @SerializedName("status") val status: String? = null,
     @SerializedName("message") val message: String = "",
     @SerializedName("response") val response: String? = null,
-    @SerializedName("insight") val insight: String? = null
+    @SerializedName("reply") val reply: String? = null,
+    @SerializedName("insight") val insight: String? = null,
+    @SerializedName("actions") val actions: List<AiAction> = emptyList(),
+    @SerializedName("action") val action: AiAction? = null
 )
 
 @Immutable
@@ -678,15 +681,42 @@ data class AiAction(
     @SerializedName("category") val category: String = "General",
     @SerializedName("route") val route: String = "",
     @SerializedName("screen_name") val screenName: String = "",
-    @SerializedName("daily_minutes") val dailyMinutes: Int = 240
-)
+    @SerializedName("daily_minutes") val dailyMinutes: Int = 240,
+    @SerializedName("id") val id: Int = 0,
+    @SerializedName("deadlineTimestamp") val deadlineTimestamp: Long? = null,
+    @SerializedName("payload") val payload: Map<String, Any?> = emptyMap()
+) {
+    val resolvedTitle: String
+        get() = title.ifBlank { payload["title"]?.toString() ?: "" }
+
+    val resolvedPriority: String
+        get() = priority.ifBlank { payload["priority"]?.toString() ?: "medium" }
+
+    val resolvedDuration: Int
+        get() = if (duration > 0 && duration != 25) duration else ((payload["duration"] as? Number)?.toInt() ?: (payload["duration"]?.toString()?.toIntOrNull() ?: duration))
+
+    val resolvedMode: String
+        get() = if (mode.isNotBlank() && mode != "FOCUS") mode else (payload["mode"]?.toString() ?: mode)
+
+    val resolvedRoute: String
+        get() = route.ifBlank { payload["route"]?.toString() ?: (payload["tab"]?.toString() ?: "") }
+
+    val resolvedId: Int
+        get() = if (id > 0) id else ((payload["id"] as? Number)?.toInt() ?: (payload["id"]?.toString()?.toIntOrNull() ?: 0))
+
+    val resolvedDeadlineTimestamp: Long?
+        get() = deadlineTimestamp ?: (payload["deadlineTimestamp"] as? Number)?.toLong() ?: (payload["deadline_timestamp"] as? Number)?.toLong()
+}
 
 @Immutable
 data class AiResponse(
     @SerializedName("status") val status: String = "success",
     @SerializedName("insight") val insight: String? = null,
     @SerializedName("message") val message: String? = null,
+    @SerializedName("reply") val reply: String? = null,
+    @SerializedName("response") val response: String? = null,
     @SerializedName("action") val action: AiAction? = null,
+    @SerializedName("actions") val actions: List<AiAction> = emptyList(),
     @SerializedName("timestamp") val timestamp: String? = null
 )
 
