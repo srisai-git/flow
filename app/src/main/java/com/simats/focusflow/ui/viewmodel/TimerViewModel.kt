@@ -153,7 +153,7 @@ class TimerViewModel(
             val todayPrefix = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
 
             val distinctLocal = rawLocalSessions
-                .filter { it.userId == currentUserId }
+                .filter { it.userId == currentUserId && !it.sessionType.contains("break", ignoreCase = true) }
                 .distinctBy { session ->
                     val uuid = session.sessionUuid.trim()
                     if (uuid.isNotEmpty()) "uuid_$uuid" else "${session.userId}_${session.startedAt.take(16)}_${session.durationMinutes}"
@@ -182,7 +182,7 @@ class TimerViewModel(
                 result.fold(
                     onSuccess = { list ->
                         val distinct = (distinctLocal + list)
-                            .filter { it.userId == currentUserId }
+                            .filter { it.userId == currentUserId && !it.sessionType.contains("break", ignoreCase = true) }
                             .distinctBy { session ->
                                 val uuid = session.sessionUuid.trim()
                                 if (uuid.isNotEmpty()) "uuid_$uuid" else "${session.userId}_${session.startedAt.take(16)}_${session.durationMinutes}"

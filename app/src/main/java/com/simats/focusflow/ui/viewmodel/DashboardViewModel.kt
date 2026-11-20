@@ -125,6 +125,7 @@ class DashboardViewModel(
 
             var sessionAvatar = ""
             var sessionName = ""
+            var localGoalMinutes = 0
             try {
                 sessionManager?.let { sm ->
                     val session = sm.userSessionFlow.first()
@@ -133,6 +134,7 @@ class DashboardViewModel(
                     }
                     sessionAvatar = session.userAvatarUri ?: session.userAvatar ?: ""
                     sessionName = session.userName ?: ""
+                    localGoalMinutes = sm.dailyFocusGoalMinutesFlow.first()
                 }
             } catch (e: Exception) {
                 android.util.Log.e("DashboardViewModel", "Session read error: ${e.message}")
@@ -149,12 +151,13 @@ class DashboardViewModel(
                 result.fold(
                     onSuccess = { data ->
                         val finalAvatar = if (sessionAvatar.isNotBlank()) sessionAvatar else data.userAvatar
+                        val resolvedGoal = if (localGoalMinutes > 0) localGoalMinutes else data.focusGoalMinutes
                         val finalData = if (data.userName.isNotBlank()) {
-                            data
+                            data.copy(focusGoalMinutes = resolvedGoal)
                         } else if (sessionName.isNotBlank()) {
-                            data.copy(userName = sessionName)
+                            data.copy(userName = sessionName, focusGoalMinutes = resolvedGoal)
                         } else {
-                            data.copy(userName = "User")
+                            data.copy(userName = "User", focusGoalMinutes = resolvedGoal)
                         }
                         _uiState.update {
                             it.copy(
@@ -166,10 +169,11 @@ class DashboardViewModel(
                     },
                     onFailure = { err ->
                         val fallbackName = if (sessionName.isNotBlank()) sessionName else "User"
-                        _uiState.update {
-                            it.copy(
+                        _uiState.update { current ->
+                            val resolvedGoal = if (localGoalMinutes > 0) localGoalMinutes else current.data.focusGoalMinutes
+                            current.copy(
                                 isLoading = false,
-                                data = it.data.copy(userName = fallbackName),
+                                data = current.data.copy(userName = fallbackName, focusGoalMinutes = resolvedGoal),
                                 userAvatar = sessionAvatar,
                                 errorMessage = err.localizedMessage
                             )

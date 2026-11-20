@@ -84,6 +84,40 @@ object GrootActionParser {
                 continue
             }
 
+            val blockAppMatch = Regex("(?i)\\b(?:block|restrict|lock|add)\\s+(?:apps?\\s+)?(?:called\\s+)?([a-zA-Z0-9,\\s&]+?)(?:\\s+to\\s+blocked(?:\\s+apps?)?)?$").find(clause)
+            if (blockAppMatch != null && (cLower.startsWith("block") || cLower.contains("to blocked"))) {
+                val rawApps = blockAppMatch.groupValues[1]
+                val appNames = rawApps.split(Regex("(?i)\\s+(?:and|&)\\s+|,\\s*")).map { it.trim() }.filter { it.isNotBlank() && !it.equals("apps", ignoreCase = true) }
+                if (appNames.isNotEmpty()) {
+                    actions.add(
+                        AiAction(
+                            type = "BLOCK_APPS",
+                            title = "Block " + appNames.joinToString(", "),
+                            payload = mapOf("apps" to appNames)
+                        )
+                    )
+                    replies.add("Added ${appNames.joinToString(", ")} to blocked apps list.")
+                    continue
+                }
+            }
+
+            val unblockAppMatch = Regex("(?i)\\b(?:unblock|unlock|allow|remove)\\s+(?:apps?\\s+)?(?:called\\s+)?([a-zA-Z0-9,\\s&]+?)(?:\\s+from\\s+blocked(?:\\s+apps?)?)?$").find(clause)
+            if (unblockAppMatch != null && (cLower.startsWith("unblock") || cLower.contains("from blocked"))) {
+                val rawApps = unblockAppMatch.groupValues[1]
+                val appNames = rawApps.split(Regex("(?i)\\s+(?:and|&)\\s+|,\\s*")).map { it.trim() }.filter { it.isNotBlank() && !it.equals("apps", ignoreCase = true) }
+                if (appNames.isNotEmpty()) {
+                    actions.add(
+                        AiAction(
+                            type = "UNBLOCK_APPS",
+                            title = "Unblock " + appNames.joinToString(", "),
+                            payload = mapOf("apps" to appNames)
+                        )
+                    )
+                    replies.add("Removed ${appNames.joinToString(", ")} from blocked apps list.")
+                    continue
+                }
+            }
+
             if (Regex("(?i)\\b(?:clear|delete|remove)\\s+(?:all\\s+)?completed\\s+tasks?\\b").containsMatchIn(clause)) {
                 actions.add(AiAction(type = "CLEAR_COMPLETED_TASKS", title = "Clear Completed Tasks"))
                 replies.add("Cleared all completed tasks.")
@@ -125,16 +159,30 @@ object GrootActionParser {
                     priority = "low"
                     rawTitle = rawTitle.replace(Regex("(?i)\\s+with\\s+low\\s+priority"), "").trim()
                 }
+                var category = "General"
+                val catMatch = Regex("(?i)\\s+under\\s+([a-zA-Z]+)").find(rawTitle)
+                if (catMatch != null) {
+                    category = catMatch.groupValues[1].trim()
+                    rawTitle = rawTitle.replace(catMatch.value, "").trim()
+                }
+                var dueDate = "Today"
+                if (cLower.contains("due tomorrow")) {
+                    dueDate = "Tomorrow"
+                    rawTitle = rawTitle.replace(Regex("(?i)\\s+due\\s+tomorrow"), "").trim()
+                } else if (cLower.contains("due today")) {
+                    dueDate = "Today"
+                    rawTitle = rawTitle.replace(Regex("(?i)\\s+due\\s+today"), "").trim()
+                }
                 actions.add(
                     AiAction(
                         type = "CREATE_TASK",
                         title = rawTitle,
                         priority = priority,
-                        category = "General",
-                        payload = mapOf("title" to rawTitle, "priority" to priority, "category" to "General")
+                        category = category,
+                        payload = mapOf("title" to rawTitle, "priority" to priority, "category" to category, "due_date" to dueDate)
                     )
                 )
-                replies.add("Created task '$rawTitle' with $priority priority.")
+                replies.add("Created task '$rawTitle' with $priority priority due $dueDate.")
                 continue
             }
 
@@ -151,16 +199,24 @@ object GrootActionParser {
 
             val habitMatch = Regex("(?i)\\b(?:create|add|new|track|build)\\s+(?:a\\s+)?habit\\s+(?:named|to|called)?\\s*[\"']?([^\"'\\n]+)[\"']?").find(clause)
             if (habitMatch != null) {
-                val hTitle = habitMatch.groupValues[1].trim().trimEnd('.', '!')
+                var hTitle = habitMatch.groupValues[1].trim().trimEnd('.', '!')
+                var frequency = "daily"
+                if (cLower.contains("weekdays")) {
+                    frequency = "weekdays"
+                    hTitle = hTitle.replace(Regex("(?i)\\s+on\\s+weekdays|\\s+weekdays"), "").trim()
+                } else if (cLower.contains("weekends")) {
+                    frequency = "Sun,Sat"
+                    hTitle = hTitle.replace(Regex("(?i)\\s+on\\s+weekends|\\s+weekends"), "").trim()
+                }
                 actions.add(
                     AiAction(
                         type = "CREATE_HABIT",
                         title = hTitle,
                         category = "Daily",
-                        payload = mapOf("title" to hTitle, "frequency" to "daily", "icon" to "bolt")
+                        payload = mapOf("title" to hTitle, "frequency" to frequency, "icon" to "bolt")
                     )
                 )
-                replies.add("Created the daily habit '$hTitle'.")
+                replies.add("Created the habit '$hTitle' ($frequency).")
                 continue
             }
 

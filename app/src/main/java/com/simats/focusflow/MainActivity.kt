@@ -488,7 +488,20 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                                 onNavigateToProgressConsistency = { navController.navigate("progress_consistency") },
                                 onNavigateToEditTask = { navController.navigate("edit_task") },
-                                onNavigateToGrootAi = { navController.navigate("groot_ai") }
+                                onNavigateToGrootAi = { prompt ->
+                                    val encoded = if (!prompt.isNullOrBlank()) {
+                                        try {
+                                            java.net.URLEncoder.encode(prompt, "UTF-8")
+                                        } catch (_: Exception) {
+                                            ""
+                                        }
+                                    } else ""
+                                    if (encoded.isNotBlank()) {
+                                        navController.navigate("groot_ai?prompt=$encoded")
+                                    } else {
+                                        navController.navigate("groot_ai")
+                                    }
+                                }
                             )
                         }
                         composable(Screen.Tasks.route) {
@@ -507,7 +520,20 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                                 onNavigateToProgressConsistency = { navController.navigate("progress_consistency") },
                                 onNavigateToEditTask = { navController.navigate("edit_task") },
-                                onNavigateToGrootAi = { navController.navigate("groot_ai") }
+                                onNavigateToGrootAi = { prompt ->
+                                    val encoded = if (!prompt.isNullOrBlank()) {
+                                        try {
+                                            java.net.URLEncoder.encode(prompt, "UTF-8")
+                                        } catch (_: Exception) {
+                                            ""
+                                        }
+                                    } else ""
+                                    if (encoded.isNotBlank()) {
+                                        navController.navigate("groot_ai?prompt=$encoded")
+                                    } else {
+                                        navController.navigate("groot_ai")
+                                    }
+                                }
                             )
                         }
                         composable(Screen.Timer.route) {
@@ -531,7 +557,20 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                                 onNavigateToProgressConsistency = { navController.navigate("progress_consistency") },
                                 onNavigateToEditTask = { navController.navigate("edit_task") },
-                                onNavigateToGrootAi = { navController.navigate("groot_ai") }
+                                onNavigateToGrootAi = { prompt ->
+                                    val encoded = if (!prompt.isNullOrBlank()) {
+                                        try {
+                                            java.net.URLEncoder.encode(prompt, "UTF-8")
+                                        } catch (_: Exception) {
+                                            ""
+                                        }
+                                    } else ""
+                                    if (encoded.isNotBlank()) {
+                                        navController.navigate("groot_ai?prompt=$encoded")
+                                    } else {
+                                        navController.navigate("groot_ai")
+                                    }
+                                }
                             )
                         }
                         composable(Screen.Profile.route) {
@@ -785,6 +824,23 @@ class MainActivity : ComponentActivity() {
                                 onBack = { navController.popBackStack() },
                                 onStartFocus = { navController.navigate("set_intention") },
                                 onEditTask = { navController.navigate("edit_task") }
+                            )
+                        }
+                        composable(
+                            route = "groot_ai?prompt={prompt}",
+                            arguments = listOf(
+                                androidx.navigation.navArgument("prompt") {
+                                    type = androidx.navigation.NavType.StringType
+                                    nullable = true
+                                    defaultValue = null
+                                }
+                            )
+                        ) { backStackEntry ->
+                            val prompt = backStackEntry.arguments?.getString("prompt")
+                            GrootAiScreen(
+                                initialPrompt = prompt,
+                                onBack = { navController.popBackStack() },
+                                onNavigate = { route -> navController.navigate(route) }
                             )
                         }
                         composable("groot_ai") {

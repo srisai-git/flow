@@ -112,7 +112,6 @@ fun TimerScreen(
     var showUsagePermissionDialog by remember { mutableStateOf(false) }
     var isStrictFocus by rememberSaveable { mutableStateOf(false) }
     var hasAccessibilityPermission by remember { mutableStateOf(false) }
-    var hasOverlayPermission by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
@@ -120,7 +119,10 @@ fun TimerScreen(
 
     val refreshPermissions = {
         hasAccessibilityPermission = com.simats.focusflow.service.FocusBlockerAccessibilityService.isAccessibilityServiceEnabled(context)
-        hasOverlayPermission = com.simats.focusflow.service.FocusBlockerAccessibilityService.canDrawOverlays(context)
+    }
+
+    val focusSessions = remember(state.recentSessions) {
+        state.recentSessions.filter { !it.sessionType.contains("break", ignoreCase = true) }
     }
 
     LaunchedEffect(Unit) {
@@ -582,8 +584,6 @@ fun TimerScreen(
                                     refreshPermissions()
                                     if (!com.simats.focusflow.service.FocusBlockerAccessibilityService.isAccessibilityServiceEnabled(context)) {
                                         com.simats.focusflow.service.FocusBlockerAccessibilityService.openAccessibilitySettings(context)
-                                    } else if (!com.simats.focusflow.service.FocusBlockerAccessibilityService.canDrawOverlays(context)) {
-                                        com.simats.focusflow.service.FocusBlockerAccessibilityService.openOverlaySettings(context)
                                     }
                                 } else {
                                     isStrictFocus = false
@@ -642,14 +642,14 @@ fun TimerScreen(
                 }
             }
 
-            if (isStrictFocus && (!hasAccessibilityPermission || !hasOverlayPermission)) {
+            if (isStrictFocus && !hasAccessibilityPermission) {
                 Spacer(modifier = Modifier.height(14.dp))
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = colors.surface,
                     border = BorderStroke(
                         1.dp,
-                        if (hasAccessibilityPermission && hasOverlayPermission) Color(0xFF10B981).copy(alpha = 0.4f) else Color(0xFFF59E0B).copy(alpha = 0.4f)
+                        Color(0xFFF59E0B).copy(alpha = 0.4f)
                     ),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -667,14 +667,14 @@ fun TimerScreen(
                                 text = "STRICT APP BLOCKER SETUP",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (hasAccessibilityPermission && hasOverlayPermission) Color(0xFF10B981) else Color(0xFFF59E0B),
+                                color = Color(0xFFF59E0B),
                                 letterSpacing = 1.sp
                             )
                             Text(
-                                text = if (hasAccessibilityPermission && hasOverlayPermission) "Active & Armed" else "Setup Needed",
+                                text = "Setup Needed",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (hasAccessibilityPermission && hasOverlayPermission) Color(0xFF10B981) else Color(0xFFF59E0B)
+                                color = Color(0xFFF59E0B)
                             )
                         }
 
@@ -687,7 +687,7 @@ fun TimerScreen(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "1. Accessibility Service",
+                                    text = "Accessibility Service",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = colors.textPrimary
@@ -698,83 +698,16 @@ fun TimerScreen(
                                     color = colors.textMuted
                                 )
                             }
-                            if (hasAccessibilityPermission) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(28.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0xFF10B981).copy(alpha = 0.2f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Check,
-                                        contentDescription = null,
-                                        tint = Color(0xFF10B981),
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            } else {
-                                Button(
-                                    onClick = {
-                                        com.simats.focusflow.service.FocusBlockerAccessibilityService.openAccessibilitySettings(context)
-                                    },
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                    modifier = Modifier.height(34.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
-                                    shape = RoundedCornerShape(10.dp)
-                                ) {
-                                    Text("Enable", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "2. Display Over Other Apps",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = colors.textPrimary
-                                )
-                                Text(
-                                    text = "Displays full-screen Focus Shield over distracting apps",
-                                    fontSize = 11.sp,
-                                    color = colors.textMuted
-                                )
-                            }
-                            if (hasOverlayPermission) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(28.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0xFF10B981).copy(alpha = 0.2f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Check,
-                                        contentDescription = null,
-                                        tint = Color(0xFF10B981),
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            } else {
-                                Button(
-                                    onClick = {
-                                        com.simats.focusflow.service.FocusBlockerAccessibilityService.openOverlaySettings(context)
-                                    },
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                    modifier = Modifier.height(34.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
-                                    shape = RoundedCornerShape(10.dp)
-                                ) {
-                                    Text("Grant", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                }
+                            Button(
+                                onClick = {
+                                    com.simats.focusflow.service.FocusBlockerAccessibilityService.openAccessibilitySettings(context)
+                                },
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                modifier = Modifier.height(34.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Text("Enable", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
                             }
                         }
                     }
@@ -797,7 +730,7 @@ fun TimerScreen(
                 )
 
                 Text(
-                    text = "View All (${state.recentSessions.size})",
+                    text = "View All (${focusSessions.size})",
                     fontSize = 12.sp,
                     color = colors.primaryLight,
                     fontWeight = FontWeight.Bold,
@@ -809,7 +742,7 @@ fun TimerScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            if (state.recentSessions.isEmpty()) {
+            if (focusSessions.isEmpty()) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
@@ -838,7 +771,7 @@ fun TimerScreen(
                 }
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    state.recentSessions.take(3).forEach { session ->
+                    focusSessions.take(3).forEach { session ->
                         FocusSessionItemCard(session = session)
                     }
                 }
@@ -894,7 +827,7 @@ fun TimerScreen(
                 }
             ) {
                 SessionHistorySheet(
-                    sessions = state.recentSessions,
+                    sessions = focusSessions,
                     onDismiss = { viewModel.setHistoryOpen(false) }
                 )
             }

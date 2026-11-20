@@ -74,6 +74,7 @@ data class QuickPrompt(val label: String, val category: String)
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun GrootAiScreen(
+    initialPrompt: String? = null,
     onBack: () -> Unit = {},
     onNavigate: (String) -> Unit = {},
     viewModel: GrootAiViewModel = viewModel()
@@ -83,6 +84,17 @@ fun GrootAiScreen(
 
     LaunchedEffect(Unit) {
         viewModel.initContext(context, SessionManager.getInstance(context))
+    }
+
+    LaunchedEffect(initialPrompt) {
+        if (!initialPrompt.isNullOrBlank()) {
+            val decoded = try {
+                java.net.URLDecoder.decode(initialPrompt, "UTF-8")
+            } catch (_: Exception) {
+                initialPrompt
+            }
+            viewModel.sendMessage(decoded)
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -405,6 +417,9 @@ fun GrootAiScreen(
                         message = msg,
                         onActionClick = { action ->
                             viewModel.handleActionClick(action, onNavigate)
+                        },
+                        onUndoAction = { action ->
+                            viewModel.undoAction(action)
                         }
                     )
                 }
@@ -422,7 +437,8 @@ fun GrootAiScreen(
 @Composable
 private fun ChatBubble(
     message: ChatMessage,
-    onActionClick: (AiAction) -> Unit
+    onActionClick: (AiAction) -> Unit,
+    onUndoAction: (AiAction) -> Unit = {}
 ) {
     val colors = FocusFlowTheme.colors
     val context = LocalContext.current
@@ -489,7 +505,8 @@ private fun ChatBubble(
                             ActionCard(
                                 action = act,
                                 isExecuted = message.actionExecuted,
-                                onClick = { onActionClick(act) }
+                                onClick = { onActionClick(act) },
+                                onUndo = { onUndoAction(act) }
                             )
                         }
                     }
@@ -532,7 +549,8 @@ private fun ChatBubble(
 private fun ActionCard(
     action: AiAction,
     isExecuted: Boolean = false,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onUndo: () -> Unit = {}
 ) {
     val colors = FocusFlowTheme.colors
     val actionType = action.type.uppercase()
@@ -655,6 +673,7 @@ private fun ActionCard(
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier.padding(start = 8.dp)
             ) {
                 if (isExecuted) {
@@ -679,31 +698,41 @@ private fun ActionCard(
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.width(6.dp))
                 }
 
                 Surface(
+                    onClick = onUndo,
                     shape = RoundedCornerShape(8.dp),
-                    color = colors.primary
+                    color = Color(0xFF1E1B4B),
+                    border = BorderStroke(1.dp, Color(0xFF7C3AED).copy(alpha = 0.5f)),
+                    modifier = Modifier.bounceClick()
+                ) {
+                    Text(
+                        text = "Undo",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFC4B5FD),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
+                    )
+                }
+
+                Surface(
+                    onClick = onClick,
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFF7C3AED),
+                    modifier = Modifier.bounceClick()
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = when {
-                                isTimer || isStrict -> "Open Timer"
-                                isTask -> "View Tasks"
-                                isHabit -> "View Habits"
-                                isSummary -> "View Insights"
-                                isGoal -> "View Profile"
-                                else -> "Open"
-                            },
-                            fontSize = 10.sp,
+                            text = "View",
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(3.dp))
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                             contentDescription = null,

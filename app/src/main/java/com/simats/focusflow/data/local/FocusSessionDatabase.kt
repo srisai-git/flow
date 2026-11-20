@@ -323,7 +323,7 @@ class FocusSessionDatabase private constructor(context: Context) :
                    $COLUMN_SESSION_TYPE, $COLUMN_STATUS, $COLUMN_START_TIME, $COLUMN_END_TIME,
                    $COLUMN_TASK_TITLE, $COLUMN_TASK_CATEGORY, $COLUMN_SESSION_UUID, $COLUMN_IS_SYNCED
             FROM $TABLE_FOCUS_SESSIONS
-            WHERE $COLUMN_USER_ID = ?
+            WHERE $COLUMN_USER_ID = ? AND LOWER($COLUMN_SESSION_TYPE) NOT LIKE '%break%'
             GROUP BY $COLUMN_START_TIME, $COLUMN_DURATION_MINUTES
             ORDER BY $COLUMN_ID DESC
             LIMIT ?
@@ -369,7 +369,7 @@ class FocusSessionDatabase private constructor(context: Context) :
     }
 
     fun getTotalFocusMinutes(userId: Int): Int {
-        val query = "SELECT COALESCE(SUM($COLUMN_DURATION_MINUTES), 0) FROM $TABLE_FOCUS_SESSIONS WHERE $COLUMN_USER_ID = ?"
+        val query = "SELECT COALESCE(SUM($COLUMN_DURATION_MINUTES), 0) FROM $TABLE_FOCUS_SESSIONS WHERE $COLUMN_USER_ID = ? AND LOWER($COLUMN_SESSION_TYPE) NOT LIKE '%break%'"
         val cursor = readableDatabase.rawQuery(query, arrayOf(userId.toString()))
         return cursor.use { c ->
             if (c.moveToFirst()) c.getInt(0) else 0
@@ -394,6 +394,7 @@ class FocusSessionDatabase private constructor(context: Context) :
               AND $COLUMN_START_TIME >= ?
               AND $COLUMN_START_TIME <= ?
               AND $COLUMN_STATUS = 'completed'
+              AND LOWER($COLUMN_SESSION_TYPE) NOT LIKE '%break%'
         """.trimIndent()
 
         val cursor = readableDatabase.rawQuery(query, arrayOf(userId.toString(), monthStartStr, nowStr))
@@ -404,7 +405,7 @@ class FocusSessionDatabase private constructor(context: Context) :
 
     fun getTodayFocusMinutes(userId: Int): Int {
         val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-        val query = "SELECT COALESCE(SUM($COLUMN_DURATION_MINUTES), 0) FROM $TABLE_FOCUS_SESSIONS WHERE $COLUMN_USER_ID = ? AND $COLUMN_END_TIME LIKE ?"
+        val query = "SELECT COALESCE(SUM($COLUMN_DURATION_MINUTES), 0) FROM $TABLE_FOCUS_SESSIONS WHERE $COLUMN_USER_ID = ? AND $COLUMN_END_TIME LIKE ? AND LOWER($COLUMN_SESSION_TYPE) NOT LIKE '%break%'"
         val cursor = readableDatabase.rawQuery(query, arrayOf(userId.toString(), "$todayStr%"))
         return cursor.use { c ->
             if (c.moveToFirst()) c.getInt(0) else 0
@@ -429,7 +430,7 @@ class FocusSessionDatabase private constructor(context: Context) :
         val query = """
             SELECT substr($COLUMN_END_TIME, 1, 10) as session_date, SUM($COLUMN_DURATION_MINUTES)
             FROM $TABLE_FOCUS_SESSIONS
-            WHERE $COLUMN_USER_ID = ? AND substr($COLUMN_END_TIME, 1, 10) >= ?
+            WHERE $COLUMN_USER_ID = ? AND substr($COLUMN_END_TIME, 1, 10) >= ? AND LOWER($COLUMN_SESSION_TYPE) NOT LIKE '%break%'
             GROUP BY substr($COLUMN_END_TIME, 1, 10)
         """.trimIndent()
 
@@ -508,6 +509,7 @@ class FocusSessionDatabase private constructor(context: Context) :
             WHERE $COLUMN_USER_ID = ?
               AND substr(COALESCE($COLUMN_START_TIME, $COLUMN_END_TIME), 1, 7) = ?
               AND $COLUMN_STATUS = 'completed'
+              AND LOWER($COLUMN_SESSION_TYPE) NOT LIKE '%break%'
         """.trimIndent()
 
         val cursor = readableDatabase.rawQuery(query, arrayOf(userId.toString(), monthPrefix))
@@ -526,6 +528,36 @@ class FocusSessionDatabase private constructor(context: Context) :
             }
         }
         return weekMinutes.toList()
+    }
+
+    fun getMonthDailyMinutes(userId: Int): Map<Int, Int> {
+        val cal = Calendar.getInstance()
+        val currentYear = cal.get(Calendar.YEAR)
+        val currentMonth = cal.get(Calendar.MONTH) + 1
+        val monthPrefix = String.format(Locale.US, "%04d-%02d", currentYear, currentMonth)
+
+        val map = mutableMapOf<Int, Int>()
+        val query = """
+            SELECT substr(COALESCE($COLUMN_START_TIME, $COLUMN_END_TIME), 9, 2) as day_num,
+                   SUM($COLUMN_DURATION_MINUTES) as total_mins
+            FROM $TABLE_FOCUS_SESSIONS
+            WHERE $COLUMN_USER_ID = ?
+              AND substr(COALESCE($COLUMN_START_TIME, $COLUMN_END_TIME), 1, 7) = ?
+              AND $COLUMN_STATUS = 'completed'
+              AND LOWER($COLUMN_SESSION_TYPE) NOT LIKE '%break%'
+            GROUP BY day_num
+        """.trimIndent()
+
+        val cursor = readableDatabase.rawQuery(query, arrayOf(userId.toString(), monthPrefix))
+        cursor.use { c ->
+            while (c.moveToNext()) {
+                val dayStr = c.getString(0) ?: continue
+                val day = dayStr.toIntOrNull() ?: continue
+                val mins = c.getInt(1)
+                map[day] = mins
+            }
+        }
+        return map
     }
 
     fun clearUserData(userId: Int) {

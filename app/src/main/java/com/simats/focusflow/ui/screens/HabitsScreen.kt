@@ -75,6 +75,7 @@ import com.simats.focusflow.ui.components.bounceClick
 import com.simats.focusflow.ui.theme.FocusFlowTheme
 import com.simats.focusflow.ui.viewmodel.HabitInsightTimeframe
 import com.simats.focusflow.ui.viewmodel.HabitTab
+import com.simats.focusflow.ui.viewmodel.HabitUiState
 import com.simats.focusflow.ui.viewmodel.HabitViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -167,7 +168,7 @@ fun EmptyHabitsCard(
 @Composable
 fun HabitsScreen(
     onNavigateBack: () -> Unit = {},
-    onNavigateToGrootAi: () -> Unit = {},
+    onNavigateToGrootAi: (String?) -> Unit = {},
     viewModel: HabitViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -516,6 +517,15 @@ private fun HabitCard(
 ) {
     val colors = FocusFlowTheme.colors
     val isDone = habit.isCompletedToday
+    val isDue = HabitUiState.isHabitDueToday(habit.frequency)
+    val freqDisplay = if (habit.frequency.equals("daily", ignoreCase = true)) {
+        "Daily"
+    } else if (habit.frequency.equals("weekdays", ignoreCase = true)) {
+        "Weekdays"
+    } else {
+        habit.frequency.split(",").joinToString(", ") { it.trim().take(3).replaceFirstChar { c -> c.uppercase() } }
+    }
+    val frequencyLabel = if (!isDue && !isDone) "$freqDisplay (Rest day)" else freqDisplay
     val cardBg by animateColorAsState(
         targetValue = if (isDone) colors.primary.copy(alpha = 0.16f) else colors.surface,
         label = "habitBg"
@@ -598,7 +608,7 @@ private fun HabitCard(
                     Spacer(modifier = Modifier.width(8.dp))
 
                     Text(
-                        text = "•  ${habit.frequency.replaceFirstChar { it.uppercase() }}",
+                        text = "•  $frequencyLabel",
                         fontSize = 11.sp,
                         color = colors.textMuted
                     )
@@ -637,7 +647,7 @@ private fun HabitsInsightsView(
     selectedTimeframe: HabitInsightTimeframe,
     onSelectTimeframe: (HabitInsightTimeframe) -> Unit,
     onRefreshAi: () -> Unit,
-    onNavigateToGrootAi: () -> Unit,
+    onNavigateToGrootAi: (String?) -> Unit,
     onHabitClick: (HabitItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -825,7 +835,7 @@ private fun AiProductivityInsightsCard(
     insight: String?,
     isLoading: Boolean,
     onRefresh: () -> Unit,
-    onOpenGrootAssistant: () -> Unit
+    onOpenGrootAssistant: (String?) -> Unit
 ) {
     val colors = FocusFlowTheme.colors
 
@@ -948,7 +958,7 @@ private fun AiProductivityInsightsCard(
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(
-                        onClick = onOpenGrootAssistant,
+                        onClick = { onOpenGrootAssistant(insight) },
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                     ) {
                         Text(
@@ -1446,10 +1456,11 @@ private fun AddHabitDialog(
     val colors = FocusFlowTheme.colors
     var title by remember { mutableStateOf("") }
     var selectedIcon by remember { mutableStateOf("star") }
-    var selectedFrequency by remember { mutableStateOf("daily") }
+    var selectedDays by remember { mutableStateOf(setOf(0, 1, 2, 3, 4, 5, 6)) }
 
     val iconOptions = listOf("star", "check", "bolt", "book", "code", "water", "fitness", "edit", "target", "night", "repeat")
-    val frequencyOptions = listOf("daily", "weekdays", "weekly")
+    val dayLabels = listOf("S", "M", "T", "W", "T", "F", "S")
+    val dayNames = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1518,31 +1529,47 @@ private fun AddHabitDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "FREQUENCY",
+                    text = "DAYS OF WEEK",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = colors.primaryLight,
                     letterSpacing = 1.sp
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    frequencyOptions.forEach { freq ->
-                        val isSelected = selectedFrequency == freq
-                        Surface(
-                            onClick = { selectedFrequency = freq },
-                            shape = RoundedCornerShape(10.dp),
-                            color = if (isSelected) colors.primary else colors.surfaceVariant,
-                            border = BorderStroke(1.dp, if (isSelected) colors.primary else colors.border),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Box(modifier = Modifier.padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = freq.replaceFirstChar { it.uppercase() },
-                                    fontSize = 11.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) Color.White else colors.textMuted
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    dayLabels.forEachIndexed { index, label ->
+                        val isSelected = selectedDays.contains(index)
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(if (isSelected) Color(0xFF7C3AED) else Color(0xFF13111C))
+                                .border(
+                                    width = 1.dp,
+                                    color = if (isSelected) Color(0xFF7C3AED) else Color(0xFF2A273A),
+                                    shape = CircleShape
                                 )
-                            }
+                                .clickable {
+                                    if (isSelected) {
+                                        if (selectedDays.size > 1) {
+                                            selectedDays = selectedDays - index
+                                        }
+                                    } else {
+                                        selectedDays = selectedDays + index
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = label,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isSelected) Color.White else Color(0xFF9CA3AF)
+                            )
                         }
                     }
                 }
@@ -1551,11 +1578,16 @@ private fun AddHabitDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    if (title.isNotBlank()) {
-                        onConfirm(title, selectedIcon, selectedFrequency)
+                    if (title.isNotBlank() && selectedDays.isNotEmpty()) {
+                        val freqString = when {
+                            selectedDays.size == 7 -> "daily"
+                            selectedDays == setOf(1, 2, 3, 4, 5) -> "weekdays"
+                            else -> dayNames.filterIndexed { idx, _ -> selectedDays.contains(idx) }.joinToString(",")
+                        }
+                        onConfirm(title, selectedIcon, freqString)
                     }
                 },
-                enabled = title.isNotBlank(),
+                enabled = title.isNotBlank() && selectedDays.isNotEmpty(),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6), contentColor = Color.White),
                 shape = RoundedCornerShape(10.dp)
             ) {

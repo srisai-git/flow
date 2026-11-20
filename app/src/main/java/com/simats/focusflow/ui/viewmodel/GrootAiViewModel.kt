@@ -409,4 +409,84 @@ class GrootAiViewModel(
             else -> onNavigate(action.resolvedRoute.ifBlank { "dashboard" })
         }
     }
+
+    fun undoAction(action: AiAction) {
+        val type = action.type.uppercase()
+        val context = appContext ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            when (type) {
+                "START_FOCUS_TIMER", "START_TIMER" -> {
+                    withContext(Dispatchers.Main) {
+                        FocusTimerService.resetTimer(context)
+                    }
+                }
+                "ENABLE_STRICT_MODE" -> {
+                    withContext(Dispatchers.Main) {
+                        FocusTimerService.setStrictFocus(context, false)
+                    }
+                }
+                "DISABLE_STRICT_MODE" -> {
+                    withContext(Dispatchers.Main) {
+                        FocusTimerService.setStrictFocus(context, true)
+                    }
+                }
+                "BLOCK_APPS" -> {
+                    val apps = (action.payload["apps"] as? List<*>)?.mapNotNull { it?.toString() }
+                        ?: listOfNotNull(action.payload["title"]?.toString(), action.resolvedTitle.takeIf { it.isNotBlank() })
+                    withContext(Dispatchers.Main) {
+                        com.simats.focusflow.data.session.BlockedAppsManager.getInstance(context).blockAppsByNames(apps, block = false)
+                    }
+                }
+                "UNBLOCK_APPS" -> {
+                    val apps = (action.payload["apps"] as? List<*>)?.mapNotNull { it?.toString() }
+                        ?: listOfNotNull(action.payload["title"]?.toString(), action.resolvedTitle.takeIf { it.isNotBlank() })
+                    withContext(Dispatchers.Main) {
+                        com.simats.focusflow.data.session.BlockedAppsManager.getInstance(context).blockAppsByNames(apps, block = true)
+                    }
+                }
+                "CREATE_TASK" -> {
+                    val targetTitle = action.resolvedTitle
+                    val tasks = productivityRepository.getTasks(currentUserId).getOrNull() ?: emptyList()
+                    val match = tasks.firstOrNull { it.title.contains(targetTitle, ignoreCase = true) }
+                    if (match != null) {
+                        productivityRepository.deleteTask(currentUserId, match.id)
+                    }
+                }
+                "COMPLETE_TASK" -> {
+                    val targetTitle = action.resolvedTitle
+                    val tasks = productivityRepository.getTasks(currentUserId).getOrNull() ?: emptyList()
+                    val match = tasks.firstOrNull { it.title.contains(targetTitle, ignoreCase = true) }
+                    if (match != null) {
+                        productivityRepository.toggleTask(currentUserId, match.id, isCompleted = false)
+                    }
+                }
+                "CREATE_HABIT" -> {
+                    val targetTitle = action.resolvedTitle
+                    val habits = productivityRepository.getHabits(currentUserId).getOrNull()?.habits ?: emptyList()
+                    val match = habits.firstOrNull { it.title.contains(targetTitle, ignoreCase = true) }
+                    if (match != null) {
+                        productivityRepository.deleteHabit(currentUserId, match.id)
+                    }
+                }
+                "CHECK_OFF_HABIT", "LOG_HABIT" -> {
+                    val targetTitle = action.resolvedTitle
+                    val habits = productivityRepository.getHabits(currentUserId).getOrNull()?.habits ?: emptyList()
+                    val match = habits.firstOrNull { it.title.contains(targetTitle, ignoreCase = true) }
+                    if (match != null && match.isCompletedToday) {
+                        productivityRepository.toggleHabit(currentUserId, match.id)
+                    }
+                }
+            }
+
+            val undoMsg = ChatMessage(
+                isFromUser = false,
+                text = "Undid action: ${action.title.ifBlank { action.type }}"
+            )
+            withContext(Dispatchers.Main) {
+                val updated = _uiState.value.messages + undoMsg
+                _uiState.update { it.copy(messages = updated) }
+                persistMessages(updated)
+            }
+        }
+    }
 }

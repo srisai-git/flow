@@ -64,6 +64,8 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
     var todaySessionsCount by remember { mutableIntStateOf(0) }
     var localTodaySessions by remember { mutableStateOf<List<FocusSessionRecord>>(emptyList()) }
     var localMonthWeeks by remember { mutableStateOf<List<Int>>(listOf(0, 0, 0, 0)) }
+    var localMonthDailyMap by remember { mutableStateOf<Map<Int, Int>>(emptyMap()) }
+    var dynamicAiAnalysis by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(true) }
 
     suspend fun refreshData() {
@@ -80,6 +82,7 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                 localTotalMinutes = db.getTotalFocusMinutes(userId)
                 localTodaySessions = db.getTodaySessions(userId)
                 localMonthWeeks = db.getMonthWeeklyMinutes(userId)
+                localMonthDailyMap = db.getMonthDailyMinutes(userId)
 
                 val todayDateKey = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
                 todaySessionsCount = db.getRecentSessions(userId, 50)
@@ -455,7 +458,33 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                val aiAnalysisText = when {
+                LaunchedEffect(selectedPeriod, selectedMinutes, insightsData) {
+                    val distractionSummary = com.simats.focusflow.utils.UsageStatsHelper.queryTodayDistractionStats(context)
+                    val topDistractionApp = distractionSummary.apps.firstOrNull { it.usageMinutes > 0 }
+                    val topDistractionStr = if (topDistractionApp != null) "${topDistractionApp.appName} (${topDistractionApp.usageMinutes}m)" else "Minimal"
+                    val completionPct = if (insightsData.dailyFocusGoalMinutes > 0) {
+                        ((selectedMinutes.toFloat() / insightsData.dailyFocusGoalMinutes.toFloat()) * 100).toInt().coerceIn(0, 100)
+                    } else {
+                        insightsData.dailyGoalProgressPercent.toInt().coerceIn(0, 100)
+                    }
+
+                    val prompt = "Focus performance for $selectedPeriod: $selectedMinutes minutes, completion rate $completionPct%, top distraction: $topDistractionStr."
+                    try {
+                        val sessionManager = SessionManager.getInstance(context)
+                        val session = sessionManager.userSessionFlow.first()
+                        val userId = session.userId ?: 1
+                        val repo = com.simats.focusflow.data.repository.AiRepository()
+                        val res = repo.getAiInsights(userId = userId, queryType = "productivity_insights", prompt = prompt)
+                        res.onSuccess { resp ->
+                            val text = resp.insight ?: resp.message
+                            if (!text.isNullOrBlank()) {
+                                dynamicAiAnalysis = text
+                            }
+                        }
+                    } catch (_: Exception) {}
+                }
+
+                val aiAnalysisText = dynamicAiAnalysis ?: when {
                     selectedMinutes == 0 -> "You have not logged focus time for $selectedPeriod yet. Complete an initial 25-minute Pomodoro sprint to activate deep flow and establish baseline rhythm."
                     selectedMinutes < 60 -> "Strong start with ${selectedMinutes}m of deep work. Adding one more 25m interval will push your momentum past the 1-hour focus milestone."
                     selectedMinutes in 60..180 -> "Optimal flow state reached! You have maintained steady concentration with ${selectedHours}h ${selectedRemainingMins}m logged. Maintain consistency with regular hydration breaks."

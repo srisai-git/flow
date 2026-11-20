@@ -18,7 +18,7 @@ fun ActivitiesScreen(
     onNavigateToProfile: () -> Unit = {},
     onNavigateToProgressConsistency: () -> Unit = {},
     onNavigateToEditTask: () -> Unit = {},
-    onNavigateToGrootAi: () -> Unit = {}
+    onNavigateToGrootAi: (String?) -> Unit = {}
 ) {
     val colors = FocusFlowTheme.colors
     var selectedTab by remember(initialTab) { mutableStateOf(initialTab) }

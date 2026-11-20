@@ -167,6 +167,8 @@ class ProfileViewModel(
             var sEmail: String? = null
             var sAvatar: String? = null
             var sBio: String? = null
+            var localGoalMinutes = 0
+            var localIntervalMinutes = 0
 
             try {
                 sessionManager?.let { sm ->
@@ -178,6 +180,8 @@ class ProfileViewModel(
                     sEmail = session.userEmail
                     sAvatar = session.userAvatarUri ?: session.userAvatar
                     sBio = session.userBio
+                    localGoalMinutes = sm.dailyFocusGoalMinutesFlow.first()
+                    localIntervalMinutes = sm.preferredFocusDurationFlow.first()
                 }
             } catch (e: Exception) {
                 android.util.Log.e("ProfileViewModel", "Failed to read user session: ${e.message}")
@@ -231,6 +235,8 @@ class ProfileViewModel(
                             email = sEmail?.takeIf { it.isNotBlank() } ?: data.email,
                             avatar = effectiveAvatar,
                             bio = sBio?.takeIf { it.isNotBlank() } ?: data.bio,
+                            dailyFocusGoalMinutes = if (localGoalMinutes > 0) localGoalMinutes else data.dailyFocusGoalMinutes,
+                            preferredFocusDuration = if (localIntervalMinutes > 0) localIntervalMinutes else data.preferredFocusDuration,
                             totalFocusMinutes = effectiveMinutes,
                             totalFocusHours = effectiveHours,
                             currentStreak = effectiveStreak
@@ -311,6 +317,8 @@ class ProfileViewModel(
     fun updateFocusPreferences(dailyGoalHours: Int, focusBlockMinutes: Int) {
         viewModelScope.launch(Dispatchers.IO) {
             val totalMinutes = dailyGoalHours * 60
+            sessionManager?.saveFocusGoalPreferences(totalMinutes, focusBlockMinutes)
+            ProductivityRepository.invalidateDashboardCache()
             val currentProfile = _uiState.value.profile
             val updatedProfile = currentProfile.copy(
                 dailyFocusGoalMinutes = totalMinutes,

@@ -66,8 +66,6 @@ class GrootActionExecutor(
                         FocusTimerService.setStrictFocus(context, true)
                         if (!FocusBlockerAccessibilityService.isAccessibilityServiceEnabled(context)) {
                             FocusBlockerAccessibilityService.openAccessibilitySettings(context)
-                        } else if (!FocusBlockerAccessibilityService.canDrawOverlays(context)) {
-                            FocusBlockerAccessibilityService.openOverlaySettings(context)
                         }
                     }
                     true
@@ -78,19 +76,38 @@ class GrootActionExecutor(
                     }
                     true
                 }
+                "BLOCK_APPS" -> {
+                    val apps = (action.payload["apps"] as? List<*>)?.mapNotNull { it?.toString() }
+                        ?: listOfNotNull(action.payload["title"]?.toString(), action.resolvedTitle.takeIf { it.isNotBlank() })
+                    withContext(Dispatchers.Main) {
+                        val manager = com.simats.focusflow.data.session.BlockedAppsManager.getInstance(context)
+                        manager.blockAppsByNames(apps, block = true)
+                    }
+                    true
+                }
+                "UNBLOCK_APPS" -> {
+                    val apps = (action.payload["apps"] as? List<*>)?.mapNotNull { it?.toString() }
+                        ?: listOfNotNull(action.payload["title"]?.toString(), action.resolvedTitle.takeIf { it.isNotBlank() })
+                    withContext(Dispatchers.Main) {
+                        val manager = com.simats.focusflow.data.session.BlockedAppsManager.getInstance(context)
+                        manager.blockAppsByNames(apps, block = false)
+                    }
+                    true
+                }
                 "CREATE_TASK" -> {
                     val rawTitle = action.resolvedTitle
                     val title = HtmlCompat.fromHtml(rawTitle, HtmlCompat.FROM_HTML_MODE_LEGACY).toString().trim()
                     if (title.isNotBlank()) {
                         val priority = action.resolvedPriority.ifBlank { "medium" }.lowercase()
                         val category = action.category.ifBlank { "General" }
+                        val dueDate = action.payload["due_date"]?.toString() ?: "Today"
                         val deadline = action.resolvedDeadlineTimestamp
                         productivityRepository.createTask(
                             userId = userId,
                             title = title,
                             description = "Created automatically by Groot AI",
                             priority = priority,
-                            dueDate = "",
+                            dueDate = dueDate,
                             category = category,
                             deadlineTimestamp = deadline
                         )
@@ -179,11 +196,12 @@ class GrootActionExecutor(
                     val rawTitle = action.resolvedTitle
                     val title = HtmlCompat.fromHtml(rawTitle, HtmlCompat.FROM_HTML_MODE_LEGACY).toString().trim()
                     if (title.isNotBlank()) {
+                        val freq = action.payload["frequency"]?.toString() ?: "daily"
                         productivityRepository.createHabit(
                             userId = userId,
                             title = title,
                             icon = "bolt",
-                            frequency = "daily"
+                            frequency = freq
                         )
                         true
                     } else false

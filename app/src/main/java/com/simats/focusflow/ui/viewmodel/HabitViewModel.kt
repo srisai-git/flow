@@ -44,14 +44,46 @@ data class HabitUiState(
     val selectedHabitForStreak: HabitItem? = null,
     val errorMessage: String? = null
 ) {
+    val dueHabits: List<HabitItem>
+        get() = habits.filter { isHabitDueToday(it.frequency) }
+
     val completedCount: Int
-        get() = habits.count { it.isCompletedToday }
+        get() = dueHabits.count { it.isCompletedToday }
 
     val totalCount: Int
-        get() = habits.size
+        get() = dueHabits.size
 
     val completionRate: Float
         get() = if (totalCount > 0) completedCount.toFloat() / totalCount.toFloat() else 0f
+
+    companion object {
+        fun isHabitDueToday(frequency: String): Boolean {
+            val f = frequency.trim().lowercase()
+            if (f == "daily" || f.isBlank()) return true
+            val today = java.time.LocalDate.now().dayOfWeek
+            if (f == "weekdays") {
+                return today != java.time.DayOfWeek.SATURDAY && today != java.time.DayOfWeek.SUNDAY
+            }
+            if (f == "weekly" || f == "weekends") {
+                return today == java.time.DayOfWeek.SATURDAY || today == java.time.DayOfWeek.SUNDAY
+            }
+            val dayMap = mapOf(
+                "sun" to java.time.DayOfWeek.SUNDAY,
+                "mon" to java.time.DayOfWeek.MONDAY,
+                "tue" to java.time.DayOfWeek.TUESDAY,
+                "wed" to java.time.DayOfWeek.WEDNESDAY,
+                "thu" to java.time.DayOfWeek.THURSDAY,
+                "fri" to java.time.DayOfWeek.FRIDAY,
+                "sat" to java.time.DayOfWeek.SATURDAY
+            )
+            val tokens = f.split(",", " ", ";").map { it.trim().lowercase() }.filter { it.isNotEmpty() }
+            for (token in tokens) {
+                val matched = dayMap.entries.firstOrNull { token.startsWith(it.key) }?.value
+                if (matched == today) return true
+            }
+            return false
+        }
+    }
 }
 
 class HabitViewModel(

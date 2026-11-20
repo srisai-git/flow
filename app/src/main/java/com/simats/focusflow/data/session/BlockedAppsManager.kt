@@ -78,6 +78,47 @@ class BlockedAppsManager private constructor(private val context: Context) {
         _blockedPackagesFlow.value = filtered
     }
 
+    fun blockAppsByNames(names: List<String>, block: Boolean): List<String> {
+        val pm = context.packageManager
+        val installed = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            pm.getInstalledApplications(PackageManager.ApplicationInfoFlags.of(0L))
+        } else {
+            @Suppress("DEPRECATION")
+            pm.getInstalledApplications(0)
+        }
+
+        val modifiedNames = mutableListOf<String>()
+        val current = _blockedPackagesFlow.value.toMutableSet()
+
+        for (name in names) {
+            val query = name.trim().lowercase()
+            if (query.isBlank()) continue
+            for (app in installed) {
+                val pkg = app.packageName ?: continue
+                if (isSystemOrEssentialPackage(context, pkg)) continue
+                val label = try {
+                    pm.getApplicationLabel(app).toString()
+                } catch (_: Exception) {
+                    pkg.substringAfterLast('.')
+                }
+                if (label.lowercase().contains(query) || pkg.lowercase().contains(query)) {
+                    if (block) {
+                        current.add(pkg)
+                    } else {
+                        current.remove(pkg)
+                    }
+                    if (!modifiedNames.contains(label)) {
+                        modifiedNames.add(label)
+                    }
+                }
+            }
+        }
+
+        prefs.edit().putStringSet(KEY_BLOCKED_PACKAGES, current).apply()
+        _blockedPackagesFlow.value = current
+        return modifiedNames
+    }
+
     companion object {
         private const val KEY_INITIALIZED = "key_blocked_apps_initialized"
         private const val KEY_BLOCKED_PACKAGES = "key_blocked_packages_set"

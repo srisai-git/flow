@@ -55,6 +55,8 @@ class SessionManager private constructor(
         val KEY_BREAK_REMINDER_ENABLED = booleanPreferencesKey("key_break_reminder_enabled")
         val KEY_AI_REPORT_REMINDER_ENABLED = booleanPreferencesKey("key_ai_report_reminder_enabled")
         val KEY_IS_FIRST_LOGIN_FLOW = booleanPreferencesKey("is_first_login_flow")
+        val KEY_DAILY_FOCUS_GOAL_MINUTES = intPreferencesKey("key_daily_focus_goal_minutes")
+        val KEY_PREFERRED_FOCUS_DURATION = intPreferencesKey("key_preferred_focus_duration")
 
         fun keyAvatarForUser(userId: Int) = stringPreferencesKey("key_avatar_for_user_$userId")
 
@@ -303,6 +305,25 @@ class SessionManager private constructor(
     }
 
     
+
+    val dailyFocusGoalMinutesFlow: Flow<Int> = dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { preferences ->
+            preferences[KEY_DAILY_FOCUS_GOAL_MINUTES] ?: 240
+        }
+
+    val preferredFocusDurationFlow: Flow<Int> = dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { preferences ->
+            preferences[KEY_PREFERRED_FOCUS_DURATION] ?: 45
+        }
+
+    suspend fun saveFocusGoalPreferences(goalMinutes: Int, intervalMinutes: Int) {
+        dataStore.edit { preferences ->
+            preferences[KEY_DAILY_FOCUS_GOAL_MINUTES] = goalMinutes
+            preferences[KEY_PREFERRED_FOCUS_DURATION] = intervalMinutes
+        }
+    }
 
     suspend fun clearSession() {
         dataStore.edit { preferences ->

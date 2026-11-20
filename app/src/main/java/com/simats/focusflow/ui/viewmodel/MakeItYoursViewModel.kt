@@ -1,30 +1,33 @@
 package com.simats.focusflow.ui.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.simats.focusflow.data.api.AuthApiService
 import com.simats.focusflow.data.api.RetrofitClient
 import com.simats.focusflow.data.models.SavePreferencesRequest
+import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.session.SessionManager
+import com.simats.focusflow.service.FocusTimerService
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-
+import kotlinx.coroutines.withContext
 
 data class MakeItYoursState(
     val selectedFocusArea: String = "Coding & Projects",
-    val dailyGoalHours: Int = 4,
-    val preferredFocusStyle: String = "Pomodoro 25/5",
+    val selectedGoalId: String = "3h",
+    val dailyGoalHours: Int = 3,
+    val defaultIntervalMinutes: Int = 45,
+    val preferredFocusStyle: String = "Balanced",
     val isLoading: Boolean = false,
     val isComplete: Boolean = false,
     val userId: Int = 1,
     val errorMessage: String? = null
 )
-
-
 
 class MakeItYoursViewModel(
     private val apiService: AuthApiService = RetrofitClient.instance,
@@ -33,8 +36,14 @@ class MakeItYoursViewModel(
 
     private val _uiState = MutableStateFlow(MakeItYoursState())
     val uiState: StateFlow<MakeItYoursState> = _uiState.asStateFlow()
+    private var appContext: Context? = null
 
     fun initSessionManager(manager: SessionManager) {
+        this.sessionManager = manager
+    }
+
+    fun initSessionManager(context: Context, manager: SessionManager) {
+        this.appContext = context.applicationContext
         this.sessionManager = manager
     }
 
@@ -44,6 +53,17 @@ class MakeItYoursViewModel(
 
     fun onFocusAreaSelected(area: String) {
         _uiState.update { it.copy(selectedFocusArea = area, errorMessage = null) }
+    }
+
+    fun onSelectDailyGoal(id: String, goalHours: Int, intervalMinutes: Int) {
+        _uiState.update {
+            it.copy(
+                selectedGoalId = id,
+                dailyGoalHours = goalHours,
+                defaultIntervalMinutes = intervalMinutes,
+                errorMessage = null
+            )
+        }
     }
 
     fun onDailyGoalHoursChanged(hours: Int) {
@@ -59,20 +79,25 @@ class MakeItYoursViewModel(
         val currentState = _uiState.value
         _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-        viewModelScope.launch {
-            val focusDuration = when (currentState.preferredFocusStyle) {
-                "Pomodoro 25/5" -> 25
-                "Deep Session 50/10" -> 50
-                "Flow State" -> 60
-                else -> 45
+        viewModelScope.launch(Dispatchers.IO) {
+            val goalMinutes = currentState.dailyGoalHours * 60
+            val intervalMinutes = currentState.defaultIntervalMinutes
+
+            sessionManager?.saveFocusGoalPreferences(goalMinutes, intervalMinutes)
+            sessionManager?.setOnboardingCompleted(true)
+
+            appContext?.let { ctx ->
+                try {
+                    FocusTimerService.setDurations(ctx, intervalMinutes, 5, 15)
+                } catch (_: Exception) {}
             }
 
-            val goalMinutes = currentState.dailyGoalHours * 60
+            ProductivityRepository.invalidateDashboardCache()
 
             val request = SavePreferencesRequest(
                 userId = currentState.userId,
                 primaryGoal = currentState.selectedFocusArea,
-                preferredFocusDuration = focusDuration,
+                preferredFocusDuration = intervalMinutes,
                 dailyFocusGoalMinutes = goalMinutes,
                 remindersEnabled = 1,
                 reminderTime = "09:00 AM"
@@ -80,13 +105,12 @@ class MakeItYoursViewModel(
 
             try {
                 apiService.savePreferences(request)
-            } catch (e: Exception) {
+            } catch (_: Exception) {}
+
+            withContext(Dispatchers.Main) {
+                _uiState.update { it.copy(isLoading = false, isComplete = true) }
+                onSuccess()
             }
-
-            sessionManager?.setOnboardingCompleted(true)
-
-            _uiState.update { it.copy(isLoading = false, isComplete = true) }
-            onSuccess()
         }
     }
 }

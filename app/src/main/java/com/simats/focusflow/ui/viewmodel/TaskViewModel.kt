@@ -14,6 +14,11 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Immutable
 enum class TaskFilter(val title: String) {
@@ -45,10 +50,10 @@ data class TaskUiState(
             }
             return when (selectedFilter) {
                 TaskFilter.TODAY -> list.filter {
-                    !it.isCompleted && (it.dueDate.equals("Today", ignoreCase = true) || it.dueDate.isBlank())
+                    !it.isCompleted && isTaskForToday(it)
                 }
                 TaskFilter.UPCOMING -> list.filter {
-                    !it.isCompleted && !it.dueDate.equals("Today", ignoreCase = true) && it.dueDate.isNotBlank()
+                    !it.isCompleted && isTaskUpcoming(it)
                 }
                 TaskFilter.COMPLETED -> list.filter { it.isCompleted }
                 TaskFilter.ALL -> list
@@ -56,13 +61,83 @@ data class TaskUiState(
         }
 
     val todayCount: Int
-        get() = tasks.count { !it.isCompleted && (it.dueDate.equals("Today", ignoreCase = true) || it.dueDate.isBlank()) }
+        get() = tasks.count { !it.isCompleted && isTaskForToday(it) }
 
     val upcomingCount: Int
-        get() = tasks.count { !it.isCompleted && !it.dueDate.equals("Today", ignoreCase = true) && it.dueDate.isNotBlank() }
+        get() = tasks.count { !it.isCompleted && isTaskUpcoming(it) }
 
     val completedCount: Int
         get() = tasks.count { it.isCompleted }
+
+    companion object {
+        fun isTaskForToday(task: TaskItem): Boolean {
+            if (task.dueDate.equals("Today", ignoreCase = true)) return true
+            val zone = ZoneId.systemDefault()
+            val today = LocalDate.now(zone)
+
+            val timestamp = task.deadlineTimestamp
+            if (timestamp != null && timestamp > 0L) {
+                val taskDate = Instant.ofEpochMilli(timestamp).atZone(zone).toLocalDate()
+                if (taskDate == today || taskDate.isBefore(today)) return true
+            }
+
+            if (task.dueDate.isNotBlank() && !task.dueDate.equals("Tomorrow", ignoreCase = true)) {
+                val formatters = listOf(
+                    DateTimeFormatter.ofPattern("MMM dd, yyyy", Locale.ENGLISH),
+                    DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH),
+                    DateTimeFormatter.ISO_LOCAL_DATE,
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.ENGLISH),
+                    DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.ENGLISH),
+                    DateTimeFormatter.ofPattern("MM/dd/yyyy", Locale.ENGLISH)
+                )
+                for (fmt in formatters) {
+                    try {
+                        val parsed = LocalDate.parse(task.dueDate.trim(), fmt)
+                        if (parsed == today || parsed.isBefore(today)) return true
+                    } catch (_: Exception) {}
+                }
+            }
+
+            if (task.dueDate.isBlank() && (timestamp == null || timestamp <= 0L)) {
+                return true
+            }
+
+            return false
+        }
+
+        fun isTaskUpcoming(task: TaskItem): Boolean {
+            if (isTaskForToday(task)) return false
+            if (task.dueDate.equals("Tomorrow", ignoreCase = true)) return true
+            val zone = ZoneId.systemDefault()
+            val today = LocalDate.now(zone)
+
+            val timestamp = task.deadlineTimestamp
+            if (timestamp != null && timestamp > 0L) {
+                val taskDate = Instant.ofEpochMilli(timestamp).atZone(zone).toLocalDate()
+                if (taskDate.isAfter(today)) return true
+            }
+
+            if (task.dueDate.isNotBlank()) {
+                val formatters = listOf(
+                    DateTimeFormatter.ofPattern("MMM dd, yyyy", Locale.ENGLISH),
+                    DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH),
+                    DateTimeFormatter.ISO_LOCAL_DATE,
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.ENGLISH),
+                    DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.ENGLISH),
+                    DateTimeFormatter.ofPattern("MM/dd/yyyy", Locale.ENGLISH)
+                )
+                for (fmt in formatters) {
+                    try {
+                        val parsed = LocalDate.parse(task.dueDate.trim(), fmt)
+                        if (parsed.isAfter(today)) return true
+                    } catch (_: Exception) {}
+                }
+                return true
+            }
+
+            return false
+        }
+    }
 }
 
 class TaskViewModel(

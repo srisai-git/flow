@@ -205,14 +205,12 @@ object UsageStatsHelper {
             if (isForeground) {
                 packageForegroundStart[pkg] = maxOf(timestamp, startTime)
             } else if (isBackground) {
-                val start = packageForegroundStart.remove(pkg)
-                if (start != null) {
-                    val effectiveStart = maxOf(start, startTime)
-                    val effectiveEnd = minOf(liveNow, timestamp)
-                    val delta = maxOf(0L, effectiveEnd - effectiveStart)
-                    if (delta > 0) {
-                        appTotalTime[pkg] = (appTotalTime[pkg] ?: 0L) + delta
-                    }
+                val start = packageForegroundStart.remove(pkg) ?: startTime
+                val effectiveStart = maxOf(start, startTime)
+                val effectiveEnd = minOf(liveNow, timestamp)
+                val delta = maxOf(0L, effectiveEnd - effectiveStart)
+                if (delta > 0) {
+                    appTotalTime[pkg] = (appTotalTime[pkg] ?: 0L) + delta
                 }
             }
         }
@@ -436,42 +434,6 @@ object UsageStatsHelper {
             if (pkg == selfPkg) continue
             if (launcherAppMap.containsKey(pkg) || isUserFacingApp(context, pkg)) {
                 packageTimeMap[pkg] = timeMs
-            }
-        }
-
-        if (packageTimeMap.isEmpty()) {
-            val usageStatsList: List<UsageStats> = try {
-                usageStatsManager.queryUsageStats(
-                    UsageStatsManager.INTERVAL_DAILY,
-                    startOfDay,
-                    currentTime
-                ) ?: emptyList()
-            } catch (_: Exception) {
-                emptyList()
-            }
-
-            for (stats in usageStatsList) {
-                val pkg = stats.packageName ?: continue
-                if (pkg == selfPkg || !launcherAppMap.containsKey(pkg)) continue
-                if (stats.lastTimeUsed < startOfDay) continue
-
-                val time = stats.totalTimeInForeground
-                if (time > 0L) {
-                    val existing = packageTimeMap[pkg] ?: 0L
-                    packageTimeMap[pkg] = maxOf(existing, time)
-                }
-            }
-
-            if (packageTimeMap.isEmpty()) {
-                try {
-                    val aggregated = usageStatsManager.queryAndAggregateUsageStats(startOfDay, currentTime)
-                    for ((pkg, stats) in aggregated) {
-                        if (pkg == selfPkg || !launcherAppMap.containsKey(pkg)) continue
-                        if (stats.lastTimeUsed >= startOfDay && stats.totalTimeInForeground > 0L) {
-                            packageTimeMap[pkg] = stats.totalTimeInForeground
-                        }
-                    }
-                } catch (_: Exception) {}
             }
         }
 
