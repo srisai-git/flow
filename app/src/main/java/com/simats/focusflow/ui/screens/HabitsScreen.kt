@@ -74,6 +74,7 @@ import com.simats.focusflow.ui.components.GrootAvatar
 import com.simats.focusflow.ui.components.bounceClick
 import com.simats.focusflow.ui.theme.FocusFlowTheme
 import com.simats.focusflow.ui.viewmodel.HabitInsightTimeframe
+import com.simats.focusflow.ui.viewmodel.HabitReportData
 import com.simats.focusflow.ui.viewmodel.HabitTab
 import com.simats.focusflow.ui.viewmodel.HabitUiState
 import com.simats.focusflow.ui.viewmodel.HabitViewModel
@@ -455,6 +456,9 @@ fun HabitsScreen(
                         viewModel.selectHabitForStreak(it)
                         isStreakModalOpen = true
                     },
+                    habitReport = state.habitReport,
+                    isGeneratingReport = state.isGeneratingReport,
+                    onGenerateReport = { viewModel.generateHabitReport() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
@@ -525,7 +529,7 @@ private fun HabitCard(
     } else {
         habit.frequency.split(",").joinToString(", ") { it.trim().take(3).replaceFirstChar { c -> c.uppercase() } }
     }
-    val frequencyLabel = if (!isDue && !isDone) "$freqDisplay (Rest day)" else freqDisplay
+    val frequencyLabel = freqDisplay
     val cardBg by animateColorAsState(
         targetValue = if (isDone) colors.primary.copy(alpha = 0.16f) else colors.surface,
         label = "habitBg"
@@ -649,6 +653,9 @@ private fun HabitsInsightsView(
     onRefreshAi: () -> Unit,
     onNavigateToGrootAi: (String?) -> Unit,
     onHabitClick: (HabitItem) -> Unit,
+    habitReport: HabitReportData? = null,
+    isGeneratingReport: Boolean = false,
+    onGenerateReport: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val colors = FocusFlowTheme.colors
@@ -662,8 +669,14 @@ private fun HabitsInsightsView(
             insight = aiInsight,
             isLoading = isAiLoading,
             onRefresh = onRefreshAi,
-            onOpenGrootAssistant = onNavigateToGrootAi
+            isGeneratingReport = isGeneratingReport,
+            onGenerateReport = onGenerateReport
         )
+
+        if (habitReport != null) {
+            Spacer(modifier = Modifier.height(14.dp))
+            GrootHabitReportCard(report = habitReport)
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -835,7 +848,8 @@ private fun AiProductivityInsightsCard(
     insight: String?,
     isLoading: Boolean,
     onRefresh: () -> Unit,
-    onOpenGrootAssistant: (String?) -> Unit
+    isGeneratingReport: Boolean,
+    onGenerateReport: () -> Unit
 ) {
     val colors = FocusFlowTheme.colors
 
@@ -951,31 +965,203 @@ private fun AiProductivityInsightsCard(
                     fontWeight = FontWeight.Normal
                 )
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    TextButton(
-                        onClick = { onOpenGrootAssistant(insight) },
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                    Button(
+                        onClick = onGenerateReport,
+                        colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                        enabled = !isGeneratingReport
                     ) {
-                        Text(
-                            text = "Ask Groot Assistant",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.primaryLight
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        if (isGeneratingReport) {
+                            FlowLoadingIndicator(size = 14.dp, strokeWidth = 2.dp)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Analyzing Habits...",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Generate Habit Report",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GrootHabitReportCard(report: HabitReportData) {
+    val colors = FocusFlowTheme.colors
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        color = colors.surface,
+        border = BorderStroke(1.dp, Brush.horizontalGradient(listOf(colors.primary.copy(alpha = 0.5f), colors.border)))
+    ) {
+        Column(modifier = Modifier.padding(18.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(colors.primary.copy(alpha = 0.16f)),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            imageVector = Icons.Default.AutoAwesome,
                             contentDescription = null,
                             tint = colors.primaryLight,
                             modifier = Modifier.size(16.dp)
                         )
                     }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = "GROOT AI HABIT REPORT",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.primaryLight,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text = "Consistency & Performance Audit",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.textPrimary
+                        )
+                    }
                 }
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = colors.primary.copy(alpha = 0.14f),
+                    border = BorderStroke(1.dp, colors.primary.copy(alpha = 0.4f))
+                ) {
+                    Text(
+                        text = "Score ${report.consistencyScore}%",
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.primaryLight,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(colors.surfaceVariant, RoundedCornerShape(12.dp))
+                    .padding(12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "STRONGEST ROUTINE",
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textMuted,
+                        letterSpacing = 0.8.sp
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = report.strongestHabit,
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textPrimary
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .background(Color(0xFFF59E0B).copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "${report.strongestHabitStreak}d Streak",
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFF59E0B)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(colors.surfaceVariant, RoundedCornerShape(12.dp))
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "DROP-OFF DAYS & WEAK SPOTS",
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFEF4444),
+                        letterSpacing = 0.8.sp
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = report.dropOffDays,
+                        fontSize = 12.5.sp,
+                        color = colors.textPrimary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(colors.primary.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+                    .border(1.dp, colors.primary.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+                    .padding(12.dp)
+            ) {
+                Text(
+                    text = "ACTIONABLE RECOMMENDATION",
+                    fontSize = 10.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.primaryLight,
+                    letterSpacing = 0.8.sp
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = report.recommendation,
+                    fontSize = 12.5.sp,
+                    lineHeight = 18.sp,
+                    color = colors.textPrimary
+                )
             }
         }
     }

@@ -32,12 +32,14 @@ enum class TimerMode(val title: String) {
 @Immutable
 data class TimerUiState(
     val currentMode: TimerMode = TimerMode.FOCUS,
+    val isBreak: Boolean = false,
     val focusMinutes: Int = 25,
     val shortBreakMinutes: Int = 5,
     val longBreakMinutes: Int = 15,
     val totalSeconds: Int = 25 * 60,
     val remainingSeconds: Int = 25 * 60,
     val isRunning: Boolean = false,
+    val isPaused: Boolean = false,
     val completedSessions: Int = 0,
     val recentSessions: List<FocusSessionRecord> = emptyList(),
     val toastMessage: String? = null,
@@ -79,21 +81,25 @@ class TimerViewModel(
 
     init {
         viewModelScope.launch {
-            FocusTimerService.timerStateFlow.collect { serviceState ->
-                _uiState.update { current ->
-                    current.copy(
-                        currentMode = serviceState.currentMode,
-                        focusMinutes = serviceState.focusMinutes,
-                        shortBreakMinutes = serviceState.shortBreakMinutes,
-                        longBreakMinutes = serviceState.longBreakMinutes,
-                        totalSeconds = serviceState.totalSeconds,
-                        remainingSeconds = serviceState.remainingSeconds,
-                        isRunning = serviceState.isRunning,
-                        completedSessions = serviceState.completedSessions,
-                        toastMessage = serviceState.toastMessage
-                    )
+            try {
+                FocusTimerService.timerStateFlow.collect { serviceState ->
+                    _uiState.update { current ->
+                        current.copy(
+                            currentMode = serviceState.currentMode,
+                            isBreak = serviceState.currentMode != TimerMode.FOCUS,
+                            focusMinutes = serviceState.focusMinutes,
+                            shortBreakMinutes = serviceState.shortBreakMinutes,
+                            longBreakMinutes = serviceState.longBreakMinutes,
+                            totalSeconds = serviceState.totalSeconds,
+                            remainingSeconds = serviceState.remainingSeconds,
+                            isRunning = serviceState.isRunning,
+                            isPaused = !serviceState.isRunning && serviceState.remainingSeconds > 0 && serviceState.remainingSeconds < serviceState.totalSeconds,
+                            completedSessions = serviceState.completedSessions,
+                            toastMessage = serviceState.toastMessage
+                        )
+                    }
                 }
-            }
+            } catch (_: Exception) {}
         }
         viewModelScope.launch(Dispatchers.IO) {
             ProductivityRepository.sessionLoggedEventFlow.collect {
@@ -298,10 +304,24 @@ class TimerViewModel(
         }
     }
 
+    fun skipBreak() {
+        try {
+            appContext?.let { ctx ->
+                FocusTimerService.skipBreak(ctx)
+            } ?: run {
+                FocusTimerService.skipBreak(null)
+            }
+        } catch (_: Exception) {}
+    }
+
     fun skipSession() {
-        appContext?.let { ctx ->
-            FocusTimerService.skipSession(ctx)
-        }
+        try {
+            appContext?.let { ctx ->
+                FocusTimerService.skipSession(ctx)
+            } ?: run {
+                FocusTimerService.skipSession(null)
+            }
+        } catch (_: Exception) {}
     }
 
     fun clearToast() {

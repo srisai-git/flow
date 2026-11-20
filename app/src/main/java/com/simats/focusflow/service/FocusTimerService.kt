@@ -36,12 +36,14 @@ import kotlin.math.max
 @Immutable
 data class TimerServiceState(
     val currentMode: TimerMode = TimerMode.FOCUS,
+    val isBreak: Boolean = false,
     val focusMinutes: Int = 25,
     val shortBreakMinutes: Int = 5,
     val longBreakMinutes: Int = 15,
     val totalSeconds: Int = 25 * 60,
     val remainingSeconds: Int = 25 * 60,
     val isRunning: Boolean = false,
+    val isPaused: Boolean = false,
     val isStrictFocus: Boolean = false,
     val completedSessions: Int = 0,
     val targetEndTimeMillis: Long = 0L,
@@ -82,6 +84,7 @@ class FocusTimerService : Service() {
         const val ACTION_RESUME = "com.simats.focusflow.action.RESUME"
         const val ACTION_RESET = "com.simats.focusflow.action.RESET"
         const val ACTION_SKIP = "com.simats.focusflow.action.SKIP"
+        const val ACTION_SKIP_BREAK = "com.simats.focusflow.action.SKIP_BREAK"
         const val ACTION_SELECT_MODE = "com.simats.focusflow.action.SELECT_MODE"
         const val ACTION_SET_DURATIONS = "com.simats.focusflow.action.SET_DURATIONS"
         const val ACTION_SET_STRICT_FOCUS = "com.simats.focusflow.action.SET_STRICT_FOCUS"
@@ -134,11 +137,39 @@ class FocusTimerService : Service() {
             } catch (_: Exception) {}
         }
 
-        fun skipSession(context: Context) {
-            val intent = Intent(context, FocusTimerService::class.java).apply {
-                action = ACTION_SKIP
+        fun skipBreak(context: Context? = null) {
+            if (context != null) {
+                val intent = Intent(context, FocusTimerService::class.java).apply {
+                    action = ACTION_SKIP_BREAK
+                }
+                startServiceCompat(context, intent)
+            } else {
+                val current = _timerStateFlow.value
+                val isCurrentBreak = current.currentMode != TimerMode.FOCUS
+                val nextMode = if (isCurrentBreak) {
+                    TimerMode.FOCUS
+                } else {
+                    if ((current.completedSessions + 1) % 4 == 0) TimerMode.LONG_BREAK else TimerMode.SHORT_BREAK
+                }
+                val nextSecs = current.getDurationMinutes(nextMode) * 60
+                _timerStateFlow.update {
+                    it.copy(
+                        currentMode = nextMode,
+                        isBreak = nextMode != TimerMode.FOCUS,
+                        isRunning = false,
+                        isPaused = false,
+                        isStrictFocus = false,
+                        totalSeconds = nextSecs,
+                        remainingSeconds = nextSecs,
+                        targetEndTimeMillis = 0L,
+                        toastMessage = "Switched to ${nextMode.title}"
+                    )
+                }
             }
-            startServiceCompat(context, intent)
+        }
+
+        fun skipSession(context: Context? = null) {
+            skipBreak(context)
         }
 
         fun selectMode(context: Context, mode: TimerMode) {
@@ -170,12 +201,22 @@ class FocusTimerService : Service() {
 
         private fun startServiceCompat(context: Context, intent: Intent) {
             try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    context.startForegroundService(intent)
+                if (intent.action == ACTION_START || intent.action == ACTION_RESUME) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        context.startForegroundService(intent)
+                    } else {
+                        context.startService(intent)
+                    }
                 } else {
-                    context.startService(intent)
+                    try {
+                        context.startService(intent)
+                    } catch (_: Exception) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            context.startForegroundService(intent)
+                        }
+                    }
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
             }
         }
     }
@@ -215,7 +256,7 @@ class FocusTimerService : Service() {
             ACTION_PAUSE -> handlePause()
             ACTION_RESUME -> handleResume()
             ACTION_RESET -> handleReset()
-            ACTION_SKIP -> handleSkip()
+            ACTION_SKIP, ACTION_SKIP_BREAK -> handleSkip()
             ACTION_SELECT_MODE -> {
                 val modeName = intent.getStringExtra(EXTRA_MODE)
                 val mode = try {
@@ -251,7 +292,13 @@ class FocusTimerService : Service() {
 
         val targetEnd = SystemClock.elapsedRealtime() + (state.remainingSeconds * 1000L)
         _timerStateFlow.update {
-            it.copy(isRunning = true, targetEndTimeMillis = targetEnd, toastMessage = null)
+            it.copy(
+                isRunning = true,
+                isPaused = false,
+                isBreak = state.currentMode != TimerMode.FOCUS,
+                targetEndTimeMillis = targetEnd,
+                toastMessage = null
+            )
         }
 
         startForegroundWithNotification()
@@ -267,7 +314,13 @@ class FocusTimerService : Service() {
 
         val targetEnd = SystemClock.elapsedRealtime() + (_timerStateFlow.value.remainingSeconds * 1000L)
         _timerStateFlow.update {
-            it.copy(isRunning = true, targetEndTimeMillis = targetEnd, toastMessage = null)
+            it.copy(
+                isRunning = true,
+                isPaused = false,
+                isBreak = _timerStateFlow.value.currentMode != TimerMode.FOCUS,
+                targetEndTimeMillis = targetEnd,
+                toastMessage = null
+            )
         }
 
         startForegroundWithNotification()
@@ -276,7 +329,7 @@ class FocusTimerService : Service() {
 
     private fun handlePause() {
         tickerJob?.cancel()
-        _timerStateFlow.update { it.copy(isRunning = false) }
+        _timerStateFlow.update { it.copy(isRunning = false, isPaused = true) }
         updateOngoingNotification()
     }
 
@@ -316,36 +369,42 @@ class FocusTimerService : Service() {
         _timerStateFlow.update {
             it.copy(
                 isRunning = false,
+                isPaused = false,
+                isBreak = false,
+                isStrictFocus = false,
                 totalSeconds = secs,
                 remainingSeconds = secs,
                 targetEndTimeMillis = 0L,
                 toastMessage = "Timer reset to ${current.getDurationMinutes()}m"
             )
         }
-        updateOngoingNotification()
+        dismissOngoingNotificationAndStop()
     }
 
     private fun handleSkip() {
         tickerJob?.cancel()
         val current = _timerStateFlow.value
-        val nextMode = when (current.currentMode) {
-            TimerMode.FOCUS -> {
-                if ((current.completedSessions + 1) % 4 == 0) TimerMode.LONG_BREAK else TimerMode.SHORT_BREAK
-            }
-            TimerMode.SHORT_BREAK, TimerMode.LONG_BREAK -> TimerMode.FOCUS
+        val isCurrentBreak = current.currentMode != TimerMode.FOCUS
+        val nextMode = if (isCurrentBreak) {
+            TimerMode.FOCUS
+        } else {
+            if ((current.completedSessions + 1) % 4 == 0) TimerMode.LONG_BREAK else TimerMode.SHORT_BREAK
         }
         val nextSecs = current.getDurationMinutes(nextMode) * 60
         _timerStateFlow.update {
             it.copy(
                 currentMode = nextMode,
+                isBreak = nextMode != TimerMode.FOCUS,
                 isRunning = false,
+                isPaused = false,
+                isStrictFocus = false,
                 totalSeconds = nextSecs,
                 remainingSeconds = nextSecs,
                 targetEndTimeMillis = 0L,
                 toastMessage = "Switched to ${nextMode.title}"
             )
         }
-        updateOngoingNotification()
+        dismissOngoingNotificationAndStop()
     }
 
     private fun handleSelectMode(mode: TimerMode) {
@@ -354,14 +413,19 @@ class FocusTimerService : Service() {
         _timerStateFlow.update {
             it.copy(
                 currentMode = mode,
+                isBreak = mode != TimerMode.FOCUS,
                 isRunning = false,
+                isPaused = false,
+                isStrictFocus = false,
                 totalSeconds = secs,
                 remainingSeconds = secs,
                 targetEndTimeMillis = 0L,
                 toastMessage = null
             )
         }
-        updateOngoingNotification()
+        if (isForegroundActive) {
+            dismissOngoingNotificationAndStop()
+        }
     }
 
     private fun handleSetDurations(focus: Int, shortBreak: Int, longBreak: Int) {
@@ -384,18 +448,44 @@ class FocusTimerService : Service() {
                 totalSeconds = secs,
                 remainingSeconds = secs,
                 isRunning = false,
+                isPaused = false,
+                isBreak = current.currentMode != TimerMode.FOCUS,
                 toastMessage = "Durations saved: $f min focus / $sb min break"
             )
         }
-        updateOngoingNotification()
+        if (isForegroundActive) {
+            dismissOngoingNotificationAndStop()
+        }
     }
 
     private fun handleStopService() {
+        _timerStateFlow.update {
+            it.copy(
+                isRunning = false,
+                isPaused = false,
+                isBreak = false,
+                isStrictFocus = false
+            )
+        }
+        dismissOngoingNotificationAndStop()
+    }
+
+    private fun dismissOngoingNotificationAndStop() {
         tickerJob?.cancel()
-        _timerStateFlow.update { it.copy(isRunning = false) }
-        stopForeground(STOP_FOREGROUND_REMOVE)
-        isForegroundActive = false
-        stopSelf()
+        try {
+            if (isForegroundActive) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                } else {
+                    @Suppress("DEPRECATION")
+                    stopForeground(true)
+                }
+                isForegroundActive = false
+            }
+            val manager = getSystemService(NOTIFICATION_SERVICE) as? NotificationManager
+            manager?.cancel(NOTIFICATION_ID)
+            stopSelf()
+        } catch (_: Exception) {}
     }
 
     private fun startTickerLoop() {
@@ -467,6 +557,9 @@ class FocusTimerService : Service() {
             _timerStateFlow.update {
                 it.copy(
                     isRunning = true,
+                    isPaused = false,
+                    isBreak = true,
+                    isStrictFocus = false,
                     completedSessions = newCompletedCount,
                     currentMode = nextMode,
                     totalSeconds = nextSecs,
@@ -476,6 +569,7 @@ class FocusTimerService : Service() {
                 )
             }
             startTickerLoop()
+            updateOngoingNotification()
 
             val sessionUuid = java.util.UUID.randomUUID().toString()
             serviceScope.launch {
@@ -496,6 +590,9 @@ class FocusTimerService : Service() {
             _timerStateFlow.update {
                 it.copy(
                     isRunning = false,
+                    isPaused = false,
+                    isBreak = false,
+                    isStrictFocus = false,
                     currentMode = TimerMode.FOCUS,
                     totalSeconds = nextSecs,
                     remainingSeconds = nextSecs,
@@ -503,9 +600,8 @@ class FocusTimerService : Service() {
                     toastMessage = "Break completed. Ready to focus again?"
                 )
             }
+            dismissOngoingNotificationAndStop()
         }
-
-        updateOngoingNotification()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -514,6 +610,19 @@ class FocusTimerService : Service() {
         super.onDestroy()
         tickerJob?.cancel()
         serviceJob.cancel()
+        try {
+            if (isForegroundActive) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                } else {
+                    @Suppress("DEPRECATION")
+                    stopForeground(true)
+                }
+                isForegroundActive = false
+            }
+            val manager = getSystemService(NOTIFICATION_SERVICE) as? NotificationManager
+            manager?.cancel(NOTIFICATION_ID)
+        } catch (_: Exception) {}
     }
 
     private fun createNotificationChannels() {

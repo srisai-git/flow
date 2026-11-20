@@ -13,6 +13,8 @@ import android.os.Build
 import android.os.Process
 import android.provider.Settings
 import androidx.collection.LruCache
+import java.time.LocalDate
+import java.time.ZoneId
 import java.util.Calendar
 import java.util.concurrent.ConcurrentHashMap
 
@@ -101,12 +103,7 @@ object UsageStatsHelper {
     
 
     fun getExactMidnightTimestamp(): Long {
-        return Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }.timeInMillis
+        return LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
     }
 
     fun getStartOfDayBoundary(): Long = getExactMidnightTimestamp()
@@ -140,6 +137,8 @@ object UsageStatsHelper {
     const val EVENT_ACTIVITY_PAUSED = 2
     const val EVENT_ACTIVITY_STOPPED = 23
     const val EVENT_MOVE_TO_BACKGROUND = 2
+    const val EVENT_SCREEN_NON_INTERACTIVE = 16
+    const val EVENT_KEYGUARD_SHOWN = 17
 
     val SYSTEM_IGNORED_PACKAGES = setOf(
         "android",
@@ -160,7 +159,66 @@ object UsageStatsHelper {
                 lower.contains("wallpaper") || lower.contains("inputmethod") || lower.contains("honeyboard")
     }
 
-    
+    fun getDefaultHomeLauncherPackage(context: Context): String? {
+        val homeIntent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_HOME)
+        }
+        val resolveInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.packageManager.resolveActivity(
+                homeIntent,
+                PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_DEFAULT_ONLY.toLong())
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            context.packageManager.resolveActivity(homeIntent, PackageManager.MATCH_DEFAULT_ONLY)
+        }
+        return resolveInfo?.activityInfo?.packageName
+    }
+
+    fun getAllHomeLaunchers(context: Context): Set<String> {
+        val homeIntent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_HOME)
+        }
+        val resolveInfos = try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                context.packageManager.queryIntentActivities(homeIntent, PackageManager.ResolveInfoFlags.of(0L))
+            } else {
+                @Suppress("DEPRECATION")
+                context.packageManager.queryIntentActivities(homeIntent, 0)
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+        val set = resolveInfos.mapNotNull { it.activityInfo?.packageName }.toMutableSet()
+        getDefaultHomeLauncherPackage(context)?.let { set.add(it) }
+        return set
+    }
+
+    fun isExcludedApp(
+        context: Context,
+        pkg: String,
+        defaultHome: String?,
+        homeLaunchers: Set<String>
+    ): Boolean {
+        if (pkg.isBlank()) return true
+        if (pkg == context.packageName) return true
+        if (pkg == "com.android.systemui") return true
+        if (pkg == "com.android.settings") return true
+        if (pkg == "android") return true
+        if (pkg == defaultHome || homeLaunchers.contains(pkg)) return true
+        return isSystemProcessOrDaemon(pkg)
+    }
+
+    fun getAppIcon(context: Context, packageName: String): Drawable? {
+        getCachedIcon(packageName)?.let { return it }
+        return try {
+            val ic = context.packageManager.getApplicationIcon(packageName)
+            putCachedIcon(packageName, ic)
+            ic
+        } catch (_: Exception) {
+            null
+        }
+    }
 
     fun queryForegroundTimesFromEvents(
         context: Context,
@@ -170,8 +228,11 @@ object UsageStatsHelper {
         val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
             ?: return emptyMap()
 
+        val liveNow = minOf(endTime, System.currentTimeMillis())
+        if (liveNow <= startTime) return emptyMap()
+
         val rawEvents = try {
-            usageStatsManager.queryEvents(startTime, endTime)
+            usageStatsManager.queryEvents(startTime, liveNow)
         } catch (_: Exception) {
             null
         } ?: return emptyMap()
@@ -181,49 +242,64 @@ object UsageStatsHelper {
         while (rawEvents.hasNextEvent()) {
             rawEvents.getNextEvent(tempEvt)
             val p = tempEvt.packageName
-            if (p != null && !isSystemProcessOrDaemon(p)) {
-                eventList.add(AppEventTransition(p, tempEvt.eventType, tempEvt.timeStamp))
-            }
+            eventList.add(AppEventTransition(p ?: "", tempEvt.eventType, tempEvt.timeStamp))
         }
         eventList.sortBy { it.timestamp }
 
-        val packageForegroundStart = mutableMapOf<String, Long>()
-        val appTotalTime = mutableMapOf<String, Long>()
-        val liveNow = minOf(endTime, System.currentTimeMillis())
+        var currentPackage: String? = null
+        var sessionStartMillis = 0L
+        val usageMap = mutableMapOf<String, Long>()
 
-        for (transition in eventList) {
-            val pkg = transition.packageName
-            val eventType = transition.eventType
-            val timestamp = minOf(liveNow, transition.timestamp)
+        for (event in eventList) {
+            val pkg = event.packageName
+            val eventType = event.eventType
+            val time = event.timestamp.coerceIn(startTime, liveNow)
 
             val isForeground = eventType == android.app.usage.UsageEvents.Event.ACTIVITY_RESUMED ||
                     eventType == EVENT_MOVE_TO_FOREGROUND
             val isBackground = eventType == android.app.usage.UsageEvents.Event.ACTIVITY_PAUSED ||
-                    eventType == EVENT_ACTIVITY_STOPPED ||
-                    eventType == EVENT_MOVE_TO_BACKGROUND
+                    eventType == EVENT_ACTIVITY_STOPPED
+            val isScreenOff = eventType == EVENT_SCREEN_NON_INTERACTIVE ||
+                    eventType == EVENT_KEYGUARD_SHOWN
 
-            if (isForeground) {
-                packageForegroundStart[pkg] = maxOf(timestamp, startTime)
-            } else if (isBackground) {
-                val start = packageForegroundStart.remove(pkg) ?: startTime
-                val effectiveStart = maxOf(start, startTime)
-                val effectiveEnd = minOf(liveNow, timestamp)
-                val delta = maxOf(0L, effectiveEnd - effectiveStart)
-                if (delta > 0) {
-                    appTotalTime[pkg] = (appTotalTime[pkg] ?: 0L) + delta
+            if (isForeground && pkg.isNotBlank()) {
+                if (currentPackage != null && currentPackage != pkg) {
+                    val delta = (time - sessionStartMillis).coerceAtLeast(0L)
+                    if (delta > 0L) {
+                        usageMap[currentPackage!!] = (usageMap[currentPackage!!] ?: 0L) + delta
+                    }
+                }
+                if (currentPackage != pkg) {
+                    currentPackage = pkg
+                    sessionStartMillis = time
+                }
+            } else if (isBackground && pkg.isNotBlank()) {
+                if (currentPackage == pkg) {
+                    val delta = (time - sessionStartMillis).coerceAtLeast(0L)
+                    if (delta > 0L) {
+                        usageMap[pkg] = (usageMap[pkg] ?: 0L) + delta
+                    }
+                    currentPackage = null
+                }
+            } else if (isScreenOff) {
+                if (currentPackage != null) {
+                    val delta = (time - sessionStartMillis).coerceAtLeast(0L)
+                    if (delta > 0L) {
+                        usageMap[currentPackage!!] = (usageMap[currentPackage!!] ?: 0L) + delta
+                    }
+                    currentPackage = null
                 }
             }
         }
 
-        for ((pkg, activeStart) in packageForegroundStart) {
-            val effectiveStart = maxOf(activeStart, startTime)
-            val delta = maxOf(0L, liveNow - effectiveStart)
-            if (delta > 0) {
-                appTotalTime[pkg] = (appTotalTime[pkg] ?: 0L) + delta
+        if (currentPackage != null) {
+            val delta = (liveNow - sessionStartMillis).coerceAtLeast(0L)
+            if (delta > 0L) {
+                usageMap[currentPackage!!] = (usageMap[currentPackage!!] ?: 0L) + delta
             }
         }
 
-        return appTotalTime
+        return usageMap
     }
 
     fun hasUsageStatsPermission(context: Context): Boolean {
@@ -360,7 +436,6 @@ object UsageStatsHelper {
 
     fun queryTodayDistractionStats(context: Context): DistractionUsageSummary {
         val pm = context.packageManager
-        val selfPkg = context.packageName
 
         val launcherIntent = Intent(Intent.ACTION_MAIN).apply {
             addCategory(Intent.CATEGORY_LAUNCHER)
@@ -380,7 +455,7 @@ object UsageStatsHelper {
         val launcherAppMap = mutableMapOf<String, Pair<String, Drawable?>>()
         for (resolveInfo in resolveInfos) {
             val pkg = resolveInfo.activityInfo?.packageName ?: continue
-            if (pkg == selfPkg || launcherAppMap.containsKey(pkg)) continue
+            if (launcherAppMap.containsKey(pkg)) continue
 
             val label = getCachedLabel(pkg) ?: run {
                 val l = try {
@@ -424,64 +499,124 @@ object UsageStatsHelper {
         val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
             ?: return DistractionUsageSummary()
 
-        val startOfDay = getExactMidnightTimestamp()
-        val currentTime = getLiveBoundedEndTime()
+        val startOfTodayMillis = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val endMillis = System.currentTimeMillis()
 
-        val eventTimes = queryForegroundTimesFromEvents(context, startOfDay, currentTime)
+        val events = try {
+            usageStatsManager.queryEvents(startOfTodayMillis, endMillis)
+        } catch (_: Exception) {
+            null
+        } ?: return DistractionUsageSummary()
 
-        val packageTimeMap = mutableMapOf<String, Long>()
-        for ((pkg, timeMs) in eventTimes) {
-            if (pkg == selfPkg) continue
-            if (launcherAppMap.containsKey(pkg) || isUserFacingApp(context, pkg)) {
-                packageTimeMap[pkg] = timeMs
+        val eventList = mutableListOf<AppEventTransition>()
+        val tempEvt = android.app.usage.UsageEvents.Event()
+        while (events.hasNextEvent()) {
+            events.getNextEvent(tempEvt)
+            val p = tempEvt.packageName
+            eventList.add(AppEventTransition(p ?: "", tempEvt.eventType, tempEvt.timeStamp))
+        }
+        eventList.sortBy { it.timestamp }
+
+        var currentPackage: String? = null
+        var sessionStartMillis = 0L
+        val usageMap = mutableMapOf<String, Long>()
+
+        for (event in eventList) {
+            val pkg = event.packageName
+            val eventType = event.eventType
+            val time = event.timestamp.coerceIn(startOfTodayMillis, endMillis)
+
+            val isForeground = eventType == android.app.usage.UsageEvents.Event.ACTIVITY_RESUMED ||
+                    eventType == EVENT_MOVE_TO_FOREGROUND
+            val isBackground = eventType == android.app.usage.UsageEvents.Event.ACTIVITY_PAUSED ||
+                    eventType == EVENT_ACTIVITY_STOPPED
+            val isScreenOff = eventType == EVENT_SCREEN_NON_INTERACTIVE ||
+                    eventType == EVENT_KEYGUARD_SHOWN
+
+            if (isForeground && pkg.isNotBlank()) {
+                if (currentPackage != null && currentPackage != pkg) {
+                    val delta = (time - sessionStartMillis).coerceAtLeast(0L)
+                    if (delta > 0L) {
+                        usageMap[currentPackage!!] = (usageMap[currentPackage!!] ?: 0L) + delta
+                    }
+                }
+                if (currentPackage != pkg) {
+                    currentPackage = pkg
+                    sessionStartMillis = time
+                }
+            } else if (isBackground && pkg.isNotBlank()) {
+                if (currentPackage == pkg) {
+                    val delta = (time - sessionStartMillis).coerceAtLeast(0L)
+                    if (delta > 0L) {
+                        usageMap[pkg] = (usageMap[pkg] ?: 0L) + delta
+                    }
+                    currentPackage = null
+                }
+            } else if (isScreenOff) {
+                if (currentPackage != null) {
+                    val delta = (time - sessionStartMillis).coerceAtLeast(0L)
+                    if (delta > 0L) {
+                        usageMap[currentPackage!!] = (usageMap[currentPackage!!] ?: 0L) + delta
+                    }
+                    currentPackage = null
+                }
             }
         }
 
-        val appInfos = mutableListOf<AppUsageInfo>()
-        var totalDistractionMillis = 0L
+        if (currentPackage != null) {
+            val delta = (endMillis - sessionStartMillis).coerceAtLeast(0L)
+            if (delta > 0L) {
+                usageMap[currentPackage!!] = (usageMap[currentPackage!!] ?: 0L) + delta
+            }
+        }
 
-        for ((pkg, pair) in launcherAppMap) {
-            val timeMs = packageTimeMap[pkg] ?: 0L
-            val mins = (timeMs / 60_000L).toInt()
-            val displayMins = if (mins == 0 && timeMs >= 15_000L) 1 else mins
-            val category = categorizePackage(pkg, pair.first, context)
+        val defaultHome = getDefaultHomeLauncherPackage(context)
+        val homeLaunchers = getAllHomeLaunchers(context)
+
+        val appInfos = mutableListOf<AppUsageInfo>()
+
+        for ((pkg, durationMs) in usageMap) {
+            if (isExcludedApp(context, pkg, defaultHome, homeLaunchers)) continue
+            if (durationMs < 60_000L) continue
+
+            val usageMinutes = (durationMs / 60_000L).toInt()
+            if (usageMinutes <= 0) continue
+
+            val appName = launcherAppMap[pkg]?.first ?: getAppLabel(context, pkg)
+            val appIcon = launcherAppMap[pkg]?.second ?: getAppIcon(context, pkg)
+            val category = categorizePackage(pkg, appName, context)
 
             appInfos.add(
                 AppUsageInfo(
                     packageName = pkg,
-                    appName = pair.first,
-                    usageMinutes = displayMins,
+                    appName = appName,
+                    usageMinutes = usageMinutes,
                     category = category,
-                    icon = pair.second
+                    icon = appIcon
                 )
             )
-            totalDistractionMillis += (displayMins * 60_000L)
         }
 
-        val sortedApps = appInfos.sortedWith(
-            compareByDescending<AppUsageInfo> { it.usageMinutes }
-                .thenBy { it.appName.lowercase() }
-        )
-
-        val totalDistractionMins = (totalDistractionMillis / 60_000L).toInt()
+        val sortedApps = appInfos.sortedByDescending { it.usageMinutes }
+        val totalScreenMinutes = sortedApps.sumOf { it.usageMinutes }
 
         val appsWithPercent = sortedApps.map {
-            val pct = if (totalDistractionMins > 0 && it.usageMinutes > 0) {
-                ((it.usageMinutes.toFloat() / totalDistractionMins.toFloat()) * 100).toInt()
+            val pct = if (totalScreenMinutes > 0 && it.usageMinutes > 0) {
+                ((it.usageMinutes.toFloat() / totalScreenMinutes.toFloat()) * 100).toInt().coerceIn(0, 100)
             } else 0
             it.copy(percent = pct)
         }
 
         val categoryBreakdown = mutableMapOf<String, Int>()
-        for (app in appsWithPercent.filter { it.usageMinutes > 0 }) {
+        for (app in appsWithPercent) {
             categoryBreakdown[app.category] = (categoryBreakdown[app.category] ?: 0) + app.usageMinutes
         }
 
         val topCategory = categoryBreakdown.maxByOrNull { it.value }?.key ?: "Social Media"
 
         return DistractionUsageSummary(
-            totalScreenMinutes = totalDistractionMins,
-            totalDistractionMinutes = totalDistractionMins,
+            totalScreenMinutes = totalScreenMinutes,
+            totalDistractionMinutes = totalScreenMinutes,
             topCategory = topCategory,
             apps = appsWithPercent,
             categoryBreakdown = categoryBreakdown

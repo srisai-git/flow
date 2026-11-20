@@ -62,6 +62,8 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
     var localMonthMinutes by remember { mutableIntStateOf(0) }
     var localTotalMinutes by remember { mutableIntStateOf(0) }
     var todaySessionsCount by remember { mutableIntStateOf(0) }
+    var weekSessionsCount by remember { mutableIntStateOf(0) }
+    var monthSessionsCount by remember { mutableIntStateOf(0) }
     var localTodaySessions by remember { mutableStateOf<List<FocusSessionRecord>>(emptyList()) }
     var localMonthWeeks by remember { mutableStateOf<List<Int>>(listOf(0, 0, 0, 0)) }
     var localMonthDailyMap by remember { mutableStateOf<Map<Int, Int>>(emptyMap()) }
@@ -80,13 +82,31 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                 localTodayMinutes = db.getTodayFocusMinutes(userId)
                 localMonthMinutes = db.getCurrentMonthFocusMinutes(userId)
                 localTotalMinutes = db.getTotalFocusMinutes(userId)
-                localTodaySessions = db.getTodaySessions(userId)
+                val allToday = db.getTodaySessions(userId)
+                localTodaySessions = allToday.filter {
+                    it.status.equals("completed", ignoreCase = true) && !it.sessionType.contains("break", ignoreCase = true)
+                }
                 localMonthWeeks = db.getMonthWeeklyMinutes(userId)
                 localMonthDailyMap = db.getMonthDailyMinutes(userId)
 
                 val todayDateKey = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-                todaySessionsCount = db.getRecentSessions(userId, 50)
-                    .count { it.completedAt.startsWith(todayDateKey) || it.startedAt.startsWith(todayDateKey) }
+                val recentFocusSessions = db.getRecentSessions(userId, 200).filter {
+                    it.status.equals("completed", ignoreCase = true) && !it.sessionType.contains("break", ignoreCase = true)
+                }
+                todaySessionsCount = recentFocusSessions.count {
+                    it.completedAt.startsWith(todayDateKey) || it.startedAt.startsWith(todayDateKey)
+                }
+                val sevenDaysAgoCal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -6) }
+                val sevenDaysAgoStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(sevenDaysAgoCal.time)
+                weekSessionsCount = recentFocusSessions.count {
+                    val d = if (it.completedAt.length >= 10) it.completedAt.take(10) else it.startedAt.take(10)
+                    d >= sevenDaysAgoStr
+                }
+                val monthStartStr = SimpleDateFormat("yyyy-MM-01", Locale.getDefault()).format(Date())
+                monthSessionsCount = recentFocusSessions.count {
+                    val d = if (it.completedAt.length >= 10) it.completedAt.take(10) else it.startedAt.take(10)
+                    d >= monthStartStr
+                }
             }
 
             val repo = ProductivityRepository()
@@ -373,13 +393,13 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                 Column(modifier = Modifier.weight(1f)) {
                     val secondaryStat = when (selectedPeriod) {
                         "Today" -> "${maxOf(todaySessionsCount, if (effectiveTodayMinutes > 0) 1 else 0)}"
-                        "This Month" -> "${selectedMinutes / 4}m"
-                        else -> "${dailyAvgMins}m"
+                        "This Month" -> "${maxOf(monthSessionsCount, if (effectiveMonthMinutes > 0) 1 else 0)}"
+                        else -> "${maxOf(weekSessionsCount, if (totalWeekMinutes > 0) 1 else 0)}"
                     }
                     val secondaryLabel = when (selectedPeriod) {
                         "Today" -> "sessions completed"
-                        "This Month" -> "weekly average"
-                        else -> "daily average"
+                        "This Month" -> "monthly sessions"
+                        else -> "weekly sessions"
                     }
                     Text(
                         text = secondaryStat,
@@ -458,17 +478,30 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                LaunchedEffect(selectedPeriod, selectedMinutes, insightsData) {
+                val completedFocusSessions = when (selectedPeriod) {
+                    "Today" -> maxOf(todaySessionsCount, if (effectiveTodayMinutes > 0) 1 else 0)
+                    "This Month" -> maxOf(monthSessionsCount, if (effectiveMonthMinutes > 0) 1 else 0)
+                    else -> maxOf(weekSessionsCount, if (totalWeekMinutes > 0) 1 else 0)
+                }
+                val peakStr = peakDayBlock?.let { "${it.name} (${it.timeRange})" } ?: "Morning (9 AM – 12 PM)"
+
+                LaunchedEffect(selectedPeriod, selectedMinutes, insightsData, completedFocusSessions) {
                     val distractionSummary = com.simats.focusflow.utils.UsageStatsHelper.queryTodayDistractionStats(context)
+                    val distractionMinutes = distractionSummary.totalDistractionMinutes
                     val topDistractionApp = distractionSummary.apps.firstOrNull { it.usageMinutes > 0 }
                     val topDistractionStr = if (topDistractionApp != null) "${topDistractionApp.appName} (${topDistractionApp.usageMinutes}m)" else "Minimal"
-                    val completionPct = if (insightsData.dailyFocusGoalMinutes > 0) {
-                        ((selectedMinutes.toFloat() / insightsData.dailyFocusGoalMinutes.toFloat()) * 100).toInt().coerceIn(0, 100)
-                    } else {
-                        insightsData.dailyGoalProgressPercent.toInt().coerceIn(0, 100)
-                    }
+                    val goalMinutes = if (insightsData.dailyFocusGoalMinutes > 0) insightsData.dailyFocusGoalMinutes else 180
 
-                    val prompt = "Focus performance for $selectedPeriod: $selectedMinutes minutes, completion rate $completionPct%, top distraction: $topDistractionStr."
+                    val prompt = """
+                        Focus Performance Metrics for $selectedPeriod:
+                        - Exact Focus Time: $selectedMinutes minutes ($selectedHours h $selectedRemainingMins m)
+                        - Completed Focus Sessions: $completedFocusSessions
+                        - Peak Focus Interval: $peakStr
+                        - Screen Distraction Time: $distractionMinutes minutes (Top app: $topDistractionStr)
+                        - Daily Target Goal: $goalMinutes minutes
+                        Provide a concise, grounded productivity recommendation calibrating interval pacing and distraction management.
+                    """.trimIndent()
+
                     try {
                         val sessionManager = SessionManager.getInstance(context)
                         val session = sessionManager.userSessionFlow.first()
@@ -477,19 +510,30 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                         val res = repo.getAiInsights(userId = userId, queryType = "productivity_insights", prompt = prompt)
                         res.onSuccess { resp ->
                             val text = resp.insight ?: resp.message
-                            if (!text.isNullOrBlank()) {
+                            if (!text.isNullOrBlank() &&
+                                !text.contains("offline", ignoreCase = true) &&
+                                !text.contains("port 8000", ignoreCase = true) &&
+                                !text.contains("deep-reasoning engine", ignoreCase = true)) {
                                 dynamicAiAnalysis = text
                             }
                         }
                     } catch (_: Exception) {}
                 }
 
-                val aiAnalysisText = dynamicAiAnalysis ?: when {
-                    selectedMinutes == 0 -> "You have not logged focus time for $selectedPeriod yet. Complete an initial 25-minute Pomodoro sprint to activate deep flow and establish baseline rhythm."
-                    selectedMinutes < 60 -> "Strong start with ${selectedMinutes}m of deep work. Adding one more 25m interval will push your momentum past the 1-hour focus milestone."
-                    selectedMinutes in 60..180 -> "Optimal flow state reached! You have maintained steady concentration with ${selectedHours}h ${selectedRemainingMins}m logged. Maintain consistency with regular hydration breaks."
-                    else -> "Exceptional productivity immersion (${selectedHours}h ${selectedRemainingMins}m logged). Ensure to take restorative downtime to prevent cognitive fatigue and protect sleep quality."
+                val isAiGrounded = !dynamicAiAnalysis.isNullOrBlank() &&
+                        !dynamicAiAnalysis!!.contains("offline", ignoreCase = true) &&
+                        !dynamicAiAnalysis!!.contains("port 8000", ignoreCase = true) &&
+                        !dynamicAiAnalysis!!.contains("deep-reasoning engine", ignoreCase = true)
+
+                val distractionSummary = remember { com.simats.focusflow.utils.UsageStatsHelper.queryTodayDistractionStats(context) }
+                val groundedFallback = when {
+                    selectedMinutes == 0 -> "No completed focus sessions logged for $selectedPeriod yet. Start an initial 25-minute Pomodoro interval in your peak window ($peakStr) to activate deep cognitive flow."
+                    selectedMinutes < 60 -> "Strong start with ${selectedMinutes}m across $completedFocusSessions completed focus session(s). Your highest momentum is in $peakStr. Keeping daily distraction under ${distractionSummary.totalDistractionMinutes}m will solidify your workflow."
+                    selectedMinutes in 60..180 -> "Optimal deep flow achieved with ${selectedHours}h ${selectedRemainingMins}m across $completedFocusSessions completed focus session(s)! Your strongest interval is $peakStr. Screen distraction is controlled at ${distractionSummary.totalDistractionMinutes}m."
+                    else -> "Peak focus immersion: ${selectedHours}h ${selectedRemainingMins}m logged across $completedFocusSessions focus sessions! You perform best in $peakStr. Balance these intensive sessions with regular breathers to sustain high cognitive endurance."
                 }
+
+                val aiAnalysisText = if (isAiGrounded) dynamicAiAnalysis!! else groundedFallback
 
                 Text(
                     text = aiAnalysisText,

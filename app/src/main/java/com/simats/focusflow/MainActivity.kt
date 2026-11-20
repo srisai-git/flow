@@ -642,7 +642,10 @@ class MainActivity : ComponentActivity() {
                         composable("take_breather") {
                             TakeBreatherScreen(
                                 onResumeFocus = { navController.popBackStack() },
-                                onSkipBreak = { navController.popBackStack() }
+                                onSkipBreak = {
+                                    com.simats.focusflow.service.FocusTimerService.skipBreak(applicationContext)
+                                    navController.popBackStack()
+                                }
                             )
                         }
                         composable("log_distraction") {

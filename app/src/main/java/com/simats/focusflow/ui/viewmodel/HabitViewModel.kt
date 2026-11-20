@@ -32,6 +32,15 @@ enum class HabitInsightTimeframe(val label: String) {
 }
 
 @Immutable
+data class HabitReportData(
+    val consistencyScore: Int = 0,
+    val strongestHabit: String = "",
+    val strongestHabitStreak: Int = 0,
+    val dropOffDays: String = "",
+    val recommendation: String = ""
+)
+
+@Immutable
 data class HabitUiState(
     val isLoading: Boolean = false,
     val habits: List<HabitItem> = emptyList(),
@@ -42,7 +51,9 @@ data class HabitUiState(
     val selectedTab: HabitTab = HabitTab.ROUTINE,
     val selectedTimeframe: HabitInsightTimeframe = HabitInsightTimeframe.WEEK,
     val selectedHabitForStreak: HabitItem? = null,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val habitReport: HabitReportData? = null,
+    val isGeneratingReport: Boolean = false
 ) {
     val dueHabits: List<HabitItem>
         get() = habits.filter { isHabitDueToday(it.frequency) }
@@ -180,6 +191,84 @@ class HabitViewModel(
         _uiState.update { it.copy(selectedTab = tab) }
         if (tab == HabitTab.INSIGHTS) {
             loadAiInsight()
+            if (_uiState.value.habitReport == null) {
+                generateHabitReport()
+            }
+        }
+    }
+
+    fun generateHabitReport() {
+        viewModelScope.launch(Dispatchers.IO) {
+            withContext(Dispatchers.Main) {
+                _uiState.update { it.copy(isGeneratingReport = true) }
+            }
+
+            val habits = _uiState.value.habits
+            val userStats = _uiState.value.userStats
+
+            val consistencyScore = if (userStats.avgConsistencyPercent > 0) {
+                userStats.avgConsistencyPercent.toInt().coerceIn(0, 100)
+            } else if (habits.isNotEmpty()) {
+                val comp = habits.count { it.isCompletedToday }
+                ((comp.toFloat() / habits.size.toFloat()) * 100).toInt().coerceIn(0, 100)
+            } else {
+                75
+            }
+
+            val topHabit = habits.maxByOrNull { it.streakCount }
+            val strongestTitle = topHabit?.title ?: (habits.firstOrNull()?.title ?: "Daily Habit")
+            val strongestStreak = maxOf(topHabit?.streakCount ?: 0, userStats.currentStreak)
+
+            val missedDays = userStats.weeklyChartData
+                .filter { it.totalCount > 0 && it.completedCount < it.totalCount }
+                .map { it.day }
+            val dropOffDaysStr = when {
+                missedDays.isNotEmpty() -> missedDays.joinToString(", ") + " (lower completion)"
+                habits.any { !it.isCompletedToday } -> "Weekend & late evening routines"
+                else -> "None detected (consistent all scheduled days)"
+            }
+
+            val prompt = """
+                Analyze the following user habit performance and produce an actionable coaching report:
+                - Active Habits: ${habits.joinToString { "${it.title} (Freq: ${it.frequency}, Streak: ${it.streakCount}d, CompletedToday: ${it.isCompletedToday})" }}
+                - Current Overall Streak: ${userStats.currentStreak} days (Longest: ${userStats.longestStreak} days)
+                - Consistency Score: $consistencyScore%
+                - Strongest Routine: $strongestTitle ($strongestStreak day streak)
+                - Drop-Off / Missed Days: $dropOffDaysStr
+                Provide a single concise, highly actionable recommendation for overcoming drop-off days and sustaining habit streaks.
+            """.trimIndent()
+
+            var aiRecommendation: String? = null
+            try {
+                val res = aiRepository.getAiInsights(userId = currentUserId, queryType = "habit_report", prompt = prompt)
+                res.onSuccess { resp ->
+                    val text = resp.insight ?: resp.message
+                    if (!text.isNullOrBlank() &&
+                        !text.contains("offline", ignoreCase = true) &&
+                        !text.contains("port 8000", ignoreCase = true) &&
+                        !text.contains("deep-reasoning engine", ignoreCase = true)) {
+                        aiRecommendation = text
+                    }
+                }
+            } catch (_: Exception) {}
+
+            val finalRecommendation = aiRecommendation ?: when {
+                consistencyScore >= 80 -> "Pair your secondary habits immediately following $strongestTitle to anchor automatic execution across high-energy intervals."
+                missedDays.isNotEmpty() -> "Set proactive calendar reminders on ${missedDays.first()} and reduce the initial daily commitment to under 10 minutes to eliminate friction."
+                else -> "Anchor your daily routines immediately after your morning focus block to protect streak continuity and eliminate evening fatigue drop-off."
+            }
+
+            val report = HabitReportData(
+                consistencyScore = consistencyScore,
+                strongestHabit = strongestTitle,
+                strongestHabitStreak = strongestStreak,
+                dropOffDays = dropOffDaysStr,
+                recommendation = finalRecommendation
+            )
+
+            withContext(Dispatchers.Main) {
+                _uiState.update { it.copy(habitReport = report, isGeneratingReport = false) }
+            }
         }
     }
 

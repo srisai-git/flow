@@ -383,10 +383,13 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(horizontal = 16.dp, vertical = 14.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Row(
+                                            modifier = Modifier.weight(1f),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
                                             Icon(
                                                 imageVector = Icons.Default.AccessTime,
                                                 contentDescription = null,
@@ -394,22 +397,25 @@ fun NotificationsScreen(onBack: () -> Unit = {}) {
                                                 modifier = Modifier.size(20.dp)
                                             )
                                             Spacer(modifier = Modifier.width(12.dp))
-                                            Column {
+                                            Column(modifier = Modifier.weight(1f, fill = false)) {
                                                 Text(
                                                     text = reminderTime,
                                                     fontSize = 17.sp,
                                                     fontWeight = FontWeight.Bold,
-                                                    color = colors.textPrimary
+                                                    color = colors.textPrimary,
+                                                    maxLines = 1
                                                 )
                                                 Text(
                                                     text = "Tap to pick any custom hour & minute",
                                                     fontSize = 11.5.sp,
-                                                    color = colors.textMuted
+                                                    color = colors.textMuted,
+                                                    maxLines = 2
                                                 )
                                             }
                                         }
 
                                         Surface(
+                                            modifier = Modifier.wrapContentWidth(),
                                             shape = RoundedCornerShape(8.dp),
                                             color = colors.primary.copy(alpha = 0.16f),
                                             border = BorderStroke(1.dp, colors.primary)

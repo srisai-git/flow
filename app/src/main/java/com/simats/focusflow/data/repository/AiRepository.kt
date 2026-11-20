@@ -96,14 +96,16 @@ class AiRepository(
 
     private fun tryDirectFastApiCall(promptText: String): String? {
         val client = okhttp3.OkHttpClient.Builder()
-            .connectTimeout(3, java.util.concurrent.TimeUnit.SECONDS)
-            .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+            .connectTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
             .build()
         val jsonPayload = com.google.gson.Gson().toJson(mapOf("message" to promptText, "prompt" to promptText))
         val mediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
         val body = jsonPayload.toRequestBody(mediaType)
 
         val urls = listOf(
+            "https://focusflow-groot-ai.onrender.com/ask_groot",
             "http://10.0.2.2:8000/ask_groot",
             "http://127.0.0.1:8000/ask_groot"
         )
@@ -172,14 +174,16 @@ class AiRepository(
 
     private fun tryFastApiBreakdown(taskTitle: String): List<String> {
         val client = okhttp3.OkHttpClient.Builder()
-            .connectTimeout(3, java.util.concurrent.TimeUnit.SECONDS)
-            .readTimeout(8, java.util.concurrent.TimeUnit.SECONDS)
+            .connectTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
             .build()
         val jsonPayload = com.google.gson.Gson().toJson(mapOf("task_title" to taskTitle, "title" to taskTitle))
         val mediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
         val body = jsonPayload.toRequestBody(mediaType)
 
         val urls = listOf(
+            "https://focusflow-groot-ai.onrender.com/breakdown_task",
             "http://10.0.2.2:8000/breakdown_task",
             "http://127.0.0.1:8000/breakdown_task"
         )

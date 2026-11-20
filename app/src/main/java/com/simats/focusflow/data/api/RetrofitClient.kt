@@ -13,15 +13,14 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    private const val DEFAULT_BASE_URL = "https://reaction-union-sublevel.ngrok-free.dev/flow_backend/"
+    private const val DEFAULT_BASE_URL = "https://focusflow-groot-ai.onrender.com/"
+    const val GROOT_AI_BASE_URL = "https://focusflow-groot-ai.onrender.com/"
 
     @Volatile
     private var customBaseUrl: String? = null
 
     val baseUrl: String
         get() = (customBaseUrl ?: DEFAULT_BASE_URL).trim()
-
-    
 
     fun setBaseUrl(url: String) {
         val formattedUrl = if (url.endsWith("/")) url else "$url/"
@@ -33,11 +32,11 @@ object RetrofitClient {
         }
     }
 
-    private val okHttpClient: OkHttpClient by lazy {
+    val okHttpClient: OkHttpClient by lazy {
         val builder = OkHttpClient.Builder()
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(20, TimeUnit.SECONDS)
-            .writeTimeout(15, TimeUnit.SECONDS)
+            .connectTimeout(60, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
             .connectionPool(ConnectionPool(5, 5, TimeUnit.MINUTES))
             .retryOnConnectionFailure(true)
         ProductivityRepository.appContext?.cacheDir?.let { cacheDir ->
