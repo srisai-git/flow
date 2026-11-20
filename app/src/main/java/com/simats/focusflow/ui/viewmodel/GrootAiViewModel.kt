@@ -276,7 +276,9 @@ class GrootAiViewModel(
                         }
                     }
 
-                    val rawAiText = response.reply ?: response.insight ?: response.message ?: "I am Groot. Focus on your top priority task."
+                    val rawAiText = response.resolvedText.ifBlank {
+                        response.reply ?: response.response ?: response.text ?: response.insight ?: response.message ?: "I am Groot. Focus on your top priority task."
+                    }
                     val unescapedText = HtmlCompat.fromHtml(rawAiText, HtmlCompat.FROM_HTML_MODE_LEGACY).toString().trim()
                     val aiText = if (unescapedText.trimStart().startsWith("{") && unescapedText.contains("\"insight\"")) {
                         response.message ?: "I am Groot, ready to assist."

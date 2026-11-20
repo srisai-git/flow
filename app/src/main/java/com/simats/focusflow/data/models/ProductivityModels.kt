@@ -610,7 +610,10 @@ data class InsightsResponse(
 )
 
 data class GrootRequest(
-    @SerializedName("message") val message: String
+    @SerializedName("message") val message: String = "",
+    @SerializedName("prompt") val prompt: String = message,
+    @SerializedName("query") val query: String = message,
+    @SerializedName("text") val text: String = message
 )
 
 data class GrootResponse(
@@ -619,6 +622,7 @@ data class GrootResponse(
     @SerializedName("message") val message: String = "",
     @SerializedName("response") val response: String? = null,
     @SerializedName("reply") val reply: String? = null,
+    @SerializedName("text") val text: String? = null,
     @SerializedName("insight") val insight: String? = null,
     @SerializedName("actions") val actions: List<AiAction> = emptyList(),
     @SerializedName("action") val action: AiAction? = null
@@ -663,8 +667,11 @@ data class ChatHistoryMessage(
 
 @Immutable
 data class AiRequest(
-    @SerializedName("user_id") val userId: Int,
+    @SerializedName("user_id") val userId: Int = 1,
     @SerializedName("prompt") val prompt: String = "",
+    @SerializedName("message") val message: String = prompt,
+    @SerializedName("query") val query: String = prompt,
+    @SerializedName("text") val text: String = prompt,
     @SerializedName("history") val history: List<ChatHistoryMessage> = emptyList(),
     @SerializedName("query_type") val queryType: String = "chat",
     @SerializedName("max_tokens") val maxTokens: Int = 400,
@@ -715,10 +722,19 @@ data class AiResponse(
     @SerializedName("message") val message: String? = null,
     @SerializedName("reply") val reply: String? = null,
     @SerializedName("response") val response: String? = null,
+    @SerializedName("text") val text: String? = null,
     @SerializedName("action") val action: AiAction? = null,
     @SerializedName("actions") val actions: List<AiAction> = emptyList(),
     @SerializedName("timestamp") val timestamp: String? = null
-)
+) {
+    val resolvedText: String
+        get() = reply?.ifBlank { null }
+            ?: response?.ifBlank { null }
+            ?: text?.ifBlank { null }
+            ?: insight?.ifBlank { null }
+            ?: message?.ifBlank { null }
+            ?: ""
+}
 
 data class ResetStatsRequest(
     @SerializedName("user_id")

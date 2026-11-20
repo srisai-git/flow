@@ -74,10 +74,10 @@ interface FlowApiService {
     @GET("insights/get_insights.php")
     suspend fun getInsights(@Query("user_id") userId: Int): Response<InsightsResponse>
 
-    @POST("ask_groot.php")
+    @POST("chat")
     suspend fun askGroot(@Body request: GrootRequest): Response<GrootResponse>
 
-    @POST("ask_groot.php")
+    @POST("chat")
     suspend fun getAiInsights(@Body request: AiRequest): Response<AiResponse>
 
     @POST("distractions.php")
@@ -86,7 +86,7 @@ interface FlowApiService {
     @GET("distractions.php")
     suspend fun getDistractions(@Query("user_id") userId: Int): Response<DistractionsResponse>
 
-    @POST("task_breakdown.php")
+    @POST("breakdown_task")
     suspend fun breakdownTask(@Body request: TaskBreakdownRequest): Response<TaskBreakdownResponse>
 
     @POST("update_token.php")

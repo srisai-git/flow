@@ -825,20 +825,24 @@ class ProductivityRepository(
 
     suspend fun askGroot(message: String): Result<String> = withContext(Dispatchers.IO) {
         try {
-            val response = apiService.askGroot(GrootRequest(message))
+            val response = apiService.askGroot(GrootRequest(message = message, prompt = message, query = message, text = message))
             val body = response.body()
-            if (response.isSuccessful && (body?.success == true || body?.status == "success" || !body?.response.isNullOrBlank() || !body?.insight.isNullOrBlank())) {
-                val reply = body?.response?.takeIf { it.isNotBlank() }
+            if (response.isSuccessful && (body?.success == true || body?.status == "success" || !body?.reply.isNullOrBlank() || !body?.response.isNullOrBlank() || !body?.insight.isNullOrBlank())) {
+                val reply = body?.reply?.takeIf { it.isNotBlank() }
+                    ?: body?.response?.takeIf { it.isNotBlank() }
+                    ?: body?.text?.takeIf { it.isNotBlank() }
                     ?: body?.insight?.takeIf { it.isNotBlank() }
                     ?: body?.message?.takeIf { it.isNotBlank() && it != "success" }
                     ?: "I am Groot!"
                 Result.success(reply)
             } else {
+                android.util.Log.e("GrootAI", "Retrofit askGroot failed: code=${response.code()}, error=${response.errorBody()?.string()}")
                 val direct = tryDirectFastApiCall(message)
                 if (direct != null) Result.success(direct)
                 else Result.failure(Exception(body?.message ?: "Groot server unavailable"))
             }
         } catch (e: Exception) {
+            android.util.Log.e("GrootAI", "Retrofit askGroot exception: ${e.message}", e)
             val direct = tryDirectFastApiCall(message)
             if (direct != null) Result.success(direct)
             else Result.failure(e)
@@ -851,14 +855,22 @@ class ProductivityRepository(
             .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
             .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
             .build()
-        val jsonPayload = com.google.gson.Gson().toJson(mapOf("message" to promptText, "prompt" to promptText))
+        val jsonPayload = com.google.gson.Gson().toJson(
+            mapOf(
+                "message" to promptText,
+                "prompt" to promptText,
+                "query" to promptText,
+                "text" to promptText
+            )
+        )
         val mediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
         val body = jsonPayload.toRequestBody(mediaType)
 
         val urls = listOf(
+            "https://focusflow-groot-ai.onrender.com/chat",
             "https://focusflow-groot-ai.onrender.com/ask_groot",
-            "http://10.0.2.2:8000/ask_groot",
-            "http://127.0.0.1:8000/ask_groot"
+            "http://10.0.2.2:8000/chat",
+            "http://10.0.2.2:8000/ask_groot"
         )
         for (url in urls) {
             try {
@@ -870,15 +882,20 @@ class ProductivityRepository(
                 if (resp.isSuccessful) {
                     val respStr = resp.body?.string() ?: ""
                     val json = com.google.gson.JsonParser.parseString(respStr).asJsonObject
-                    val reply = json.get("response")?.asString
-                        ?: json.get("reply")?.asString
-                        ?: json.get("insight")?.asString
+                    val reply = json.get("reply")?.asString
+                        ?: json.get("response")?.asString
                         ?: json.get("message")?.asString
+                        ?: json.get("text")?.asString
+                        ?: json.get("insight")?.asString
                     if (!reply.isNullOrBlank()) {
                         return reply
                     }
+                } else {
+                    android.util.Log.e("GrootAI", "Direct OkHttp call to $url failed with HTTP ${resp.code}")
                 }
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                android.util.Log.e("GrootAI", "Direct OkHttp call to $url exception: ${e.message}", e)
+            }
         }
         return null
     }

@@ -242,7 +242,7 @@ class HabitViewModel(
             try {
                 val res = aiRepository.getAiInsights(userId = currentUserId, queryType = "habit_report", prompt = prompt)
                 res.onSuccess { resp ->
-                    val text = resp.insight ?: resp.message
+                    val text = resp.resolvedText.ifBlank { resp.insight ?: resp.reply ?: resp.response ?: resp.message }
                     if (!text.isNullOrBlank() &&
                         !text.contains("offline", ignoreCase = true) &&
                         !text.contains("port 8000", ignoreCase = true) &&

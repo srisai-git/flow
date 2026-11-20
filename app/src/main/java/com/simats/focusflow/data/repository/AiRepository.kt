@@ -1,5 +1,6 @@
 package com.simats.focusflow.data.repository
 
+import android.util.Log
 import com.simats.focusflow.data.api.FlowApiService
 import com.simats.focusflow.data.api.RetrofitClient
 import com.simats.focusflow.data.models.AiRequest
@@ -9,8 +10,6 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-
-
 
 class AiRepository(
     private val apiService: FlowApiService = RetrofitClient.flowApiService
@@ -37,6 +36,9 @@ class AiRepository(
                 AiRequest(
                     userId = userId,
                     prompt = userPrompt,
+                    message = userPrompt,
+                    query = userPrompt,
+                    text = userPrompt,
                     history = activeHistory,
                     queryType = queryType,
                     maxTokens = 400,
@@ -46,7 +48,9 @@ class AiRepository(
 
             if (response.isSuccessful && response.body() != null) {
                 val body = response.body()!!
-                val reply = body.insight ?: body.message ?: ""
+                val reply = body.resolvedText.ifBlank {
+                    body.reply ?: body.response ?: body.message ?: body.insight ?: ""
+                }
                 if (userPrompt.isNotBlank()) {
                     synchronized(_history) {
                         _history.add(ChatHistoryMessage(role = "user", content = userPrompt))
@@ -55,18 +59,51 @@ class AiRepository(
                         }
                     }
                 }
-                Result.success(body)
-            } else {
-                val errorMsg = response.errorBody()?.string() ?: "AI service temporarily unavailable"
                 Result.success(
-                    AiResponse(
-                        status = "fallback",
-                        insight = "I am Groot. Focus on your highest priority task, maintain deep work intervals, and keep momentum going.",
-                        message = errorMsg
+                    body.copy(
+                        reply = reply,
+                        response = reply,
+                        message = reply,
+                        insight = reply,
+                        text = reply
                     )
                 )
+            } else {
+                val errorMsg = response.errorBody()?.string() ?: "HTTP ${response.code()}"
+                Log.e("GrootAI", "Retrofit getAiInsights failed: code=${response.code()}, error=$errorMsg")
+                val directReply = tryDirectFastApiCall(userPrompt)
+                if (!directReply.isNullOrBlank()) {
+                    if (userPrompt.isNotBlank()) {
+                        synchronized(_history) {
+                            _history.add(ChatHistoryMessage(role = "user", content = userPrompt))
+                            _history.add(ChatHistoryMessage(role = "assistant", content = directReply))
+                        }
+                    }
+                    Result.success(
+                        AiResponse(
+                            status = "success",
+                            reply = directReply,
+                            response = directReply,
+                            message = directReply,
+                            insight = directReply,
+                            text = directReply
+                        )
+                    )
+                } else {
+                    Result.success(
+                        AiResponse(
+                            status = "fallback",
+                            insight = "I am Groot. Focus on your highest priority task, maintain deep work intervals, and keep momentum going. ($errorMsg)",
+                            message = errorMsg,
+                            reply = "I am Groot. Focus on your highest priority task, maintain deep work intervals, and keep momentum going. ($errorMsg)",
+                            response = "I am Groot. Focus on your highest priority task, maintain deep work intervals, and keep momentum going. ($errorMsg)",
+                            text = "I am Groot. Focus on your highest priority task, maintain deep work intervals, and keep momentum going. ($errorMsg)"
+                        )
+                    )
+                }
             }
         } catch (e: Exception) {
+            Log.e("GrootAI", "Retrofit getAiInsights exception: ${e.message}", e)
             val directReply = tryDirectFastApiCall(userPrompt)
             if (!directReply.isNullOrBlank()) {
                 if (userPrompt.isNotBlank()) {
@@ -78,16 +115,22 @@ class AiRepository(
                 Result.success(
                     AiResponse(
                         status = "success",
+                        reply = directReply,
+                        response = directReply,
+                        message = directReply,
                         insight = directReply,
-                        message = directReply
+                        text = directReply
                     )
                 )
             } else {
                 Result.success(
                     AiResponse(
                         status = "offline",
-                        insight = "I am Groot, your FocusFlow assistant. I am ready to help, but my local deep-reasoning engine (port 8000) is currently offline. Please ensure 'python server.py' is running in the groot_ai directory.",
-                        message = e.localizedMessage
+                        insight = "I am Groot, your FocusFlow assistant. Network error reaching AI engine: ${e.localizedMessage ?: e.message}",
+                        message = e.localizedMessage ?: e.message ?: "Connection error",
+                        reply = "I am Groot, your FocusFlow assistant. Network error reaching AI engine: ${e.localizedMessage ?: e.message}",
+                        response = "I am Groot, your FocusFlow assistant. Network error reaching AI engine: ${e.localizedMessage ?: e.message}",
+                        text = "I am Groot, your FocusFlow assistant. Network error reaching AI engine: ${e.localizedMessage ?: e.message}"
                     )
                 )
             }
@@ -100,13 +143,23 @@ class AiRepository(
             .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
             .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
             .build()
-        val jsonPayload = com.google.gson.Gson().toJson(mapOf("message" to promptText, "prompt" to promptText))
+        val jsonPayload = com.google.gson.Gson().toJson(
+            mapOf(
+                "message" to promptText,
+                "prompt" to promptText,
+                "query" to promptText,
+                "text" to promptText
+            )
+        )
         val mediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
         val body = jsonPayload.toRequestBody(mediaType)
 
         val urls = listOf(
+            "https://focusflow-groot-ai.onrender.com/chat",
             "https://focusflow-groot-ai.onrender.com/ask_groot",
+            "http://10.0.2.2:8000/chat",
             "http://10.0.2.2:8000/ask_groot",
+            "http://127.0.0.1:8000/chat",
             "http://127.0.0.1:8000/ask_groot"
         )
         for (url in urls) {
@@ -119,32 +172,38 @@ class AiRepository(
                 if (resp.isSuccessful) {
                     val respStr = resp.body?.string() ?: ""
                     val json = com.google.gson.JsonParser.parseString(respStr).asJsonObject
-                    val reply = json.get("response")?.asString
-                        ?: json.get("reply")?.asString
-                        ?: json.get("insight")?.asString
+                    val reply = json.get("reply")?.asString
+                        ?: json.get("response")?.asString
                         ?: json.get("message")?.asString
+                        ?: json.get("text")?.asString
+                        ?: json.get("insight")?.asString
                     if (!reply.isNullOrBlank()) {
                         return reply
                     }
+                } else {
+                    val errBody = resp.body?.string() ?: ""
+                    Log.e("GrootAI", "Direct OkHttp call to $url failed with HTTP ${resp.code}: $errBody")
                 }
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                Log.e("GrootAI", "Direct OkHttp call to $url exception: ${e.message}", e)
+            }
         }
         return null
     }
 
     suspend fun getHabitInsights(userId: Int): Result<String> = withContext(Dispatchers.IO) {
         val res = getAiInsights(userId = userId, queryType = "habit_insights", prompt = "Analyze my habit consistency.")
-        res.map { it.insight ?: it.message ?: "Consistency compounds over time. Keep your daily routines active to maintain peak streak momentum." }
+        res.map { it.resolvedText.ifBlank { it.reply ?: it.response ?: it.message ?: it.insight ?: "Consistency compounds over time. Keep your daily routines active to maintain peak streak momentum." } }
     }
 
     suspend fun getFocusAdvice(userId: Int): Result<String> = withContext(Dispatchers.IO) {
         val res = getAiInsights(userId = userId, queryType = "focus_advice", prompt = "Provide advice on my focus blocks.")
-        res.map { it.insight ?: it.message ?: "Structure your workday into focused blocks with short breathers to maximize cognitive stamina." }
+        res.map { it.resolvedText.ifBlank { it.reply ?: it.response ?: it.message ?: it.insight ?: "Structure your workday into focused blocks with short breathers to maximize cognitive stamina." } }
     }
 
     suspend fun askGroot(userId: Int, userQuestion: String): Result<String> = withContext(Dispatchers.IO) {
         val res = getAiInsights(userId = userId, queryType = "chat", prompt = userQuestion)
-        res.map { it.insight ?: it.message ?: "I am Groot. Focus on what matters most today." }
+        res.map { it.resolvedText.ifBlank { it.reply ?: it.response ?: it.message ?: it.insight ?: "I am Groot. Focus on what matters most today." } }
     }
 
     suspend fun breakdownTask(taskTitle: String): List<String> = withContext(Dispatchers.IO) {
@@ -162,7 +221,9 @@ class AiRepository(
                 val list = response.body()!!.subtasks
                 if (list.isNotEmpty()) return@withContext list
             }
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            Log.e("GrootAI", "Retrofit breakdownTask exception: ${e.message}", e)
+        }
 
         listOf(
             "Define requirements and scope for $trimmed",
@@ -178,7 +239,13 @@ class AiRepository(
             .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
             .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
             .build()
-        val jsonPayload = com.google.gson.Gson().toJson(mapOf("task_title" to taskTitle, "title" to taskTitle))
+        val jsonPayload = com.google.gson.Gson().toJson(
+            mapOf(
+                "task_title" to taskTitle,
+                "title" to taskTitle,
+                "prompt" to taskTitle
+            )
+        )
         val mediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
         val body = jsonPayload.toRequestBody(mediaType)
 
@@ -201,8 +268,12 @@ class AiRepository(
                     if (subtasksArr != null && subtasksArr.size() > 0) {
                         return subtasksArr.map { it.asString }
                     }
+                } else {
+                    Log.e("GrootAI", "Direct OkHttp breakdown call to $url failed with HTTP ${resp.code}")
                 }
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                Log.e("GrootAI", "Direct OkHttp breakdown call to $url exception: ${e.message}", e)
+            }
         }
         return emptyList()
     }

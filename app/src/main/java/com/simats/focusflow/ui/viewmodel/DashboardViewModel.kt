@@ -186,7 +186,7 @@ class DashboardViewModel(
                 val aiRes = aiRepository.getAiInsights(currentUserId, queryType = "daily_summary")
                 aiRes.fold(
                     onSuccess = { res ->
-                        val insight = res.insight?.lines()?.firstOrNull()?.trim()
+                        val insight = res.resolvedText.ifBlank { res.insight ?: res.reply ?: res.response ?: res.message ?: "" }.lines().firstOrNull()?.trim()
                         if (!insight.isNullOrBlank()) {
                             withContext(Dispatchers.Main) {
                                 _uiState.update { it.copy(aiSnippet = insight) }
