@@ -824,8 +824,25 @@ class ProductivityRepository(
     }
 
     suspend fun askGroot(message: String): Result<String> = withContext(Dispatchers.IO) {
+        val req = GrootRequest(message = message, prompt = message, query = message, text = message)
         try {
-            val response = apiService.askGroot(GrootRequest(message = message, prompt = message, query = message, text = message))
+            val resp = RetrofitClient.grootApiService.askGroot(req)
+            val body = resp.body()
+            if (resp.isSuccessful && (body?.success == true || body?.status == "success" || !body?.reply.isNullOrBlank() || !body?.response.isNullOrBlank() || !body?.insight.isNullOrBlank())) {
+                val reply = body?.reply?.takeIf { it.isNotBlank() }
+                    ?: body?.response?.takeIf { it.isNotBlank() }
+                    ?: body?.text?.takeIf { it.isNotBlank() }
+                    ?: body?.insight?.takeIf { it.isNotBlank() }
+                    ?: body?.message?.takeIf { it.isNotBlank() && it != "success" }
+                    ?: "I am Groot!"
+                return@withContext Result.success(reply)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("GrootAI", "GrootApiService askGroot exception: ${e.message}", e)
+        }
+
+        try {
+            val response = apiService.askGroot(req)
             val body = response.body()
             if (response.isSuccessful && (body?.success == true || body?.status == "success" || !body?.reply.isNullOrBlank() || !body?.response.isNullOrBlank() || !body?.insight.isNullOrBlank())) {
                 val reply = body?.reply?.takeIf { it.isNotBlank() }

@@ -2,17 +2,20 @@ package com.simats.focusflow.data.repository
 
 import android.util.Log
 import com.simats.focusflow.data.api.FlowApiService
+import com.simats.focusflow.data.api.GrootApiService
 import com.simats.focusflow.data.api.RetrofitClient
 import com.simats.focusflow.data.models.AiRequest
 import com.simats.focusflow.data.models.AiResponse
 import com.simats.focusflow.data.models.ChatHistoryMessage
+import com.simats.focusflow.data.models.TaskBreakdownRequest
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class AiRepository(
-    private val apiService: FlowApiService = RetrofitClient.flowApiService
+    private val apiService: FlowApiService = RetrofitClient.flowApiService,
+    private val grootService: GrootApiService = RetrofitClient.grootApiService
 ) {
     private val _history = mutableListOf<ChatHistoryMessage>()
     val conversationHistory: List<ChatHistoryMessage>
@@ -29,23 +32,21 @@ class AiRepository(
         history: List<ChatHistoryMessage>? = null
     ): Result<AiResponse> = withContext(Dispatchers.IO) {
         val userPrompt = prompt ?: ""
+        val activeHistory = history ?: synchronized(_history) { _history.toList() }
+        val req = AiRequest(
+            userId = userId,
+            prompt = userPrompt,
+            message = userPrompt,
+            query = userPrompt,
+            text = userPrompt,
+            history = activeHistory,
+            queryType = queryType,
+            maxTokens = 400,
+            temperature = 0.3f
+        )
+
         try {
-            val activeHistory = history ?: synchronized(_history) { _history.toList() }
-
-            val response = apiService.getAiInsights(
-                AiRequest(
-                    userId = userId,
-                    prompt = userPrompt,
-                    message = userPrompt,
-                    query = userPrompt,
-                    text = userPrompt,
-                    history = activeHistory,
-                    queryType = queryType,
-                    maxTokens = 400,
-                    temperature = 0.3f
-                )
-            )
-
+            val response = grootService.chat(req)
             if (response.isSuccessful && response.body() != null) {
                 val body = response.body()!!
                 val reply = body.resolvedText.ifBlank {
@@ -59,7 +60,7 @@ class AiRepository(
                         }
                     }
                 }
-                Result.success(
+                return@withContext Result.success(
                     body.copy(
                         reply = reply,
                         response = reply,
@@ -69,71 +70,72 @@ class AiRepository(
                     )
                 )
             } else {
-                val errorMsg = response.errorBody()?.string() ?: "HTTP ${response.code()}"
-                Log.e("GrootAI", "Retrofit getAiInsights failed: code=${response.code()}, error=$errorMsg")
-                val directReply = tryDirectFastApiCall(userPrompt)
-                if (!directReply.isNullOrBlank()) {
-                    if (userPrompt.isNotBlank()) {
-                        synchronized(_history) {
-                            _history.add(ChatHistoryMessage(role = "user", content = userPrompt))
-                            _history.add(ChatHistoryMessage(role = "assistant", content = directReply))
-                        }
-                    }
-                    Result.success(
-                        AiResponse(
-                            status = "success",
-                            reply = directReply,
-                            response = directReply,
-                            message = directReply,
-                            insight = directReply,
-                            text = directReply
-                        )
-                    )
-                } else {
-                    Result.success(
-                        AiResponse(
-                            status = "fallback",
-                            insight = "I am Groot. Focus on your highest priority task, maintain deep work intervals, and keep momentum going. ($errorMsg)",
-                            message = errorMsg,
-                            reply = "I am Groot. Focus on your highest priority task, maintain deep work intervals, and keep momentum going. ($errorMsg)",
-                            response = "I am Groot. Focus on your highest priority task, maintain deep work intervals, and keep momentum going. ($errorMsg)",
-                            text = "I am Groot. Focus on your highest priority task, maintain deep work intervals, and keep momentum going. ($errorMsg)"
-                        )
-                    )
-                }
+                Log.e("GrootAI", "GrootApiService chat failed: code=${response.code()}")
             }
         } catch (e: Exception) {
-            Log.e("GrootAI", "Retrofit getAiInsights exception: ${e.message}", e)
-            val directReply = tryDirectFastApiCall(userPrompt)
-            if (!directReply.isNullOrBlank()) {
+            Log.e("GrootAI", "GrootApiService chat exception: ${e.message}", e)
+        }
+
+        try {
+            val response = apiService.getAiInsights(req)
+            if (response.isSuccessful && response.body() != null) {
+                val body = response.body()!!
+                val reply = body.resolvedText.ifBlank {
+                    body.reply ?: body.response ?: body.message ?: body.insight ?: ""
+                }
                 if (userPrompt.isNotBlank()) {
                     synchronized(_history) {
                         _history.add(ChatHistoryMessage(role = "user", content = userPrompt))
-                        _history.add(ChatHistoryMessage(role = "assistant", content = directReply))
+                        if (reply.isNotBlank()) {
+                            _history.add(ChatHistoryMessage(role = "assistant", content = reply))
+                        }
                     }
                 }
-                Result.success(
-                    AiResponse(
-                        status = "success",
-                        reply = directReply,
-                        response = directReply,
-                        message = directReply,
-                        insight = directReply,
-                        text = directReply
+                return@withContext Result.success(
+                    body.copy(
+                        reply = reply,
+                        response = reply,
+                        message = reply,
+                        insight = reply,
+                        text = reply
                     )
                 )
             } else {
-                Result.success(
-                    AiResponse(
-                        status = "offline",
-                        insight = "I am Groot, your FocusFlow assistant. Network error reaching AI engine: ${e.localizedMessage ?: e.message}",
-                        message = e.localizedMessage ?: e.message ?: "Connection error",
-                        reply = "I am Groot, your FocusFlow assistant. Network error reaching AI engine: ${e.localizedMessage ?: e.message}",
-                        response = "I am Groot, your FocusFlow assistant. Network error reaching AI engine: ${e.localizedMessage ?: e.message}",
-                        text = "I am Groot, your FocusFlow assistant. Network error reaching AI engine: ${e.localizedMessage ?: e.message}"
-                    )
-                )
+                Log.e("GrootAI", "Retrofit getAiInsights failed: code=${response.code()}")
             }
+        } catch (e: Exception) {
+            Log.e("GrootAI", "Retrofit getAiInsights exception: ${e.message}", e)
+        }
+
+        val directReply = tryDirectFastApiCall(userPrompt)
+        if (!directReply.isNullOrBlank()) {
+            if (userPrompt.isNotBlank()) {
+                synchronized(_history) {
+                    _history.add(ChatHistoryMessage(role = "user", content = userPrompt))
+                    _history.add(ChatHistoryMessage(role = "assistant", content = directReply))
+                }
+            }
+            Result.success(
+                AiResponse(
+                    status = "success",
+                    reply = directReply,
+                    response = directReply,
+                    message = directReply,
+                    insight = directReply,
+                    text = directReply
+                )
+            )
+        } else {
+            Result.success(
+                AiResponse(
+                    status = "fallback",
+                    insight = "I am Groot. Focus on your highest priority task, maintain deep work intervals, and keep momentum going.",
+                    message = "I am Groot. Focus on your highest priority task, maintain deep work intervals, and keep momentum going.",
+                    reply = "I am Groot. Focus on your highest priority task, maintain deep work intervals, and keep momentum going.",
+                    response = "I am Groot. Focus on your highest priority task, maintain deep work intervals, and keep momentum going.",
+                    text = "I am Groot. Focus on your highest priority task, maintain deep work intervals, and keep momentum going."
+                )
+            )
         }
     }
 
@@ -210,13 +212,24 @@ class AiRepository(
         val trimmed = taskTitle.trim()
         if (trimmed.isBlank()) return@withContext emptyList()
 
+        val req = TaskBreakdownRequest(taskTitle = trimmed, title = trimmed)
+        try {
+            val response = grootService.breakdownTask(req)
+            if (response.isSuccessful && response.body() != null) {
+                val list = response.body()!!.subtasks
+                if (list.isNotEmpty()) return@withContext list
+            }
+        } catch (e: Exception) {
+            Log.e("GrootAI", "GrootApiService breakdownTask exception: ${e.message}", e)
+        }
+
         val fastApiResult = tryFastApiBreakdown(trimmed)
         if (fastApiResult.isNotEmpty()) {
             return@withContext fastApiResult
         }
 
         try {
-            val response = apiService.breakdownTask(com.simats.focusflow.data.models.TaskBreakdownRequest(taskTitle = trimmed, title = trimmed))
+            val response = apiService.breakdownTask(req)
             if (response.isSuccessful && response.body() != null) {
                 val list = response.body()!!.subtasks
                 if (list.isNotEmpty()) return@withContext list
