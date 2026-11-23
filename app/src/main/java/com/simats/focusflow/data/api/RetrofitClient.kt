@@ -41,6 +41,12 @@ object RetrofitClient {
             .writeTimeout(60, TimeUnit.SECONDS)
             .connectionPool(ConnectionPool(5, 5, TimeUnit.MINUTES))
             .retryOnConnectionFailure(true)
+            .addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .header("ngrok-skip-browser-warning", "true")
+                    .build()
+                chain.proceed(request)
+            }
         ProductivityRepository.appContext?.cacheDir?.let { cacheDir ->
             try {
                 builder.cache(Cache(File(cacheDir, "http_cache"), 10L * 1024 * 1024))
