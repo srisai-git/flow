@@ -488,6 +488,7 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                                 onNavigateToProgressConsistency = { navController.navigate("progress_consistency") },
                                 onNavigateToEditTask = { navController.navigate("edit_task") },
+                                onNavigateToTimer = { navController.navigate(Screen.Timer.route) },
                                 onNavigateToGrootAi = { prompt ->
                                     val encoded = if (!prompt.isNullOrBlank()) {
                                         try {
@@ -520,6 +521,7 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                                 onNavigateToProgressConsistency = { navController.navigate("progress_consistency") },
                                 onNavigateToEditTask = { navController.navigate("edit_task") },
+                                onNavigateToTimer = { navController.navigate(Screen.Timer.route) },
                                 onNavigateToGrootAi = { prompt ->
                                     val encoded = if (!prompt.isNullOrBlank()) {
                                         try {
@@ -557,6 +559,7 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                                 onNavigateToProgressConsistency = { navController.navigate("progress_consistency") },
                                 onNavigateToEditTask = { navController.navigate("edit_task") },
+                                onNavigateToTimer = { navController.navigate(Screen.Timer.route) },
                                 onNavigateToGrootAi = { prompt ->
                                     val encoded = if (!prompt.isNullOrBlank()) {
                                         try {

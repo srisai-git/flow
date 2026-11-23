@@ -18,6 +18,7 @@ fun ActivitiesScreen(
     onNavigateToProfile: () -> Unit = {},
     onNavigateToProgressConsistency: () -> Unit = {},
     onNavigateToEditTask: () -> Unit = {},
+    onNavigateToTimer: () -> Unit = {},
     onNavigateToGrootAi: (String?) -> Unit = {}
 ) {
     val colors = FocusFlowTheme.colors
@@ -48,7 +49,8 @@ fun ActivitiesScreen(
                     onNavigateToInsights = onNavigateToInsights,
                     onNavigateToProfile = onNavigateToProfile,
                     onNavigateToProgressConsistency = onNavigateToProgressConsistency,
-                    onNavigateToEditTask = onNavigateToEditTask
+                    onNavigateToEditTask = onNavigateToEditTask,
+                    onNavigateToTimer = onNavigateToTimer
                 )
             } else {
                 HabitsScreen(

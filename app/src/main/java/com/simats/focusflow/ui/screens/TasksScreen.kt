@@ -47,13 +47,17 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.simats.focusflow.data.models.TaskItem
 import com.simats.focusflow.data.session.SessionManager
+import com.simats.focusflow.service.FocusTimerService
 import com.simats.focusflow.ui.components.AmbientMeshGlowHeader
 import com.simats.focusflow.ui.components.FlowLoadingIndicator
 import com.simats.focusflow.ui.components.TasksSkeleton
+import com.simats.focusflow.ui.components.UpcomingAcademicEventsCard
 import com.simats.focusflow.ui.components.bounceClick
 import com.simats.focusflow.ui.theme.FocusFlowTheme
 import com.simats.focusflow.ui.viewmodel.TaskFilter
 import com.simats.focusflow.ui.viewmodel.TaskViewModel
+import com.simats.focusflow.ui.viewmodel.TimerMode
+import com.simats.focusflow.utils.AcademicCalendarHelper
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,10 +67,27 @@ fun TasksScreen(
     onNavigateToProfile: () -> Unit = {},
     onNavigateToProgressConsistency: () -> Unit = {},
     onNavigateToEditTask: () -> Unit = {},
+    onNavigateToTimer: () -> Unit = {},
     viewModel: TaskViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val colors = FocusFlowTheme.colors
+
+    val calendarLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            viewModel.syncAcademicCalendar(context)
+        }
+    }
+
+    val onSyncExamClick: () -> Unit = {
+        if (AcademicCalendarHelper.hasCalendarPermission(context)) {
+            viewModel.syncAcademicCalendar(context)
+        } else {
+            calendarLauncher.launch(android.Manifest.permission.READ_CALENDAR)
+        }
+    }
 
     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
         val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
@@ -85,6 +106,9 @@ fun TasksScreen(
 
     LaunchedEffect(Unit) {
         viewModel.initSessionManager(SessionManager.getInstance(context))
+        if (AcademicCalendarHelper.hasCalendarPermission(context)) {
+            viewModel.syncAcademicCalendar(context)
+        }
     }
 
     val state by viewModel.uiState.collectAsState()
@@ -166,19 +190,48 @@ fun TasksScreen(
                     )
                 }
 
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(colors.primary.copy(alpha = 0.15f))
-                        .border(1.dp, colors.primary.copy(alpha = 0.3f), RoundedCornerShape(14.dp))
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                ) {
-                    Text(
-                        text = "${state.todayCount} due today",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = colors.primaryLight
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color(0xFF7C3AED).copy(alpha = 0.16f))
+                            .border(1.dp, Color(0xFF7C3AED).copy(alpha = 0.35f), RoundedCornerShape(14.dp))
+                            .clickable { onSyncExamClick() }
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Sync,
+                                contentDescription = null,
+                                tint = Color(0xFFC4B5FD),
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Sync Exam",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFFDDD6FE)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(colors.primary.copy(alpha = 0.15f))
+                            .border(1.dp, colors.primary.copy(alpha = 0.3f), RoundedCornerShape(14.dp))
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = "${state.todayCount} due today",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.primaryLight
+                        )
+                    }
                 }
             }
 
@@ -263,7 +316,22 @@ fun TasksScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
+
+            UpcomingAcademicEventsCard(
+                events = state.academicEvents,
+                isSyncing = state.isSyncingCalendar,
+                hasPermission = AcademicCalendarHelper.hasCalendarPermission(context),
+                onSyncClick = onSyncExamClick,
+                onStartStrictFocus = { event ->
+                    FocusTimerService.setStrictFocus(context, true)
+                    FocusTimerService.selectMode(context, TimerMode.FOCUS)
+                    FocusTimerService.startTimer(context, 1)
+                    onNavigateToTimer()
+                }
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
 
             if (state.isLoading) {
                 TasksSkeleton()

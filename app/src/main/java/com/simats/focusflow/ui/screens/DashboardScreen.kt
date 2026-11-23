@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.rounded.LocalFireDepartment
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -117,6 +118,56 @@ fun DashboardScreen(
     val colors = FocusFlowTheme.colors
     val uiState by viewModel.uiState.collectAsState()
     val data = uiState.data
+    val scope = rememberCoroutineScope()
+
+    var academicEvents by remember { mutableStateOf<List<com.simats.focusflow.utils.AcademicEvent>>(emptyList()) }
+    var isSyncingCalendar by remember { mutableStateOf(false) }
+
+    val calendarLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                isSyncingCalendar = true
+                val events = com.simats.focusflow.utils.AcademicCalendarHelper.fetchAcademicEvents(context)
+                academicEvents = events
+                com.simats.focusflow.utils.AcademicCalendarHelper.autoSchedulePrepTasks(
+                    events = events,
+                    existingTasks = data.priorityTasks,
+                    userId = 1,
+                    repository = com.simats.focusflow.data.repository.ProductivityRepository()
+                )
+                isSyncingCalendar = false
+            }
+        }
+    }
+
+    val onSyncExamSchedule: () -> Unit = {
+        if (com.simats.focusflow.utils.AcademicCalendarHelper.hasCalendarPermission(context)) {
+            scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                isSyncingCalendar = true
+                val events = com.simats.focusflow.utils.AcademicCalendarHelper.fetchAcademicEvents(context)
+                academicEvents = events
+                com.simats.focusflow.utils.AcademicCalendarHelper.autoSchedulePrepTasks(
+                    events = events,
+                    existingTasks = data.priorityTasks,
+                    userId = 1,
+                    repository = com.simats.focusflow.data.repository.ProductivityRepository()
+                )
+                isSyncingCalendar = false
+            }
+        } else {
+            calendarLauncher.launch(android.Manifest.permission.READ_CALENDAR)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        if (com.simats.focusflow.utils.AcademicCalendarHelper.hasCalendarPermission(context)) {
+            scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                academicEvents = com.simats.focusflow.utils.AcademicCalendarHelper.fetchAcademicEvents(context)
+            }
+        }
+    }
 
     val currentDateStr = remember {
         SimpleDateFormat("EEEE, MMM d", Locale.getDefault()).format(Date())
@@ -409,6 +460,21 @@ fun DashboardScreen(
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        com.simats.focusflow.ui.components.UpcomingAcademicEventsCard(
+            events = academicEvents,
+            isSyncing = isSyncingCalendar,
+            hasPermission = com.simats.focusflow.utils.AcademicCalendarHelper.hasCalendarPermission(context),
+            onSyncClick = onSyncExamSchedule,
+            onStartStrictFocus = { event ->
+                com.simats.focusflow.service.FocusTimerService.setStrictFocus(context, true)
+                com.simats.focusflow.service.FocusTimerService.selectMode(context, com.simats.focusflow.ui.viewmodel.TimerMode.FOCUS)
+                com.simats.focusflow.service.FocusTimerService.startTimer(context, 1)
+                onNavigateToTimer()
+            }
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
