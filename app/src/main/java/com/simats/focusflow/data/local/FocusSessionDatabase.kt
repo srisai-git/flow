@@ -153,6 +153,17 @@ class FocusSessionDatabase private constructor(context: Context) :
 
     private fun ensureSchema(db: SQLiteDatabase) {
         try {
+            db.execSQL("""
+                DELETE FROM $TABLE_FOCUS_SESSIONS 
+                WHERE $COLUMN_ID NOT IN (
+                    SELECT MIN($COLUMN_ID) 
+                    FROM $TABLE_FOCUS_SESSIONS 
+                    GROUP BY $COLUMN_USER_ID, $COLUMN_DURATION_MINUTES, substr($COLUMN_START_TIME, 1, 16)
+                )
+            """.trimIndent())
+        } catch (_: Exception) {}
+
+        try {
             db.execSQL("ALTER TABLE $TABLE_FOCUS_SESSIONS ADD COLUMN $COLUMN_SESSION_UUID TEXT")
             db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS idx_focus_session_uuid ON $TABLE_FOCUS_SESSIONS($COLUMN_SESSION_UUID)")
         } catch (_: Exception) {}
@@ -239,8 +250,8 @@ class FocusSessionDatabase private constructor(context: Context) :
             sdf.format(cal.time)
         }
 
-        val checkQuery = "SELECT $COLUMN_ID FROM $TABLE_FOCUS_SESSIONS WHERE $COLUMN_USER_ID = ? AND (($COLUMN_SESSION_UUID = ? AND $COLUMN_SESSION_UUID != '') OR ($COLUMN_START_TIME = ? AND $COLUMN_DURATION_MINUTES = ?))"
-        val checkCursor = readableDatabase.rawQuery(checkQuery, arrayOf(userId.toString(), sessionUuid, start, durationMinutes.toString()))
+        val checkQuery = "SELECT $COLUMN_ID FROM $TABLE_FOCUS_SESSIONS WHERE $COLUMN_USER_ID = ? AND (($COLUMN_SESSION_UUID = ? AND $COLUMN_SESSION_UUID != '') OR ($COLUMN_DURATION_MINUTES = ? AND (substr($COLUMN_START_TIME, 1, 16) = substr(?, 1, 16) OR substr($COLUMN_END_TIME, 1, 16) = substr(?, 1, 16))))"
+        val checkCursor = readableDatabase.rawQuery(checkQuery, arrayOf(userId.toString(), sessionUuid, durationMinutes.toString(), start, end))
         val exists = checkCursor.use { it.moveToFirst() }
         if (exists) {
             return -1L
@@ -372,7 +383,21 @@ class FocusSessionDatabase private constructor(context: Context) :
                 )
             }
         }
-        return list
+        val deduplicated = mutableListOf<FocusSessionRecord>()
+        for (item in list) {
+            val isDup = deduplicated.any { existing ->
+                if (item.sessionUuid.isNotBlank() && existing.sessionUuid.isNotBlank()) {
+                    item.sessionUuid == existing.sessionUuid
+                } else {
+                    item.durationMinutes == existing.durationMinutes &&
+                            (item.startedAt.take(16) == existing.startedAt.take(16) || item.completedAt.take(16) == existing.completedAt.take(16))
+                }
+            }
+            if (!isDup) {
+                deduplicated.add(item)
+            }
+        }
+        return deduplicated
     }
 
     fun getTotalFocusMinutes(userId: Int): Int {

@@ -173,14 +173,28 @@ class HabitViewModel(
             withContext(Dispatchers.Main) {
                 _uiState.update { it.copy(isAiLoading = true) }
             }
-            val result = aiRepository.getHabitInsights(currentUserId)
+            val habits = _uiState.value.habits
+            val userStats = _uiState.value.userStats
+            val completedCount = habits.count { it.isCompletedToday }
+            val topHabit = habits.maxByOrNull { it.streakCount }
+            val prompt = "Habit Performance: ${habits.size} active habits, $completedCount completed today, current streak ${userStats.currentStreak} days, best habit: ${topHabit?.title ?: "None"} with ${topHabit?.streakCount ?: 0} days streak."
+
+            val result = aiRepository.getHabitInsights(currentUserId, prompt)
             withContext(Dispatchers.Main) {
                 result.fold(
                     onSuccess = { insight ->
-                        _uiState.update { it.copy(isAiLoading = false, aiInsight = insight) }
+                        val cleanInsight = if (insight.isNotBlank() &&
+                            !insight.contains("offline", ignoreCase = true) &&
+                            !insight.contains("port 8000", ignoreCase = true)) {
+                            insight
+                        } else {
+                            computeDynamicHabitInsight(habits, userStats)
+                        }
+                        _uiState.update { it.copy(isAiLoading = false, aiInsight = cleanInsight) }
                     },
                     onFailure = {
-                        _uiState.update { it.copy(isAiLoading = false) }
+                        val fallback = computeDynamicHabitInsight(habits, userStats)
+                        _uiState.update { it.copy(isAiLoading = false, aiInsight = fallback) }
                     }
                 )
             }

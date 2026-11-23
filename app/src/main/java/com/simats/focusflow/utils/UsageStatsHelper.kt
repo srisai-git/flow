@@ -514,6 +514,13 @@ object UsageStatsHelper {
         val startOfTodayMillis = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
         val endMillis = System.currentTimeMillis()
 
+        val dailyStatsList = try {
+            usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startOfTodayMillis, endMillis)
+        } catch (_: Exception) {
+            null
+        }
+        val dailyMap = dailyStatsList?.associate { it.packageName to it.totalTimeInForeground } ?: emptyMap()
+
         val events = try {
             usageStatsManager.queryEvents(startOfTodayMillis, endMillis)
         } catch (_: Exception) {
@@ -531,6 +538,7 @@ object UsageStatsHelper {
 
         var currentPackage: String? = null
         var sessionStartMillis = 0L
+        var lastScreenOffMillis = 0L
         val usageMap = mutableMapOf<String, Long>()
 
         for (event in eventList) {
@@ -550,7 +558,7 @@ object UsageStatsHelper {
                     if (sessionStartMillis >= startOfTodayMillis && sessionStartMillis > 0L) {
                         val boundedEnd = minOf(time, endMillis)
                         val delta = (boundedEnd - sessionStartMillis).coerceAtLeast(0L)
-                        if (delta > 0L) {
+                        if (delta >= 60_000L) {
                             usageMap[currentPackage!!] = (usageMap[currentPackage!!] ?: 0L) + delta
                         }
                     }
@@ -565,7 +573,7 @@ object UsageStatsHelper {
                     if (sessionStartMillis >= startOfTodayMillis && sessionStartMillis > 0L) {
                         val boundedEnd = minOf(time, endMillis)
                         val delta = (boundedEnd - sessionStartMillis).coerceAtLeast(0L)
-                        if (delta > 0L) {
+                        if (delta >= 60_000L) {
                             usageMap[pkg] = (usageMap[pkg] ?: 0L) + delta
                         }
                     }
@@ -577,20 +585,42 @@ object UsageStatsHelper {
                     if (sessionStartMillis >= startOfTodayMillis && sessionStartMillis > 0L) {
                         val boundedEnd = minOf(time, endMillis)
                         val delta = (boundedEnd - sessionStartMillis).coerceAtLeast(0L)
-                        if (delta > 0L) {
+                        if (delta >= 60_000L) {
                             usageMap[currentPackage!!] = (usageMap[currentPackage!!] ?: 0L) + delta
                         }
                     }
                     currentPackage = null
                     sessionStartMillis = 0L
                 }
+                lastScreenOffMillis = time
             }
         }
 
         if (currentPackage != null && sessionStartMillis >= startOfTodayMillis && sessionStartMillis > 0L) {
-            val delta = (endMillis - sessionStartMillis).coerceAtLeast(0L)
-            if (delta > 0L) {
-                usageMap[currentPackage!!] = (usageMap[currentPackage!!] ?: 0L) + delta
+            if (sessionStartMillis >= lastScreenOffMillis) {
+                val delta = (endMillis - sessionStartMillis).coerceAtLeast(0L)
+                if (delta >= 60_000L) {
+                    usageMap[currentPackage!!] = (usageMap[currentPackage!!] ?: 0L) + delta
+                }
+            }
+        }
+
+        val combinedKeys = (usageMap.keys + dailyMap.keys).toSet()
+        val finalUsageMap = mutableMapOf<String, Long>()
+        for (pkg in combinedKeys) {
+            val eventDuration = usageMap[pkg] ?: 0L
+            val dailyDuration = dailyMap[pkg] ?: 0L
+            val effectiveDuration = if (eventDuration > 0L && dailyDuration > 0L) {
+                minOf(eventDuration, dailyDuration + 120_000L)
+            } else if (eventDuration > 0L) {
+                eventDuration
+            } else if (dailyDuration >= 60_000L) {
+                dailyDuration
+            } else {
+                0L
+            }
+            if (effectiveDuration >= 60_000L) {
+                finalUsageMap[pkg] = effectiveDuration
             }
         }
 
@@ -599,7 +629,7 @@ object UsageStatsHelper {
 
         val appInfos = mutableListOf<AppUsageInfo>()
 
-        for ((pkg, durationMs) in usageMap) {
+        for ((pkg, durationMs) in finalUsageMap) {
             if (isExcludedApp(context, pkg, defaultHome, homeLaunchers)) continue
             if (durationMs < 60_000L) continue
 

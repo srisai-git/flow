@@ -320,119 +320,58 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
         }
 
         if (hasPermission) {
-            BoxWithConstraints(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 16.dp),
-                contentAlignment = Alignment.Center
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                val chartDiameter = minOf(maxWidth * 0.6f, 210.dp).coerceAtLeast(160.dp)
-                Box(
-                    modifier = Modifier.size(chartDiameter),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Canvas(modifier = Modifier.size(190.dp)) {
-                        if (size.width <= 0f || size.height <= 0f) return@Canvas
-                        val strokeWidth = 18.dp.toPx()
-                        val diameter = (size.minDimension - strokeWidth - 8.dp.toPx()).coerceAtLeast(10f)
-                        val topLeftOffset = androidx.compose.ui.geometry.Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
-                        val arcSize = androidx.compose.ui.geometry.Size(diameter, diameter)
-                        val cx = size.width / 2f
-                        val cy = size.height / 2f
+                Text(
+                    text = if (totalMins > 0) totalHoursStr else "0m",
+                    fontSize = 36.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = colors.textPrimary,
+                    style = androidx.compose.ui.text.TextStyle(fontFeatureSettings = "tnum")
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Lost to Distractions",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFFF472B6)
+                )
 
-                        drawCircle(
-                            brush = androidx.compose.ui.graphics.Brush.radialGradient(
-                                colors = listOf(Color(0xFF8B5CF6).copy(alpha = 0.2f), Color.Transparent),
-                                center = Offset(cx, cy),
-                                radius = diameter / 1.4f
-                            ),
-                            radius = diameter / 1.4f,
-                            center = Offset(cx, cy)
-                        )
+                Spacer(modifier = Modifier.height(20.dp))
 
-                        val trackOuterColor = if (colors.isDark) Color(0xFF1C1830) else colors.border.copy(alpha = 0.5f)
-                        val trackInnerColor = if (colors.isDark) Color(0xFF282245) else colors.surfaceVariant
-
-                        drawArc(
-                            color = trackOuterColor,
-                            startAngle = 0f,
-                            sweepAngle = 360f,
-                            useCenter = false,
-                            topLeft = topLeftOffset,
-                            size = arcSize,
-                            style = Stroke(width = strokeWidth + 4.dp.toPx(), cap = StrokeCap.Round)
-                        )
-
-                        drawArc(
-                            color = trackInnerColor,
-                            startAngle = 0f,
-                            sweepAngle = 360f,
-                            useCenter = false,
-                            topLeft = topLeftOffset,
-                            size = arcSize,
-                            style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
-                        )
-
-                        if (totalMins > 0 && ringSegments.isNotEmpty()) {
-                            if (ringSegments.size <= 1) {
-                                val single = ringSegments.first()
-                                val singleColor = getAppBrandColor(single.packageName, 0)
-                                drawArc(
-                                    brush = androidx.compose.ui.graphics.Brush.sweepGradient(
-                                        listOf(singleColor, singleColor.copy(alpha = 0.7f), singleColor)
-                                    ),
-                                    startAngle = -90f,
-                                    sweepAngle = 360f,
-                                    useCenter = false,
-                                    topLeft = topLeftOffset,
-                                    size = arcSize,
-                                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
-                                )
-                            } else {
-                                var currentAngle = -90f
-                                val gapDegrees = 6f
-                                val availableSweep = 360f - (ringSegments.size * gapDegrees)
-
-                                ringSegments.forEachIndexed { index, segment ->
-                                    val segmentSweep = (segment.percentage * availableSweep).coerceAtLeast(6f)
-                                    val segmentColor = getAppBrandColor(segment.packageName, index)
-
-                                    drawArc(
-                                        brush = androidx.compose.ui.graphics.Brush.sweepGradient(
-                                            listOf(segmentColor, segmentColor.copy(alpha = 0.75f), segmentColor)
-                                        ),
-                                        startAngle = currentAngle,
-                                        sweepAngle = segmentSweep,
-                                        useCenter = false,
-                                        topLeft = topLeftOffset,
-                                        size = arcSize,
-                                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
-                                    )
-                                    currentAngle += segmentSweep + gapDegrees
-                                }
+                if (ringSegments.isNotEmpty() && totalMins > 0) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(10.dp)
+                            .clip(RoundedCornerShape(5.dp))
+                            .background(colors.border.copy(alpha = 0.35f))
+                    ) {
+                        ringSegments.forEachIndexed { index, seg ->
+                            val segColor = getAppBrandColor(seg.packageName, index)
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .weight(seg.percentage.coerceAtLeast(0.02f))
+                                    .background(segColor)
+                            )
+                            if (index < ringSegments.size - 1) {
+                                Spacer(modifier = Modifier.width(2.dp))
                             }
                         }
                     }
-
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = if (totalMins > 0) totalHoursStr else "0m",
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = colors.textPrimary,
-                            style = androidx.compose.ui.text.TextStyle(fontFeatureSettings = "tnum")
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Lost to Distractions",
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFFF472B6)
-                        )
-                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(10.dp)
+                            .clip(RoundedCornerShape(5.dp))
+                            .background(colors.border.copy(alpha = 0.35f))
+                    )
                 }
             }
 
@@ -607,13 +546,13 @@ fun DistractionAnalysisScreen(onBack: () -> Unit = {}) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(5.dp)
+                                        .height(6.dp)
                                         .background(colors.border.copy(alpha = 0.5f), RoundedCornerShape(3.dp))
                                 ) {
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth(fraction = progressFraction)
-                                            .height(5.dp)
+                                            .height(6.dp)
                                             .background(segmentColor, RoundedCornerShape(3.dp))
                                     )
                                 }

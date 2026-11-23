@@ -193,8 +193,9 @@ class AiRepository(
         return null
     }
 
-    suspend fun getHabitInsights(userId: Int): Result<String> = withContext(Dispatchers.IO) {
-        val res = getAiInsights(userId = userId, queryType = "habit_insights", prompt = "Analyze my habit consistency.")
+    suspend fun getHabitInsights(userId: Int, prompt: String? = null): Result<String> = withContext(Dispatchers.IO) {
+        val promptText = prompt ?: "Analyze my habit consistency."
+        val res = getAiInsights(userId = userId, queryType = "habit_insights", prompt = promptText)
         res.map { it.resolvedText.ifBlank { it.reply ?: it.response ?: it.message ?: it.insight ?: "Consistency compounds over time. Keep your daily routines active to maintain peak streak momentum." } }
     }
 

@@ -158,13 +158,9 @@ class TimerViewModel(
 
             val todayPrefix = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
 
-            val distinctLocal = rawLocalSessions
-                .filter { it.userId == currentUserId && !it.sessionType.contains("break", ignoreCase = true) }
-                .distinctBy { session ->
-                    val uuid = session.sessionUuid.trim()
-                    if (uuid.isNotEmpty()) "uuid_$uuid" else "${session.userId}_${session.startedAt.take(16)}_${session.durationMinutes}"
-                }
-                .sortedByDescending { it.id }
+            val distinctLocal = deduplicateSessionRecords(
+                rawLocalSessions.filter { it.userId == currentUserId && !it.sessionType.contains("break", ignoreCase = true) }
+            )
 
             if (distinctLocal.isNotEmpty()) {
                 val localTodayCount = distinctLocal.count { it.startedAt.startsWith(todayPrefix) }
@@ -187,13 +183,9 @@ class TimerViewModel(
             withContext(Dispatchers.Main) {
                 result.fold(
                     onSuccess = { list ->
-                        val distinct = (distinctLocal + list)
-                            .filter { it.userId == currentUserId && !it.sessionType.contains("break", ignoreCase = true) }
-                            .distinctBy { session ->
-                                val uuid = session.sessionUuid.trim()
-                                if (uuid.isNotEmpty()) "uuid_$uuid" else "${session.userId}_${session.startedAt.take(16)}_${session.durationMinutes}"
-                            }
-                            .sortedByDescending { it.id }
+                        val distinct = deduplicateSessionRecords(
+                            (distinctLocal + list).filter { it.userId == currentUserId && !it.sessionType.contains("break", ignoreCase = true) }
+                        )
 
                         val todayCount = distinct.count { it.startedAt.startsWith(todayPrefix) }
                         _uiState.update { current ->
@@ -207,6 +199,29 @@ class TimerViewModel(
                 )
             }
         }
+    }
+
+    private fun deduplicateSessionRecords(sessions: List<FocusSessionRecord>): List<FocusSessionRecord> {
+        val result = mutableListOf<FocusSessionRecord>()
+        for (session in sessions) {
+            val isDuplicate = result.any { existing ->
+                if (session.sessionUuid.isNotBlank() && existing.sessionUuid.isNotBlank()) {
+                    session.sessionUuid == existing.sessionUuid
+                } else if (session.durationMinutes == existing.durationMinutes) {
+                    val sStart = session.startedAt.take(16)
+                    val eStart = existing.startedAt.take(16)
+                    val sEnd = session.completedAt.take(16)
+                    val eEnd = existing.completedAt.take(16)
+                    sStart == eStart || (sEnd.isNotBlank() && eEnd.isNotBlank() && sEnd == eEnd)
+                } else {
+                    false
+                }
+            }
+            if (!isDuplicate) {
+                result.add(session)
+            }
+        }
+        return result.sortedByDescending { it.id }
     }
 
     fun resetSessionState() {

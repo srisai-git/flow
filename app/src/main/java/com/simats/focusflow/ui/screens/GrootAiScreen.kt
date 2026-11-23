@@ -339,31 +339,48 @@ fun GrootAiScreen(
 
                         Spacer(modifier = Modifier.width(8.dp))
 
-                        val sendEnabled = state.inputText.isNotBlank() && !state.isAiThinking
-                        IconButton(
-                            onClick = {
-                                if (sendEnabled) {
-                                    viewModel.sendMessage()
-                                }
-                            },
-                            modifier = Modifier
-                                .size(44.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    if (sendEnabled)
-                                        Color(0xFF8B5CF6)
-                                    else
-                                        colors.surfaceVariant
+                        if (state.isGenerating || state.isAiThinking) {
+                            IconButton(
+                                onClick = { viewModel.stopGeneration() },
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF8B5CF6))
+                                    .bounceClick()
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(13.dp)
+                                        .background(Color.White, RoundedCornerShape(2.dp))
                                 )
-                                .bounceClick(),
-                            enabled = sendEnabled
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Send,
-                                contentDescription = "Send",
-                                tint = if (sendEnabled) Color.White else colors.textMuted,
-                                modifier = Modifier.size(18.dp)
-                            )
+                            }
+                        } else {
+                            val sendEnabled = state.inputText.isNotBlank()
+                            IconButton(
+                                onClick = {
+                                    if (sendEnabled) {
+                                        viewModel.sendMessage()
+                                    }
+                                },
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (sendEnabled)
+                                            Color(0xFF8B5CF6)
+                                        else
+                                            colors.surfaceVariant
+                                    )
+                                    .bounceClick(),
+                                enabled = sendEnabled
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Send,
+                                    contentDescription = "Send",
+                                    tint = if (sendEnabled) Color.White else colors.textMuted,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
                     }
                 }

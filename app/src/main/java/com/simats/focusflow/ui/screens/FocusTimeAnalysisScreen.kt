@@ -33,6 +33,7 @@ import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.ui.components.CustomTopBar
 import com.simats.focusflow.ui.theme.FocusFlowTheme
+import com.simats.focusflow.utils.DistractionUsageSummary
 import kotlinx.coroutines.flow.first
 import java.text.SimpleDateFormat
 import java.util.*
@@ -68,6 +69,7 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
     var localMonthWeeks by remember { mutableStateOf<List<Int>>(listOf(0, 0, 0, 0)) }
     var localMonthDailyMap by remember { mutableStateOf<Map<Int, Int>>(emptyMap()) }
     var dynamicAiAnalysis by remember { mutableStateOf<String?>(null) }
+    var cachedDistractionSummary by remember { mutableStateOf<DistractionUsageSummary?>(null) }
     var isLoading by remember { mutableStateOf(true) }
 
     suspend fun refreshData() {
@@ -399,7 +401,10 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                 val peakStr = peakDayBlock?.let { "${it.name} (${it.timeRange})" } ?: "Morning (9 AM – 12 PM)"
 
                 LaunchedEffect(selectedMinutes, insightsData, completedFocusSessions) {
-                    val distractionSummary = com.simats.focusflow.utils.UsageStatsHelper.queryTodayDistractionStats(context)
+                    val distractionSummary = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        com.simats.focusflow.utils.UsageStatsHelper.queryTodayDistractionStats(context)
+                    }
+                    cachedDistractionSummary = distractionSummary
                     val distractionMinutes = distractionSummary.totalDistractionMinutes
                     val topDistractionApp = distractionSummary.apps.firstOrNull { it.usageMinutes > 0 }
                     val topDistractionStr = if (topDistractionApp != null) "${topDistractionApp.appName} (${topDistractionApp.usageMinutes}m)" else "Minimal"
@@ -438,11 +443,11 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                         !dynamicAiAnalysis!!.contains("port 8000", ignoreCase = true) &&
                         !dynamicAiAnalysis!!.contains("deep-reasoning engine", ignoreCase = true)
 
-                val distractionSummary = remember { com.simats.focusflow.utils.UsageStatsHelper.queryTodayDistractionStats(context) }
+                val distractionMinutesFallback = cachedDistractionSummary?.totalDistractionMinutes ?: 0
                 val groundedFallback = when {
                     selectedMinutes == 0 -> "No completed focus sessions logged for today yet. Start an initial 25-minute Pomodoro interval in your peak window ($peakStr) to activate deep cognitive flow."
-                    selectedMinutes < 60 -> "Strong start with ${selectedMinutes}m across $completedFocusSessions completed focus session(s). Your highest momentum is in $peakStr. Keeping daily distraction under ${distractionSummary.totalDistractionMinutes}m will solidify your workflow."
-                    selectedMinutes in 60..180 -> "Optimal deep flow achieved with ${selectedHours}h ${selectedRemainingMins}m across $completedFocusSessions completed focus session(s)! Your strongest interval is $peakStr. Screen distraction is controlled at ${distractionSummary.totalDistractionMinutes}m."
+                    selectedMinutes < 60 -> "Strong start with ${selectedMinutes}m across $completedFocusSessions completed focus session(s). Your highest momentum is in $peakStr. Keeping daily distraction under ${distractionMinutesFallback}m will solidify your workflow."
+                    selectedMinutes in 60..180 -> "Optimal deep flow achieved with ${selectedHours}h ${selectedRemainingMins}m across $completedFocusSessions completed focus session(s)! Your strongest interval is $peakStr. Screen distraction is controlled at ${distractionMinutesFallback}m."
                     else -> "Peak focus immersion: ${selectedHours}h ${selectedRemainingMins}m logged across $completedFocusSessions focus sessions! You perform best in $peakStr. Balance these intensive sessions with regular breathers to sustain high cognitive endurance."
                 }
 

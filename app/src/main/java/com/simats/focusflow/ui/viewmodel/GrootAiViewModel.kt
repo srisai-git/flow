@@ -55,6 +55,7 @@ data class GrootAiUiState(
         )
     ),
     val isAiThinking: Boolean = false,
+    val isGenerating: Boolean = false,
     val inputText: String = ""
 )
 
@@ -75,6 +76,7 @@ class GrootAiViewModel(
     private var currentUserId: Int = 1
     private var actionExecutor: GrootActionExecutor? = null
     private val gson = Gson()
+    private var activeChatJob: kotlinx.coroutines.Job? = null
 
     fun initContext(context: Context, manager: SessionManager) {
         this.appContext = context.applicationContext
@@ -209,12 +211,14 @@ class GrootAiViewModel(
             it.copy(
                 messages = updatedWithUser,
                 inputText = if (query == null) "" else it.inputText,
-                isAiThinking = true
+                isAiThinking = true,
+                isGenerating = true
             )
         }
         persistMessages(updatedWithUser)
 
-        viewModelScope.launch(Dispatchers.IO) {
+        activeChatJob?.cancel()
+        activeChatJob = viewModelScope.launch(Dispatchers.IO) {
             val session = sessionManager?.userSessionFlow?.first()
             val userName = session?.userName?.ifBlank { null } ?: "Sri Sai"
             val db = appContext?.let { com.simats.focusflow.data.local.FocusSessionDatabase.getInstance(it) }
@@ -223,12 +227,32 @@ class GrootAiViewModel(
                 it.startedAt.startsWith(todayStr)
             } ?: emptyList()
             val sessionCount = todaySessions.size
+            val todayFocusMins = db?.getTodayFocusMinutes(currentUserId) ?: 0
 
             val streakData = com.simats.focusflow.data.repository.StreakRepository.getInstance().getStreaks(currentUserId).getOrNull()
             val streak = streakData?.currentStreak ?: 1
 
-            val userMetadataContext = "Active User: $userName, Current Streak: $streak days, Completed Sessions Today: $sessionCount"
-            val promptWithContext = "[$userMetadataContext]\n$textToSend"
+            val localTasks = db?.getLocalTasks(currentUserId) ?: emptyList()
+            val pendingTasks = localTasks.filter { !it.isCompleted }
+            val doneTasksCount = localTasks.count { it.isCompleted }
+            val topPendingTitles = pendingTasks.take(3).joinToString { it.title }
+
+            val habitsRes = try {
+                productivityRepository.getHabits(currentUserId).getOrNull()
+            } catch (_: Exception) { null }
+            val habitsList = habitsRes?.habits ?: emptyList()
+            val completedHabitsCount = habitsList.count { it.isCompletedToday }
+            val topHabitTitle = habitsList.maxByOrNull { it.streakCount }?.title ?: "None"
+
+            val distractionSummary = appContext?.let {
+                com.simats.focusflow.utils.UsageStatsHelper.queryTodayDistractionStats(it)
+            }
+            val distractionMins = distractionSummary?.totalDistractionMinutes ?: 0
+            val topDistractApp = distractionSummary?.apps?.firstOrNull { it.usageMinutes > 0 }
+            val topDistractStr = if (topDistractApp != null) "${topDistractApp.appName} (${topDistractApp.usageMinutes}m)" else "Minimal"
+
+            val appContextSummary = "Active User: $userName, Streak: $streak days, Focus Today: ${todayFocusMins}m across $sessionCount sessions, Tasks: ${pendingTasks.size} pending (${if (topPendingTitles.isNotBlank()) topPendingTitles else "None"}), $doneTasksCount done, Habits: ${habitsList.size} active ($completedHabitsCount completed today, top: $topHabitTitle), Distractions: ${distractionMins}m ($topDistractStr)"
+            val promptWithContext = "[$appContextSummary]\n$textToSend"
 
             val result = aiRepository.getAiInsights(
                 userId = currentUserId,
@@ -268,7 +292,7 @@ class GrootAiViewModel(
                             withContext(Dispatchers.Main) {
                                 val updated = _uiState.value.messages + offlineMsg
                                 _uiState.update {
-                                    it.copy(messages = updated, isAiThinking = false)
+                                    it.copy(messages = updated, isAiThinking = false, isGenerating = false)
                                 }
                                 persistMessages(updated)
                             }
@@ -323,7 +347,8 @@ class GrootAiViewModel(
                         _uiState.update {
                             it.copy(
                                 messages = updatedWithAi,
-                                isAiThinking = false
+                                isAiThinking = false,
+                                isGenerating = false
                             )
                         }
                         persistMessages(updatedWithAi)
@@ -360,7 +385,8 @@ class GrootAiViewModel(
                             _uiState.update {
                                 it.copy(
                                     messages = updatedWithFallback,
-                                    isAiThinking = false
+                                    isAiThinking = false,
+                                    isGenerating = false
                                 )
                             }
                             persistMessages(updatedWithFallback)
@@ -376,7 +402,8 @@ class GrootAiViewModel(
                             _uiState.update {
                                 it.copy(
                                     messages = updatedWithFallback,
-                                    isAiThinking = false
+                                    isAiThinking = false,
+                                    isGenerating = false
                                 )
                             }
                             persistMessages(updatedWithFallback)
@@ -385,6 +412,29 @@ class GrootAiViewModel(
                 }
             )
         }
+    }
+
+    fun stopGeneration() {
+        activeChatJob?.cancel()
+        activeChatJob = null
+        val stoppedMsg = ChatMessage(
+            isFromUser = false,
+            text = "Response stopped."
+        )
+        val updated = _uiState.value.messages + stoppedMsg
+        _uiState.update {
+            it.copy(
+                isAiThinking = false,
+                isGenerating = false,
+                messages = updated
+            )
+        }
+        persistMessages(updated)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        activeChatJob?.cancel()
     }
 
     fun handleActionClick(action: AiAction, onNavigate: (String) -> Unit) {

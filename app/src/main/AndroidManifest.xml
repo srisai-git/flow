@@ -50,6 +50,7 @@
             android:exported="true"
             android:label="@string/app_name"
             android:launchMode="singleTop"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
             android:theme="@style/Theme.FOCUSFLOW"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>

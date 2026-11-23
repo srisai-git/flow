@@ -393,18 +393,20 @@ private fun resolveLegacyDeadlineToMillis(dueDate: String, scheduledTime: String
     }
 }
 
-private fun formatCountdown(diffMillis: Long): String {
-    val totalSeconds = diffMillis / 1000
-    val days = totalSeconds / 86400
-    val hours = (totalSeconds % 86400) / 3600
-    val minutes = (totalSeconds % 3600) / 60
-    val seconds = totalSeconds % 60
+private fun formatDeadlineTime(timestamp: Long): String {
+    val deadlineCal = Calendar.getInstance().apply { timeInMillis = timestamp }
+    val nowCal = Calendar.getInstance()
+    val isToday = deadlineCal.get(Calendar.YEAR) == nowCal.get(Calendar.YEAR) &&
+            deadlineCal.get(Calendar.DAY_OF_YEAR) == nowCal.get(Calendar.DAY_OF_YEAR)
+    val tomorrowCal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 1) }
+    val isTomorrow = deadlineCal.get(Calendar.YEAR) == tomorrowCal.get(Calendar.YEAR) &&
+            deadlineCal.get(Calendar.DAY_OF_YEAR) == tomorrowCal.get(Calendar.DAY_OF_YEAR)
 
+    val timeStr = SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(timestamp))
     return when {
-        days > 0 -> "${days}d ${hours}h left"
-        hours > 0 -> String.format(Locale.getDefault(), "%02dh %02dm %02ds left", hours, minutes, seconds)
-        minutes > 0 -> String.format(Locale.getDefault(), "%02dm %02ds left", minutes, seconds)
-        else -> String.format(Locale.getDefault(), "%02ds left", seconds)
+        isToday -> "Today, $timeStr"
+        isTomorrow -> "Tomorrow, $timeStr"
+        else -> SimpleDateFormat("MMM d, h:mm a", Locale.getDefault()).format(Date(timestamp))
     }
 }
 
@@ -553,7 +555,7 @@ private fun TaskItemCard(
                                 }
                             }
                         } else {
-                            val countdownText = if (diffMillis > 0) formatCountdown(diffMillis) else "Due"
+                            val deadlineText = formatDeadlineTime(resolvedDeadline)
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
@@ -570,7 +572,7 @@ private fun TaskItemCard(
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = countdownText,
+                                        text = deadlineText,
                                         fontSize = 10.5.sp,
                                         color = Color(0xFF38BDF8),
                                         fontWeight = FontWeight.SemiBold
@@ -1169,7 +1171,7 @@ private fun AddTaskBottomSheetContent(
             Spacer(modifier = Modifier.height(10.dp))
             val now = System.currentTimeMillis()
             val diff = selectedDeadlineTimestamp!! - now
-            val remainingText = if (diff > 0) formatCountdown(diff) else "Overdue target"
+            val remainingText = if (diff > 0) formatDeadlineTime(selectedDeadlineTimestamp!!) else "Overdue target"
             val badgeColor = if (diff > 0) Color(0xFF38BDF8) else Color(0xFFFF5A5F)
             Surface(
                 shape = RoundedCornerShape(10.dp),
