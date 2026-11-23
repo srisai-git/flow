@@ -48,6 +48,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import kotlinx.coroutines.launch
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -110,6 +111,7 @@ fun ProfileScreen(
     val colors = FocusFlowTheme.colors
     val state by viewModel.uiState.collectAsState()
     val profile = state.profile
+    val coroutineScope = rememberCoroutineScope()
 
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showPreferencesSheet by remember { mutableStateOf(false) }
@@ -393,9 +395,11 @@ fun ProfileScreen(
                     ProfileMenuRow(
                         icon = Icons.Default.Share,
                         title = "Export Productivity Data",
-                        subtitle = "Generate & share CSV summary",
+                        subtitle = "Generate & share complete records",
                         onClick = {
-                            shareProductivityCsv(context, profile)
+                            coroutineScope.launch {
+                                com.simats.focusflow.utils.ExportDataHelper.generateAndShareExport(context, profile.id, profile.name)
+                            }
                         }
                     )
                     HorizontalDivider(color = colors.border, thickness = 1.dp)
@@ -648,6 +652,7 @@ fun ProfileScreen(
             ) {
                 StreakDetailSheetContent(
                     currentStreak = profile.currentStreak,
+                    longestStreak = maxOf(profile.currentStreak, 0),
                     onShareStreak = {
                         val shareIntent = Intent(Intent.ACTION_SEND).apply {
                             type = "text/plain"
@@ -655,10 +660,6 @@ fun ProfileScreen(
                             putExtra(Intent.EXTRA_TEXT, "I am on a ${profile.currentStreak}-day focus streak on FocusFlow! Compounding discipline every single day.")
                         }
                         context.startActivity(Intent.createChooser(shareIntent, "Share Streak"))
-                    },
-                    onNavigateToInsights = {
-                        showStreakDetailSheet = false
-                        onNavigateToInsights()
                     },
                     onDismiss = { showStreakDetailSheet = false }
                 )
@@ -1245,10 +1246,128 @@ private fun TasksDoneDetailSheetContent(
 }
 
 @Composable
+private fun StreakCalendarGrid(
+    currentStreak: Int,
+    modifier: Modifier = Modifier
+) {
+    val colors = FocusFlowTheme.colors
+    val today = java.time.LocalDate.now()
+    val currentYearMonth = java.time.YearMonth.from(today)
+    val firstDayOfMonth = currentYearMonth.atDay(1)
+    val daysInMonth = currentYearMonth.lengthOfMonth()
+    val firstDayOfWeek = (firstDayOfMonth.dayOfWeek.value - 1)
+
+    val monthName = currentYearMonth.month.name.lowercase().replaceFirstChar { it.uppercase() }
+    val yearStr = currentYearMonth.year.toString()
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "$monthName $yearStr",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = colors.textPrimary
+            )
+            Text(
+                text = if (currentStreak > 0) "$currentStreak-day active streak" else "0 active streak",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = colors.primaryLight
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            listOf("M", "T", "W", "T", "F", "S", "S").forEach { day ->
+                Box(
+                    modifier = Modifier.width(36.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = day,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textMuted
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        val totalCells = firstDayOfWeek + daysInMonth
+        val rows = (totalCells + 6) / 7
+
+        for (r in 0 until rows) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 3.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                for (c in 0 until 7) {
+                    val cellIndex = r * 7 + c
+                    val dayNum = cellIndex - firstDayOfWeek + 1
+                    if (dayNum in 1..daysInMonth) {
+                        val date = currentYearMonth.atDay(dayNum)
+                        val daysBeforeToday = java.time.temporal.ChronoUnit.DAYS.between(date, today).toInt()
+                        val isActiveStreak = currentStreak > 0 && daysBeforeToday in 0 until currentStreak
+                        val isToday = date == today
+                        val isFuture = date.isAfter(today)
+
+                        val cellBg = when {
+                            isActiveStreak -> Color(0xFFF59E0B)
+                            isToday -> colors.primary.copy(alpha = 0.25f)
+                            else -> colors.surfaceVariant
+                        }
+                        val textColor = when {
+                            isActiveStreak -> Color.White
+                            isFuture -> colors.textMuted.copy(alpha = 0.35f)
+                            else -> colors.textPrimary
+                        }
+                        val borderColor = when {
+                            isActiveStreak -> Color(0xFFF59E0B)
+                            isToday -> colors.primaryLight
+                            else -> colors.border.copy(alpha = 0.5f)
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(cellBg)
+                                .border(1.dp, borderColor, RoundedCornerShape(10.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = dayNum.toString(),
+                                fontSize = 12.sp,
+                                fontWeight = if (isActiveStreak || isToday) FontWeight.Bold else FontWeight.Normal,
+                                color = textColor
+                            )
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.size(36.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun StreakDetailSheetContent(
     currentStreak: Int,
+    longestStreak: Int = currentStreak,
     onShareStreak: () -> Unit,
-    onNavigateToInsights: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val colors = FocusFlowTheme.colors
@@ -1266,7 +1385,7 @@ private fun StreakDetailSheetContent(
         ) {
             Column {
                 Text(
-                    text = "DISCIPLINE STREAK",
+                    text = "STREAK CALENDAR",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = WarningAmber,
@@ -1284,7 +1403,80 @@ private fun StreakDetailSheetContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Surface(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(14.dp),
+                color = colors.surfaceVariant,
+                border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.35f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FlashOn,
+                        contentDescription = null,
+                        tint = WarningAmber,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text(
+                            text = "$currentStreak Days",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textPrimary
+                        )
+                        Text(
+                            text = "Current Streak",
+                            fontSize = 11.sp,
+                            color = colors.textMuted
+                        )
+                    }
+                }
+            }
+
+            Surface(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(14.dp),
+                color = colors.surfaceVariant,
+                border = BorderStroke(1.dp, colors.border)
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = null,
+                        tint = colors.primaryLight,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text(
+                            text = "$longestStreak Days",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textPrimary
+                        )
+                        Text(
+                            text = "Longest Streak",
+                            fontSize = 11.sp,
+                            color = colors.textMuted
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(18.dp))
 
         Surface(
             shape = RoundedCornerShape(18.dp),
@@ -1292,58 +1484,8 @@ private fun StreakDetailSheetContent(
             border = BorderStroke(1.dp, colors.border),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(
-                modifier = Modifier.padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(54.dp)
-                        .clip(CircleShape)
-                        .background(WarningAmber.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.FlashOn,
-                        contentDescription = null,
-                        tint = WarningAmber,
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(
-                    text = "$currentStreak Days",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = colors.textPrimary
-                )
-                Text(
-                    text = "Unbroken streak of daily focus & habit logging",
-                    fontSize = 13.sp,
-                    color = colors.textMuted
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-                HorizontalDivider(color = colors.border, thickness = 1.dp)
-                Spacer(modifier = Modifier.height(16.dp))
-
-                val milestoneText = when {
-                    currentStreak >= 30 -> "Sensational! You are past the 30-day mastery threshold."
-                    currentStreak >= 14 -> "Formidable discipline! You are halfway to a 30-day streak."
-                    currentStreak >= 7 -> "One week down! Building solid neural pathways for deep work."
-                    currentStreak > 0 -> "Solid start! Log a focus session or habit daily to build compounding momentum."
-                    else -> "Start today with a single 25-minute Pomodoro session to kick off your streak!"
-                }
-
-                Text(
-                    text = milestoneText,
-                    fontSize = 12.5.sp,
-                    color = colors.textMuted,
-                    lineHeight = 17.sp,
-                    modifier = Modifier.padding(horizontal = 8.dp)
-                )
+            Column(modifier = Modifier.padding(16.dp)) {
+                StreakCalendarGrid(currentStreak = currentStreak)
             }
         }
 
@@ -1368,7 +1510,7 @@ private fun StreakDetailSheetContent(
             }
 
             OutlinedButton(
-                onClick = onNavigateToInsights,
+                onClick = onDismiss,
                 modifier = Modifier
                     .weight(1f)
                     .height(48.dp)
@@ -1376,7 +1518,7 @@ private fun StreakDetailSheetContent(
                 shape = RoundedCornerShape(12.dp),
                 border = BorderStroke(1.dp, colors.border)
             ) {
-                Text("View Insights", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = colors.textPrimary)
+                Text("Close", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = colors.textPrimary)
             }
         }
     }

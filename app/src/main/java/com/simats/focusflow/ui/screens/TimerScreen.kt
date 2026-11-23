@@ -1625,7 +1625,7 @@ private fun ClockTimePickerDialog(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             IconButton(
-                                onClick = { if (hours < 3) hours++ },
+                                onClick = { if (hours < 12) hours++ },
                                 modifier = Modifier.size(32.dp)
                             ) {
                                 Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Plus hour", tint = colors.textPrimary)
@@ -1673,9 +1673,9 @@ private fun ClockTimePickerDialog(
                             Spacer(modifier = Modifier.height(4.dp))
                             IconButton(
                                 onClick = {
-                                    if (hours * 60 + minutes < 180) {
+                                    if (hours * 60 + minutes < 720) {
                                         if (minutes < 55) minutes += 5
-                                        else if (hours < 3) {
+                                        else if (hours < 12) {
                                             hours++
                                             minutes = 0
                                         }
@@ -1720,7 +1720,7 @@ private fun ClockTimePickerDialog(
                         .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    listOf(15, 25, 45, 60, 90, 120).forEach { preset ->
+                    listOf(15, 25, 45, 60, 90, 120, 180).forEach { preset ->
                         val pHours = preset / 60
                         val pMins = preset % 60
                         val isSelected = (hours * 60 + minutes) == preset
@@ -1747,7 +1747,7 @@ private fun ClockTimePickerDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                val totalMins = (hours * 60 + minutes).coerceIn(1, 180)
+                val totalMins = (hours * 60 + minutes).coerceIn(1, 720)
                 Text(
                     text = "Total Focus Time: $totalMins minutes",
                     fontSize = 12.sp,
@@ -1758,7 +1758,7 @@ private fun ClockTimePickerDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val finalTotal = (hours * 60 + minutes).coerceIn(1, 180)
+                    val finalTotal = (hours * 60 + minutes).coerceIn(1, 720)
                     onConfirm(finalTotal / 60, finalTotal % 60)
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = colors.primary),

@@ -85,19 +85,19 @@ class StreakRepository(
         return try {
             val ctx = ProductivityRepository.appContext
             if (ctx == null) {
-                return StreakData(userId = userId, currentStreak = 1, longestStreak = 1)
+                return StreakData(userId = userId, currentStreak = 0, longestStreak = 0)
             }
             val db = FocusSessionDatabase.getInstance(ctx)
             val sessions = db.getRecentSessions(userId, 100)
             val days = sessions.mapNotNull { it.startedAt.take(10).ifBlank { null } }.distinct().size
             StreakData(
                 userId = userId,
-                currentStreak = maxOf(1, days),
-                longestStreak = maxOf(1, days),
-                totalActiveDays = maxOf(1, days)
+                currentStreak = days,
+                longestStreak = days,
+                totalActiveDays = days
             )
         } catch (e: Exception) {
-            StreakData(userId = userId, currentStreak = 1, longestStreak = 1)
+            StreakData(userId = userId, currentStreak = 0, longestStreak = 0)
         }
     }
 }

@@ -239,6 +239,13 @@ class FocusSessionDatabase private constructor(context: Context) :
             sdf.format(cal.time)
         }
 
+        val checkQuery = "SELECT $COLUMN_ID FROM $TABLE_FOCUS_SESSIONS WHERE $COLUMN_USER_ID = ? AND (($COLUMN_SESSION_UUID = ? AND $COLUMN_SESSION_UUID != '') OR ($COLUMN_START_TIME = ? AND $COLUMN_DURATION_MINUTES = ?))"
+        val checkCursor = readableDatabase.rawQuery(checkQuery, arrayOf(userId.toString(), sessionUuid, start, durationMinutes.toString()))
+        val exists = checkCursor.use { it.moveToFirst() }
+        if (exists) {
+            return -1L
+        }
+
         val values = ContentValues().apply {
             put(COLUMN_USER_ID, userId)
             put(COLUMN_DURATION_MINUTES, durationMinutes)
@@ -454,6 +461,7 @@ class FocusSessionDatabase private constructor(context: Context) :
                    $COLUMN_TASK_TITLE, $COLUMN_TASK_CATEGORY, $COLUMN_SESSION_UUID, $COLUMN_IS_SYNCED
             FROM $TABLE_FOCUS_SESSIONS
             WHERE $COLUMN_USER_ID = ? AND (substr($COLUMN_START_TIME, 1, 10) = ? OR substr($COLUMN_END_TIME, 1, 10) = ?)
+            GROUP BY $COLUMN_START_TIME, $COLUMN_DURATION_MINUTES
             ORDER BY $COLUMN_ID ASC
         """.trimIndent()
         val cursor = readableDatabase.rawQuery(query, arrayOf(userId.toString(), todayStr, todayStr))
@@ -927,5 +935,13 @@ class FocusSessionDatabase private constructor(context: Context) :
             }
         }
         return combined
+    }
+
+    fun getCompletedTasksCount(userId: Int): Int {
+        val query = "SELECT COUNT(*) FROM $TABLE_LOCAL_TASKS WHERE user_id = ? AND is_completed = 1"
+        val cursor = readableDatabase.rawQuery(query, arrayOf(userId.toString()))
+        return cursor.use { c ->
+            if (c.moveToFirst()) c.getInt(0) else 0
+        }
     }
 }

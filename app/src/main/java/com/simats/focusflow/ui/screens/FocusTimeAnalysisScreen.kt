@@ -193,11 +193,7 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
         maxOf(localMonthMinutes, totalWeekMinutes, (insightsData.monthlySummary.fourWeekFocusHours * 60).toInt())
     }
 
-    val selectedMinutes = when (selectedPeriod) {
-        "Today" -> effectiveTodayMinutes
-        "This Month" -> effectiveMonthMinutes
-        else -> totalWeekMinutes
-    }
+    val selectedMinutes = effectiveTodayMinutes
     val selectedHours = selectedMinutes / 60
     val selectedRemainingMins = selectedMinutes % 60
     val dailyAvgMins = totalWeekMinutes / 7
@@ -250,31 +246,6 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
         if (maxMins > 0) dayTimeBlocks.firstOrNull { it.minutes == maxMins } else null
     }
 
-    val monthWeekItems = remember(localMonthWeeks, effectiveMonthMinutes) {
-        val currentDay = Calendar.getInstance().get(Calendar.DAY_OF_MONTH)
-        val maxDaysInMonth = Calendar.getInstance().getActualMaximum(Calendar.DAY_OF_MONTH)
-        val currentWeekIdx = when {
-            currentDay <= 7 -> 0
-            currentDay <= 14 -> 1
-            currentDay <= 21 -> 2
-            else -> 3
-        }
-
-        val weeksMins = localMonthWeeks.toMutableList()
-        while (weeksMins.size < 4) weeksMins.add(0)
-
-        if (weeksMins.sum() == 0 && effectiveMonthMinutes > 0) {
-            weeksMins[currentWeekIdx] = effectiveMonthMinutes
-        }
-
-        listOf(
-            MonthWeekBreakdown("Week 1", "Day 1 – 7", weeksMins[0], currentWeekIdx == 0),
-            MonthWeekBreakdown("Week 2", "Day 8 – 14", weeksMins[1], currentWeekIdx == 1),
-            MonthWeekBreakdown("Week 3", "Day 15 – 21", weeksMins[2], currentWeekIdx == 2),
-            MonthWeekBreakdown("Week 4", "Day 22 – $maxDaysInMonth", weeksMins[3], currentWeekIdx == 3)
-        )
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -287,62 +258,22 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(colors.surface, RoundedCornerShape(12.dp))
-                .border(1.dp, colors.border, RoundedCornerShape(12.dp))
-                .padding(4.dp)
-        ) {
-            listOf("Today", "This Week", "This Month").forEach { option ->
-                val isSelected = option == selectedPeriod
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (isSelected) colors.primary else Color.Transparent)
-                        .clickable { selectedPeriod = option }
-                        .padding(vertical = 10.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = option,
-                        color = if (isSelected) Color.White else colors.textMuted,
-                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                        fontSize = 13.sp
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
                     .background(colors.primary.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
-                val badgeText = when (selectedPeriod) {
-                    "Today" -> if (isLoading) "Loading..." else "Today's Summary"
-                    "This Month" -> if (isLoading) "Loading..." else "Monthly Summary"
-                    else -> if (isLoading) "Loading..." else "7-Day Summary"
-                }
                 Text(
-                    text = badgeText,
+                    text = if (isLoading) "Loading..." else "Today's Summary",
                     color = colors.primaryLight,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold
                 )
             }
             Spacer(modifier = Modifier.width(10.dp))
-            val dateLabel = when (selectedPeriod) {
-                "Today" -> todayDateStr
-                "This Month" -> currentMonthDateStr
-                else -> currentDateRange
-            }
             Text(
-                text = dateLabel,
+                text = todayDateStr,
                 fontSize = 13.sp,
                 color = colors.textMuted
             )
@@ -370,11 +301,6 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                     } else {
                         "${selectedRemainingMins}m"
                     }
-                    val primaryLabel = when (selectedPeriod) {
-                        "Today" -> "focused today"
-                        "This Month" -> "month-to-date focused"
-                        else -> "total focused"
-                    }
                     Text(
                         text = primaryStat,
                         fontSize = 30.sp,
@@ -384,23 +310,14 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = primaryLabel,
+                        text = "focused today",
                         fontSize = 12.5.sp,
                         color = colors.textMuted
                     )
                 }
 
                 Column(modifier = Modifier.weight(1f)) {
-                    val secondaryStat = when (selectedPeriod) {
-                        "Today" -> "${maxOf(todaySessionsCount, if (effectiveTodayMinutes > 0) 1 else 0)}"
-                        "This Month" -> "${maxOf(monthSessionsCount, if (effectiveMonthMinutes > 0) 1 else 0)}"
-                        else -> "${maxOf(weekSessionsCount, if (totalWeekMinutes > 0) 1 else 0)}"
-                    }
-                    val secondaryLabel = when (selectedPeriod) {
-                        "Today" -> "sessions completed"
-                        "This Month" -> "monthly sessions"
-                        else -> "weekly sessions"
-                    }
+                    val secondaryStat = "${maxOf(todaySessionsCount, if (effectiveTodayMinutes > 0) 1 else 0)}"
                     Text(
                         text = secondaryStat,
                         fontSize = 30.sp,
@@ -410,7 +327,7 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = secondaryLabel,
+                        text = "sessions completed",
                         fontSize = 12.5.sp,
                         color = colors.textMuted
                     )
@@ -478,14 +395,10 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                val completedFocusSessions = when (selectedPeriod) {
-                    "Today" -> maxOf(todaySessionsCount, if (effectiveTodayMinutes > 0) 1 else 0)
-                    "This Month" -> maxOf(monthSessionsCount, if (effectiveMonthMinutes > 0) 1 else 0)
-                    else -> maxOf(weekSessionsCount, if (totalWeekMinutes > 0) 1 else 0)
-                }
+                val completedFocusSessions = maxOf(todaySessionsCount, if (effectiveTodayMinutes > 0) 1 else 0)
                 val peakStr = peakDayBlock?.let { "${it.name} (${it.timeRange})" } ?: "Morning (9 AM – 12 PM)"
 
-                LaunchedEffect(selectedPeriod, selectedMinutes, insightsData, completedFocusSessions) {
+                LaunchedEffect(selectedMinutes, insightsData, completedFocusSessions) {
                     val distractionSummary = com.simats.focusflow.utils.UsageStatsHelper.queryTodayDistractionStats(context)
                     val distractionMinutes = distractionSummary.totalDistractionMinutes
                     val topDistractionApp = distractionSummary.apps.firstOrNull { it.usageMinutes > 0 }
@@ -493,7 +406,7 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                     val goalMinutes = if (insightsData.dailyFocusGoalMinutes > 0) insightsData.dailyFocusGoalMinutes else 180
 
                     val prompt = """
-                        Focus Performance Metrics for $selectedPeriod:
+                        Focus Performance Metrics for Today:
                         - Exact Focus Time: $selectedMinutes minutes ($selectedHours h $selectedRemainingMins m)
                         - Completed Focus Sessions: $completedFocusSessions
                         - Peak Focus Interval: $peakStr
@@ -527,7 +440,7 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
 
                 val distractionSummary = remember { com.simats.focusflow.utils.UsageStatsHelper.queryTodayDistractionStats(context) }
                 val groundedFallback = when {
-                    selectedMinutes == 0 -> "No completed focus sessions logged for $selectedPeriod yet. Start an initial 25-minute Pomodoro interval in your peak window ($peakStr) to activate deep cognitive flow."
+                    selectedMinutes == 0 -> "No completed focus sessions logged for today yet. Start an initial 25-minute Pomodoro interval in your peak window ($peakStr) to activate deep cognitive flow."
                     selectedMinutes < 60 -> "Strong start with ${selectedMinutes}m across $completedFocusSessions completed focus session(s). Your highest momentum is in $peakStr. Keeping daily distraction under ${distractionSummary.totalDistractionMinutes}m will solidify your workflow."
                     selectedMinutes in 60..180 -> "Optimal deep flow achieved with ${selectedHours}h ${selectedRemainingMins}m across $completedFocusSessions completed focus session(s)! Your strongest interval is $peakStr. Screen distraction is controlled at ${distractionSummary.totalDistractionMinutes}m."
                     else -> "Peak focus immersion: ${selectedHours}h ${selectedRemainingMins}m logged across $completedFocusSessions focus sessions! You perform best in $peakStr. Balance these intensive sessions with regular breathers to sustain high cognitive endurance."
@@ -583,9 +496,7 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
             }
         }
 
-        when (selectedPeriod) {
-            "Today" -> {
-                if (peakDayBlock != null && peakDayBlock.minutes > 0) {
+        if (peakDayBlock != null && peakDayBlock.minutes > 0) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -758,163 +669,16 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                         }
                     }
                 }
-            }
-            "This Month" -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(colors.surface, RoundedCornerShape(16.dp))
-                        .border(1.dp, colors.border, RoundedCornerShape(16.dp))
-                        .padding(20.dp)
-                ) {
-                    Column {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.Top
-                        ) {
-                            Column {
-                                Text(
-                                    text = "MONTH-TO-DATE BREAKDOWN",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.primaryLight,
-                                    letterSpacing = 1.sp
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "4-week comparative growth",
-                                    fontSize = 13.sp,
-                                    color = colors.textMuted
-                                )
-                            }
 
-                            Box(
-                                modifier = Modifier
-                                    .background(colors.primary.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                                ) {
-                                Text(
-                                    text = "Avg ${selectedMinutes / 4}m / wk",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.primaryLight
-                                )
-                            }
-                        }
+        Spacer(modifier = Modifier.height(16.dp))
 
-                        Spacer(modifier = Modifier.height(20.dp))
-
-                        val maxWeekMinutes = maxOf(60f, (monthWeekItems.maxOfOrNull { it.minutes.toFloat() } ?: 60f))
-
-                        monthWeekItems.forEach { item ->
-                            val ratio = if (maxWeekMinutes > 0f) {
-                                (item.minutes / maxWeekMinutes).coerceIn(0.04f, 1f)
-                            } else 0.04f
-                            val percentOfTotal = if (selectedMinutes > 0) {
-                                (item.minutes * 100 / selectedMinutes)
-                            } else 0
-
-                            Surface(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 5.dp),
-                                shape = RoundedCornerShape(12.dp),
-                                color = if (item.isCurrentWeek) colors.primary.copy(alpha = 0.08f) else colors.background,
-                                border = BorderStroke(
-                                    if (item.isCurrentWeek) 1.5.dp else 1.dp,
-                                    if (item.isCurrentWeek) colors.primary else colors.border
-                                )
-                            ) {
-                                Column(modifier = Modifier.padding(14.dp)) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(
-                                                text = item.weekLabel,
-                                                fontSize = 14.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = colors.textPrimary
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(
-                                                text = item.dateRange,
-                                                fontSize = 12.sp,
-                                                color = colors.textMuted
-                                            )
-                                        }
-
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            if (item.isCurrentWeek) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .background(colors.primary, RoundedCornerShape(4.dp))
-                                                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                                                ) {
-                                                    Text(
-                                                        text = "CURRENT",
-                                                        fontSize = 10.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = Color.White
-                                                    )
-                                                }
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                            }
-                                            Text(
-                                                text = if (item.minutes >= 60) "${item.minutes / 60}h ${item.minutes % 60}m" else "${item.minutes}m",
-                                                fontSize = 14.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = if (item.minutes > 0) colors.primaryLight else colors.textMuted
-                                            )
-                                            if (selectedMinutes > 0) {
-                                                Spacer(modifier = Modifier.width(6.dp))
-                                                Text(
-                                                    text = "($percentOfTotal%)",
-                                                    fontSize = 12.sp,
-                                                    color = colors.textMuted
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.height(10.dp))
-
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(10.dp)
-                                            .clip(RoundedCornerShape(5.dp))
-                                            .background(colors.border.copy(alpha = 0.4f))
-                                    ) {
-                                        if (item.minutes > 0) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth(ratio)
-                                                    .fillMaxHeight()
-                                                    .clip(RoundedCornerShape(5.dp))
-                                                    .background(
-                                                        if (item.isCurrentWeek) colors.primary else colors.primary.copy(alpha = 0.65f)
-                                                    )
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            else -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(colors.surface, RoundedCornerShape(16.dp))
-                        .border(1.dp, colors.border, RoundedCornerShape(16.dp))
-                        .padding(20.dp)
-                ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colors.surface, RoundedCornerShape(16.dp))
+                .border(1.dp, colors.border, RoundedCornerShape(16.dp))
+                .padding(20.dp)
+        ) {
                     Column {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -1061,7 +825,5 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                         }
                     }
                 }
-            }
-        }
     }
 }

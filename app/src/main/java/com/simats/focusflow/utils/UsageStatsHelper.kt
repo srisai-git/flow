@@ -253,7 +253,7 @@ object UsageStatsHelper {
         for (event in eventList) {
             val pkg = event.packageName
             val eventType = event.eventType
-            val time = event.timestamp.coerceIn(startTime, liveNow)
+            val time = event.timestamp
 
             val isForeground = eventType == android.app.usage.UsageEvents.Event.ACTIVITY_RESUMED ||
                     eventType == EVENT_MOVE_TO_FOREGROUND
@@ -264,35 +264,47 @@ object UsageStatsHelper {
 
             if (isForeground && pkg.isNotBlank()) {
                 if (currentPackage != null && currentPackage != pkg) {
-                    val delta = (time - sessionStartMillis).coerceAtLeast(0L)
-                    if (delta > 0L) {
-                        usageMap[currentPackage!!] = (usageMap[currentPackage!!] ?: 0L) + delta
+                    if (sessionStartMillis >= startTime && sessionStartMillis > 0L) {
+                        val boundedEnd = minOf(time, liveNow)
+                        val delta = (boundedEnd - sessionStartMillis).coerceAtLeast(0L)
+                        if (delta > 0L) {
+                            usageMap[currentPackage!!] = (usageMap[currentPackage!!] ?: 0L) + delta
+                        }
                     }
-                }
-                if (currentPackage != pkg) {
                     currentPackage = pkg
-                    sessionStartMillis = time
+                    sessionStartMillis = maxOf(time, startTime)
+                } else if (currentPackage == null) {
+                    currentPackage = pkg
+                    sessionStartMillis = maxOf(time, startTime)
                 }
             } else if (isBackground && pkg.isNotBlank()) {
                 if (currentPackage == pkg) {
-                    val delta = (time - sessionStartMillis).coerceAtLeast(0L)
-                    if (delta > 0L) {
-                        usageMap[pkg] = (usageMap[pkg] ?: 0L) + delta
+                    if (sessionStartMillis >= startTime && sessionStartMillis > 0L) {
+                        val boundedEnd = minOf(time, liveNow)
+                        val delta = (boundedEnd - sessionStartMillis).coerceAtLeast(0L)
+                        if (delta > 0L) {
+                            usageMap[pkg] = (usageMap[pkg] ?: 0L) + delta
+                        }
                     }
                     currentPackage = null
+                    sessionStartMillis = 0L
                 }
             } else if (isScreenOff) {
                 if (currentPackage != null) {
-                    val delta = (time - sessionStartMillis).coerceAtLeast(0L)
-                    if (delta > 0L) {
-                        usageMap[currentPackage!!] = (usageMap[currentPackage!!] ?: 0L) + delta
+                    if (sessionStartMillis >= startTime && sessionStartMillis > 0L) {
+                        val boundedEnd = minOf(time, liveNow)
+                        val delta = (boundedEnd - sessionStartMillis).coerceAtLeast(0L)
+                        if (delta > 0L) {
+                            usageMap[currentPackage!!] = (usageMap[currentPackage!!] ?: 0L) + delta
+                        }
                     }
                     currentPackage = null
+                    sessionStartMillis = 0L
                 }
             }
         }
 
-        if (currentPackage != null) {
+        if (currentPackage != null && sessionStartMillis >= startTime && sessionStartMillis > 0L) {
             val delta = (liveNow - sessionStartMillis).coerceAtLeast(0L)
             if (delta > 0L) {
                 usageMap[currentPackage!!] = (usageMap[currentPackage!!] ?: 0L) + delta
@@ -524,7 +536,7 @@ object UsageStatsHelper {
         for (event in eventList) {
             val pkg = event.packageName
             val eventType = event.eventType
-            val time = event.timestamp.coerceIn(startOfTodayMillis, endMillis)
+            val time = event.timestamp
 
             val isForeground = eventType == android.app.usage.UsageEvents.Event.ACTIVITY_RESUMED ||
                     eventType == EVENT_MOVE_TO_FOREGROUND
@@ -535,35 +547,47 @@ object UsageStatsHelper {
 
             if (isForeground && pkg.isNotBlank()) {
                 if (currentPackage != null && currentPackage != pkg) {
-                    val delta = (time - sessionStartMillis).coerceAtLeast(0L)
-                    if (delta > 0L) {
-                        usageMap[currentPackage!!] = (usageMap[currentPackage!!] ?: 0L) + delta
+                    if (sessionStartMillis >= startOfTodayMillis && sessionStartMillis > 0L) {
+                        val boundedEnd = minOf(time, endMillis)
+                        val delta = (boundedEnd - sessionStartMillis).coerceAtLeast(0L)
+                        if (delta > 0L) {
+                            usageMap[currentPackage!!] = (usageMap[currentPackage!!] ?: 0L) + delta
+                        }
                     }
-                }
-                if (currentPackage != pkg) {
                     currentPackage = pkg
-                    sessionStartMillis = time
+                    sessionStartMillis = maxOf(time, startOfTodayMillis)
+                } else if (currentPackage == null) {
+                    currentPackage = pkg
+                    sessionStartMillis = maxOf(time, startOfTodayMillis)
                 }
             } else if (isBackground && pkg.isNotBlank()) {
                 if (currentPackage == pkg) {
-                    val delta = (time - sessionStartMillis).coerceAtLeast(0L)
-                    if (delta > 0L) {
-                        usageMap[pkg] = (usageMap[pkg] ?: 0L) + delta
+                    if (sessionStartMillis >= startOfTodayMillis && sessionStartMillis > 0L) {
+                        val boundedEnd = minOf(time, endMillis)
+                        val delta = (boundedEnd - sessionStartMillis).coerceAtLeast(0L)
+                        if (delta > 0L) {
+                            usageMap[pkg] = (usageMap[pkg] ?: 0L) + delta
+                        }
                     }
                     currentPackage = null
+                    sessionStartMillis = 0L
                 }
             } else if (isScreenOff) {
                 if (currentPackage != null) {
-                    val delta = (time - sessionStartMillis).coerceAtLeast(0L)
-                    if (delta > 0L) {
-                        usageMap[currentPackage!!] = (usageMap[currentPackage!!] ?: 0L) + delta
+                    if (sessionStartMillis >= startOfTodayMillis && sessionStartMillis > 0L) {
+                        val boundedEnd = minOf(time, endMillis)
+                        val delta = (boundedEnd - sessionStartMillis).coerceAtLeast(0L)
+                        if (delta > 0L) {
+                            usageMap[currentPackage!!] = (usageMap[currentPackage!!] ?: 0L) + delta
+                        }
                     }
                     currentPackage = null
+                    sessionStartMillis = 0L
                 }
             }
         }
 
-        if (currentPackage != null) {
+        if (currentPackage != null && sessionStartMillis >= startOfTodayMillis && sessionStartMillis > 0L) {
             val delta = (endMillis - sessionStartMillis).coerceAtLeast(0L)
             if (delta > 0L) {
                 usageMap[currentPackage!!] = (usageMap[currentPackage!!] ?: 0L) + delta

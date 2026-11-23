@@ -25,33 +25,90 @@ object GrootActionParser {
         for (clause in clausesToParse) {
             val cLower = clause.lowercase()
 
-            val timerMatch = Regex("(?i)\\b(?:start|set|run|begin|launch|activate)\\s+(?:a\\s+)?(?:(\\d+)\\s*(?:min|mins|minute|minutes|m)?)?\\s*(focus|timer|session|break|pomodoro)?").find(clause)
-            val timerMatch2 = Regex("(?i)(\\d+)\\s*(?:min|mins|minute|minutes|m)\\s*(focus|timer|session|break|pomodoro)").find(clause)
-            if ((timerMatch != null && (timerMatch.groupValues[1].isNotBlank() || timerMatch.groupValues[2].isNotBlank())) || timerMatch2 != null) {
-                var mins = 25
-                if (timerMatch != null && timerMatch.groupValues[1].isNotBlank()) {
-                    mins = timerMatch.groupValues[1].toIntOrNull() ?: 25
-                } else if (timerMatch2 != null) {
-                    mins = timerMatch2.groupValues[1].toIntOrNull() ?: 25
-                }
-                var mode = "FOCUS"
-                if (cLower.contains("break")) {
-                    mode = if (mins >= 15) "LONG_BREAK" else "SHORT_BREAK"
-                    if (mins == 25) mins = 5
-                }
-                mins = mins.coerceIn(1, 180)
+            if (Regex("(?i)\\b(?:lock(?:ed)?\\s+in|locking\\s+in)\\b").containsMatchIn(clause)) {
+                val mins = 45
                 actions.add(
                     AiAction(
                         type = "START_FOCUS_TIMER",
                         duration = mins,
-                        mode = mode,
-                        title = "Focus Timer",
-                        payload = mapOf("duration" to mins, "mode" to mode)
+                        mode = "FOCUS",
+                        title = "Lock In Session",
+                        payload = mapOf("duration" to mins, "mode" to "FOCUS")
                     )
                 )
-                val label = if (mode == "FOCUS") "focus session" else "break"
-                replies.add("Started a $mins-minute $label for you.")
+                replies.add("Locking in right now. Full focus mode activated - zero distractions. Let's get to work.")
                 continue
+            }
+
+            if (Regex("(?i)\\b(?:i'?m\\s+cooked|feeling\\s+cooked|cooked)\\b").containsMatchIn(clause)) {
+                val mins = 15
+                actions.add(
+                    AiAction(
+                        type = "START_FOCUS_TIMER",
+                        duration = mins,
+                        mode = "LONG_BREAK",
+                        title = "Recovery Break",
+                        payload = mapOf("duration" to mins, "mode" to "LONG_BREAK")
+                    )
+                )
+                replies.add("You are not cooked, just experiencing cognitive fatigue. Take a 15-minute recovery breather to reset your brain.")
+                continue
+            }
+
+            if (Regex("(?i)\\b(?:fr|for\\s+real|no\\s+cap)\\b").containsMatchIn(clause)) {
+                actions.add(AiAction(type = "CHAT", title = "Chat", payload = mapOf("reply" to "For real, no cap. Let's keep the streak compounding.")))
+                replies.add("For real, no cap. Let's keep the streak compounding.")
+                continue
+            }
+
+            if (Regex("(?i)\\b(?:bet|say\\s+less)\\b").containsMatchIn(clause)) {
+                actions.add(AiAction(type = "CHAT", title = "Chat", payload = mapOf("reply" to "Bet. Say less - I got you covered.")))
+                replies.add("Bet. Say less - I got you covered.")
+                continue
+            }
+
+            if (Regex("(?i)\\b(?:bye\\s+byee?|bye\\b|goodbye|cya)\\b").containsMatchIn(clause)) {
+                actions.add(AiAction(type = "CHAT", title = "Chat", payload = mapOf("reply" to "Bye byee! Great focus work today. Lock in again soon!")))
+                replies.add("Bye byee! Great focus work today. Lock in again soon!")
+                continue
+            }
+
+            if (!cLower.contains("task") && !cLower.contains("habit")) {
+                val hourMatch = Regex("(?i)(\\d+)\\s*(?:hours?|hrs?|h)\\b").find(clause)
+                val minMatch = Regex("(?i)(\\d+)\\s*(?:mins?|minutes?|m)\\b").find(clause)
+                val timerKeywordMatch = Regex("(?i)\\b(?:start|set|run|begin|launch|activate)\\s+(?:a\\s+)?(?:(\\d+)\\s*)?(focus|timer|session|break|pomodoro)?\\b").find(clause)
+                val hasTimerKeyword = cLower.contains("timer") || cLower.contains("focus") || cLower.contains("break") || cLower.contains("pomodoro") || cLower.contains("session")
+
+                if (hourMatch != null || minMatch != null || (timerKeywordMatch != null && hasTimerKeyword)) {
+                    var mins = 25
+                    if (hourMatch != null) {
+                        val h = hourMatch.groupValues[1].toIntOrNull() ?: 1
+                        mins = h * 60
+                    } else if (minMatch != null) {
+                        mins = minMatch.groupValues[1].toIntOrNull() ?: 25
+                    } else if (timerKeywordMatch != null && timerKeywordMatch.groupValues[1].isNotBlank()) {
+                        mins = timerKeywordMatch.groupValues[1].toIntOrNull() ?: 25
+                    }
+
+                    var mode = "FOCUS"
+                    if (cLower.contains("break")) {
+                        mode = if (mins >= 15) "LONG_BREAK" else "SHORT_BREAK"
+                        if (mins == 25 && minMatch == null && hourMatch == null) mins = 5
+                    }
+                    mins = mins.coerceIn(1, 720)
+                    actions.add(
+                        AiAction(
+                            type = "START_FOCUS_TIMER",
+                            duration = mins,
+                            mode = mode,
+                            title = "Focus Timer",
+                            payload = mapOf("duration" to mins, "mode" to mode)
+                        )
+                    )
+                    val label = if (mode == "FOCUS") "focus session" else "break"
+                    replies.add("Started a $mins-minute $label for you.")
+                    continue
+                }
             }
 
             if (Regex("(?i)\\b(?:pause|hold)\\s+(?:the\\s+)?(?:timer|focus|session)\\b").containsMatchIn(clause)) {
@@ -261,6 +318,28 @@ object GrootActionParser {
                 }
                 actions.add(AiAction(type = "NAVIGATE_TAB", route = tab, screenName = tab, payload = mapOf("tab" to tab, "route" to tab)))
                 replies.add("Navigating to $tab.")
+                continue
+            }
+
+            val nameMatch = Regex("(?i)\\b(?:change|update|set)\\s+(?:my\\s+)?name\\s+to\\s+[\"']?([^\"'\\n]+)[\"']?$").find(clause)
+            if (nameMatch != null) {
+                val newName = nameMatch.groupValues[1].trim().trimEnd('.', '!')
+                actions.add(AiAction(type = "UPDATE_PROFILE", title = newName, payload = mapOf("name" to newName)))
+                replies.add("Updated your profile name to '$newName'.")
+                continue
+            }
+
+            val bioMatch = Regex("(?i)\\b(?:change|update|set)\\s+(?:my\\s+)?bio\\s+to\\s+[\"']?([^\"'\\n]+)[\"']?$").find(clause)
+            if (bioMatch != null) {
+                val newBio = bioMatch.groupValues[1].trim().trimEnd('.', '!')
+                actions.add(AiAction(type = "UPDATE_PROFILE", title = "Bio", payload = mapOf("bio" to newBio)))
+                replies.add("Updated your profile bio.")
+                continue
+            }
+
+            if (Regex("(?i)\\b(?:export|download|backup)\\s+(?:all\\s+)?(?:productivity\\s+)?(?:data|history|records)\\b").containsMatchIn(clause)) {
+                actions.add(AiAction(type = "EXPORT_DATA", title = "Export Productivity Data"))
+                replies.add("Exporting your complete productivity history.")
                 continue
             }
 

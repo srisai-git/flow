@@ -57,10 +57,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -582,15 +586,14 @@ private fun HabitCard(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        onClick = onStreakClick,
-                        shape = RoundedCornerShape(6.dp),
-                        color = Color(0xFFF59E0B).copy(alpha = 0.14f),
-                        border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.3f)),
-                        modifier = Modifier.bounceClick()
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Color(0xFFF59E0B).copy(alpha = 0.14f))
+                            .border(1.dp, Color(0xFFF59E0B).copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
@@ -648,8 +651,8 @@ private fun HabitsInsightsView(
     userStats: HabitUserStats,
     aiInsight: String?,
     isAiLoading: Boolean,
-    selectedTimeframe: HabitInsightTimeframe,
-    onSelectTimeframe: (HabitInsightTimeframe) -> Unit,
+    selectedTimeframe: HabitInsightTimeframe = HabitInsightTimeframe.WEEK,
+    onSelectTimeframe: (HabitInsightTimeframe) -> Unit = {},
     onRefreshAi: () -> Unit,
     onNavigateToGrootAi: (String?) -> Unit,
     onHabitClick: (HabitItem) -> Unit,
@@ -665,50 +668,15 @@ private fun HabitsInsightsView(
             .verticalScroll(rememberScrollState())
             .padding(bottom = 24.dp)
     ) {
-        AiProductivityInsightsCard(
+        GrootAiHabitInsightsCard(
             insight = aiInsight,
             isLoading = isAiLoading,
             onRefresh = onRefreshAi,
+            habitReport = habitReport,
             isGeneratingReport = isGeneratingReport,
-            onGenerateReport = onGenerateReport
+            onGenerateReport = onGenerateReport,
+            userStats = userStats
         )
-
-        if (habitReport != null) {
-            Spacer(modifier = Modifier.height(14.dp))
-            GrootHabitReportCard(report = habitReport)
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(colors.surface)
-                .border(1.dp, colors.border, RoundedCornerShape(12.dp))
-                .padding(3.dp),
-            horizontalArrangement = Arrangement.SpaceAround
-        ) {
-            HabitInsightTimeframe.values().forEach { tf ->
-                val isSelected = selectedTimeframe == tf
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(9.dp))
-                        .background(if (isSelected) colors.primary else Color.Transparent)
-                        .clickable { onSelectTimeframe(tf) }
-                        .padding(vertical = 8.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = tf.label,
-                        fontSize = 12.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                        color = if (isSelected) Color.White else colors.textMuted
-                    )
-                }
-            }
-        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -733,11 +701,7 @@ private fun HabitsInsightsView(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = when (selectedTimeframe) {
-                                HabitInsightTimeframe.DAY -> "Today's Habit Distribution"
-                                HabitInsightTimeframe.WEEK -> "7-Day Completion Rate"
-                                HabitInsightTimeframe.MONTH -> "4-Week Consistency Trend"
-                            },
+                            text = "Habit Momentum Trend",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textPrimary
@@ -749,11 +713,7 @@ private fun HabitsInsightsView(
                         color = colors.primary.copy(alpha = 0.15f)
                     ) {
                         Text(
-                            text = when (selectedTimeframe) {
-                                HabitInsightTimeframe.DAY -> "${habits.count { it.isCompletedToday }}/${habits.size} Done"
-                                HabitInsightTimeframe.WEEK -> "Avg ${userStats.avgConsistencyPercent.toInt()}%"
-                                HabitInsightTimeframe.MONTH -> "${userStats.currentStreak}d Streak"
-                            },
+                            text = "${habits.count { it.isCompletedToday }}/${habits.size} Done Today",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.primaryLight,
@@ -764,17 +724,7 @@ private fun HabitsInsightsView(
 
                 Spacer(modifier = Modifier.height(18.dp))
 
-                when (selectedTimeframe) {
-                    HabitInsightTimeframe.DAY -> {
-                        DayHabitProgressList(habits = habits)
-                    }
-                    HabitInsightTimeframe.WEEK -> {
-                        WeekCompletionBarChart(userStats = userStats)
-                    }
-                    HabitInsightTimeframe.MONTH -> {
-                        MonthConsistencyBarChart(userStats = userStats)
-                    }
-                }
+                HabitMomentumDottedGraph(userStats = userStats)
             }
         }
 
@@ -844,12 +794,14 @@ private fun HabitsInsightsView(
 }
 
 @Composable
-private fun AiProductivityInsightsCard(
+private fun GrootAiHabitInsightsCard(
     insight: String?,
     isLoading: Boolean,
     onRefresh: () -> Unit,
+    habitReport: HabitReportData?,
     isGeneratingReport: Boolean,
-    onGenerateReport: () -> Unit
+    onGenerateReport: () -> Unit,
+    userStats: HabitUserStats
 ) {
     val colors = FocusFlowTheme.colors
 
@@ -857,7 +809,7 @@ private fun AiProductivityInsightsCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
         color = colors.surface,
-        border = BorderStroke(1.dp, colors.primary.copy(alpha = 0.35f))
+        border = BorderStroke(1.dp, Brush.horizontalGradient(listOf(colors.primary.copy(alpha = 0.5f), colors.border)))
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
             Row(
@@ -875,14 +827,14 @@ private fun AiProductivityInsightsCard(
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = "AI PRODUCTIVITY COACH",
+                            text = "GROOT AI HABIT INSIGHTS",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.primaryLight,
                             letterSpacing = 1.sp
                         )
                         Text(
-                            text = "Groot Habit Analysis",
+                            text = "Consistency & Performance Audit",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = colors.textPrimary
@@ -890,27 +842,41 @@ private fun AiProductivityInsightsCard(
                     }
                 }
 
-                IconButton(
-                    onClick = onRefresh,
-                    modifier = Modifier
-                        .size(34.dp)
-                        .clip(CircleShape)
-                        .background(colors.surfaceVariant)
-                        .bounceClick(),
-                    enabled = !isLoading
-                ) {
-                    if (isLoading) {
-                        FlowLoadingIndicator(
-                            size = 18.dp,
-                            strokeWidth = 2.dp
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    val score = habitReport?.consistencyScore ?: userStats.avgConsistencyPercent.toInt()
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = colors.primary.copy(alpha = 0.14f),
+                        border = BorderStroke(1.dp, colors.primary.copy(alpha = 0.4f))
+                    ) {
+                        Text(
+                            text = "Score $score%",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.primaryLight,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                         )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Regenerate Insight",
-                            tint = colors.primaryLight,
-                            modifier = Modifier.size(16.dp)
-                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    IconButton(
+                        onClick = onRefresh,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(colors.surfaceVariant)
+                            .bounceClick(),
+                        enabled = !isLoading
+                    ) {
+                        if (isLoading) {
+                            FlowLoadingIndicator(size = 16.dp, strokeWidth = 2.dp)
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Regenerate Insight",
+                                tint = colors.primaryLight,
+                                modifier = Modifier.size(15.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -956,51 +922,146 @@ private fun AiProductivityInsightsCard(
                     )
                 }
             } else {
+                val displayText = insight?.ifBlank { null }
+                    ?: habitReport?.recommendation
+                    ?: "You have active habits ready to compound. Complete your primary routine to build lasting streak momentum."
                 Text(
-                    text = insight?.ifBlank { "You have active habits ready to compound. Complete your primary routine to build lasting streak momentum." }
-                        ?: "Tap refresh to analyze your current habit streak and consistency with Groot AI.",
+                    text = displayText,
                     fontSize = 13.sp,
                     lineHeight = 19.sp,
                     color = colors.textPrimary,
                     fontWeight = FontWeight.Normal
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    Button(
-                        onClick = onGenerateReport,
-                        colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
-                        enabled = !isGeneratingReport
+                if (habitReport != null) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(colors.surfaceVariant, RoundedCornerShape(12.dp))
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (isGeneratingReport) {
-                            FlowLoadingIndicator(size = 14.dp, strokeWidth = 2.dp)
-                            Spacer(modifier = Modifier.width(6.dp))
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Analyzing Habits...",
-                                fontSize = 12.sp,
+                                text = "STRONGEST ROUTINE",
+                                fontSize = 10.5.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = colors.textMuted,
+                                letterSpacing = 0.8.sp
                             )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "Generate Habit Report",
-                                fontSize = 12.sp,
+                                text = habitReport.strongestHabit,
+                                fontSize = 13.5.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = colors.textPrimary
                             )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .background(Color(0xFFF59E0B).copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "${habitReport.strongestHabitStreak}d Streak",
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFF59E0B)
+                            )
+                        }
+                    }
+
+                    if (habitReport.dropOffDays.isNotBlank() && habitReport.dropOffDays != "None") {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(colors.surfaceVariant, RoundedCornerShape(12.dp))
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "DROP-OFF DAYS & WEAK SPOTS",
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFEF4444),
+                                    letterSpacing = 0.8.sp
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = habitReport.dropOffDays,
+                                    fontSize = 12.5.sp,
+                                    color = colors.textPrimary
+                                )
+                            }
+                        }
+                    }
+
+                    if (habitReport.recommendation.isNotBlank() && habitReport.recommendation != displayText) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(colors.primary.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+                                .border(1.dp, colors.primary.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+                                .padding(12.dp)
+                        ) {
+                            Text(
+                                text = "ACTIONABLE RECOMMENDATION",
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.primaryLight,
+                                letterSpacing = 0.8.sp
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = habitReport.recommendation,
+                                fontSize = 12.5.sp,
+                                lineHeight = 18.sp,
+                                color = colors.textPrimary
+                            )
+                        }
+                    }
+                } else {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        Button(
+                            onClick = onGenerateReport,
+                            colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                            enabled = !isGeneratingReport
+                        ) {
+                            if (isGeneratingReport) {
+                                FlowLoadingIndicator(size = 14.dp, strokeWidth = 2.dp)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Analyzing Habits...",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Generate Habit Report",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
                         }
                     }
                 }
@@ -1010,363 +1071,112 @@ private fun AiProductivityInsightsCard(
 }
 
 @Composable
-private fun GrootHabitReportCard(report: HabitReportData) {
+private fun HabitMomentumDottedGraph(
+    userStats: HabitUserStats,
+    modifier: Modifier = Modifier
+) {
     val colors = FocusFlowTheme.colors
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        color = colors.surface,
-        border = BorderStroke(1.dp, Brush.horizontalGradient(listOf(colors.primary.copy(alpha = 0.5f), colors.border)))
-    ) {
-        Column(modifier = Modifier.padding(18.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(colors.primary.copy(alpha = 0.16f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = null,
-                            tint = colors.primaryLight,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column {
-                        Text(
-                            text = "GROOT AI HABIT REPORT",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.primaryLight,
-                            letterSpacing = 1.sp
-                        )
-                        Text(
-                            text = "Consistency & Performance Audit",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = colors.textPrimary
-                        )
-                    }
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = colors.primary.copy(alpha = 0.14f),
-                    border = BorderStroke(1.dp, colors.primary.copy(alpha = 0.4f))
-                ) {
-                    Text(
-                        text = "Score ${report.consistencyScore}%",
-                        fontSize = 11.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.primaryLight,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(colors.surfaceVariant, RoundedCornerShape(12.dp))
-                    .padding(12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "STRONGEST ROUTINE",
-                        fontSize = 10.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.textMuted,
-                        letterSpacing = 0.8.sp
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = report.strongestHabit,
-                        fontSize = 13.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.textPrimary
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .background(Color(0xFFF59E0B).copy(alpha = 0.15f), RoundedCornerShape(8.dp))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = "${report.strongestHabitStreak}d Streak",
-                        fontSize = 11.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFF59E0B)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(colors.surfaceVariant, RoundedCornerShape(12.dp))
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "DROP-OFF DAYS & WEAK SPOTS",
-                        fontSize = 10.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFEF4444),
-                        letterSpacing = 0.8.sp
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = report.dropOffDays,
-                        fontSize = 12.5.sp,
-                        color = colors.textPrimary
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(colors.primary.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
-                    .border(1.dp, colors.primary.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
-                    .padding(12.dp)
-            ) {
-                Text(
-                    text = "ACTIONABLE RECOMMENDATION",
-                    fontSize = 10.5.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = colors.primaryLight,
-                    letterSpacing = 0.8.sp
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = report.recommendation,
-                    fontSize = 12.5.sp,
-                    lineHeight = 18.sp,
-                    color = colors.textPrimary
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun DayHabitProgressList(habits: List<HabitItem>) {
-    val colors = FocusFlowTheme.colors
-
-    if (habits.isEmpty()) {
-        Text("No habits active today.", fontSize = 12.sp, color = colors.textMuted)
-        return
-    }
-
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        habits.forEach { h ->
-            val rate = if (h.isCompletedToday) 1.0f else 0.0f
-            Column {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(h.title, fontSize = 12.sp, color = colors.textPrimary, fontWeight = FontWeight.Medium)
-                    Text(
-                        if (h.isCompletedToday) "Completed" else "Pending",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (h.isCompletedToday) Color(0xFF10B981) else colors.textMuted
-                    )
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-                LinearProgressIndicator(
-                    progress = { rate },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp)),
-                    color = if (h.isCompletedToday) colors.primary else colors.surfaceVariant,
-                    trackColor = colors.surfaceVariant
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun WeekCompletionBarChart(userStats: HabitUserStats) {
-    val colors = FocusFlowTheme.colors
-    val primaryColor = colors.primary
-    val primaryLight = colors.primaryLight
-    val surfaceVariant = colors.surfaceVariant
-
     val weeklyData = userStats.weeklyChartData
-
     if (weeklyData.isEmpty()) {
         Box(
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxWidth()
                 .height(130.dp),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "No weekly habit history yet",
-                fontSize = 12.sp,
-                color = colors.textMuted
-            )
+            Text("No weekly habit history yet", fontSize = 12.sp, color = colors.textMuted)
         }
         return
     }
 
-    Column {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(130.dp)
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val barWidth = 22.dp.toPx()
-                val totalBars = weeklyData.size
-                val spacing = (size.width - (barWidth * totalBars)) / (totalBars + 1)
-                val chartHeight = size.height - 20.dp.toPx()
+    val primaryColor = colors.primary
+    val primaryLight = colors.primaryLight
+    val textMuted = colors.textMuted
 
-                weeklyData.forEachIndexed { index, item ->
-                    val x = spacing + index * (barWidth + spacing)
-                    val rate = item.completionRate.coerceIn(0f, 1f)
-                    val barH = chartHeight * rate
-                    val y = chartHeight - barH
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(150.dp)
+            .padding(horizontal = 8.dp, vertical = 6.dp)
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val count = weeklyData.size
+            if (count < 2) return@Canvas
 
-                    drawRoundRect(
-                        color = surfaceVariant,
-                        topLeft = Offset(x, 0f),
-                        size = Size(barWidth, chartHeight),
-                        cornerRadius = CornerRadius(8.dp.toPx(), 8.dp.toPx())
-                    )
+            val bottomLabelHeight = 22.dp.toPx()
+            val graphHeight = size.height - bottomLabelHeight
+            val spacing = size.width / (count - 1).coerceAtLeast(1)
 
-                    if (rate > 0f) {
-                        drawRoundRect(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(primaryLight, primaryColor),
-                                startY = y,
-                                endY = chartHeight
-                            ),
-                            topLeft = Offset(x, y),
-                            size = Size(barWidth, maxOf(barH, 4.dp.toPx())),
-                            cornerRadius = CornerRadius(8.dp.toPx(), 8.dp.toPx())
-                        )
-                    }
-                }
+            val points = weeklyData.mapIndexed { index, item ->
+                val x = index * spacing
+                val rate = item.completionRate.coerceIn(0f, 1f)
+                val y = graphHeight - (rate * (graphHeight - 16.dp.toPx())) - 8.dp.toPx()
+                Offset(x, y)
             }
-        }
 
-        Spacer(modifier = Modifier.height(8.dp))
+            val path = Path()
+            val fillPath = Path()
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceAround
-        ) {
-            weeklyData.forEachIndexed { idx, item ->
-                val isLast = idx == weeklyData.size - 1
-                Text(
-                    text = item.day,
-                    fontSize = 10.sp,
-                    color = if (isLast) colors.primaryLight else colors.textMuted,
-                    fontWeight = if (isLast) FontWeight.Bold else FontWeight.Normal
+            path.moveTo(points[0].x, points[0].y)
+            fillPath.moveTo(points[0].x, graphHeight)
+            fillPath.lineTo(points[0].x, points[0].y)
+
+            for (i in 0 until points.size - 1) {
+                val p0 = points[i]
+                val p1 = points[i + 1]
+                val cx = (p0.x + p1.x) / 2f
+                path.cubicTo(cx, p0.y, cx, p1.y, p1.x, p1.y)
+                fillPath.cubicTo(cx, p0.y, cx, p1.y, p1.x, p1.y)
+            }
+
+            fillPath.lineTo(points.last().x, graphHeight)
+            fillPath.close()
+
+            drawPath(
+                path = fillPath,
+                brush = Brush.verticalGradient(
+                    colors = listOf(primaryColor.copy(alpha = 0.25f), Color.Transparent),
+                    startY = 0f,
+                    endY = graphHeight
+                )
+            )
+
+            drawPath(
+                path = path,
+                color = primaryLight,
+                style = Stroke(
+                    width = 2.5.dp.toPx(),
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 8f), 0f)
+                )
+            )
+
+            points.forEach { pt ->
+                drawCircle(
+                    color = primaryLight,
+                    radius = 4.dp.toPx(),
+                    center = pt
+                )
+                drawCircle(
+                    color = Color.White,
+                    radius = 2.dp.toPx(),
+                    center = pt
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun MonthConsistencyBarChart(userStats: HabitUserStats) {
-    val colors = FocusFlowTheme.colors
-    val primaryColor = colors.primary
-    val primaryLight = colors.primaryLight
-    val surfaceVariant = colors.surfaceVariant
-
-    val rawData = userStats.monthlyChartData
-    val monthlyData = remember(rawData) {
-        val defaultWeeks = listOf("W1", "W2", "W3", "W4")
-        defaultWeeks.mapIndexed { index, defaultLabel ->
-            val existing = rawData.getOrNull(index)
-            if (existing != null) {
-                val cleanLabel = if (existing.weekLabel.startsWith("Week ")) "W" + existing.weekLabel.removePrefix("Week ").trim() else existing.weekLabel
-                existing.copy(weekLabel = cleanLabel)
-            } else {
-                HabitMonthlyChartItem(weekLabel = defaultLabel, completionRate = 0f)
-            }
-        }
-    }
-
-    Column {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(130.dp)
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val barWidth = 42.dp.toPx()
-                val totalBars = monthlyData.size
-                val spacing = (size.width - (barWidth * totalBars)) / (totalBars + 1)
-                val chartHeight = size.height - 20.dp.toPx()
-
-                monthlyData.forEachIndexed { index, item ->
-                    val x = spacing + index * (barWidth + spacing)
-                    val rate = item.completionRate.coerceIn(0f, 1f)
-                    val barH = chartHeight * rate
-                    val y = chartHeight - barH
-
-                    drawRoundRect(
-                        color = surfaceVariant,
-                        topLeft = Offset(x, 0f),
-                        size = Size(barWidth, chartHeight),
-                        cornerRadius = CornerRadius(10.dp.toPx(), 10.dp.toPx())
-                    )
-
-                    if (rate > 0f) {
-                        drawRoundRect(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(primaryLight, primaryColor),
-                                startY = y,
-                                endY = chartHeight
-                            ),
-                            topLeft = Offset(x, y),
-                            size = Size(barWidth, maxOf(barH, 4.dp.toPx())),
-                            cornerRadius = CornerRadius(10.dp.toPx(), 10.dp.toPx())
-                        )
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter),
             horizontalArrangement = Arrangement.SpaceAround
         ) {
-            monthlyData.forEach { item ->
-                val pct = (item.completionRate * 100).toInt()
+            weeklyData.forEach { item ->
                 Text(
-                    text = "${item.weekLabel} ($pct%)",
+                    text = item.day,
                     fontSize = 11.sp,
-                    color = if (pct > 0) colors.primaryLight else colors.textMuted,
-                    fontWeight = if (pct > 0) FontWeight.Bold else FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
+                    color = textMuted,
+                    textAlign = TextAlign.Center
                 )
             }
         }
@@ -1642,11 +1452,8 @@ private fun AddHabitDialog(
     val colors = FocusFlowTheme.colors
     var title by remember { mutableStateOf("") }
     var selectedIcon by remember { mutableStateOf("star") }
-    var selectedDays by remember { mutableStateOf(setOf(0, 1, 2, 3, 4, 5, 6)) }
 
     val iconOptions = listOf("star", "check", "bolt", "book", "code", "water", "fitness", "edit", "target", "night", "repeat")
-    val dayLabels = listOf("S", "M", "T", "W", "T", "F", "S")
-    val dayNames = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1712,68 +1519,16 @@ private fun AddHabitDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = "DAYS OF WEEK",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = colors.primaryLight,
-                    letterSpacing = 1.sp
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    dayLabels.forEachIndexed { index, label ->
-                        val isSelected = selectedDays.contains(index)
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(if (isSelected) Color(0xFF7C3AED) else Color(0xFF13111C))
-                                .border(
-                                    width = 1.dp,
-                                    color = if (isSelected) Color(0xFF7C3AED) else Color(0xFF2A273A),
-                                    shape = CircleShape
-                                )
-                                .clickable {
-                                    if (isSelected) {
-                                        if (selectedDays.size > 1) {
-                                            selectedDays = selectedDays - index
-                                        }
-                                    } else {
-                                        selectedDays = selectedDays + index
-                                    }
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = label,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isSelected) Color.White else Color(0xFF9CA3AF)
-                            )
-                        }
-                    }
-                }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    if (title.isNotBlank() && selectedDays.isNotEmpty()) {
-                        val freqString = when {
-                            selectedDays.size == 7 -> "daily"
-                            selectedDays == setOf(1, 2, 3, 4, 5) -> "weekdays"
-                            else -> dayNames.filterIndexed { idx, _ -> selectedDays.contains(idx) }.joinToString(",")
-                        }
-                        onConfirm(title, selectedIcon, freqString)
+                    if (title.isNotBlank()) {
+                        onConfirm(title, selectedIcon, "daily")
                     }
                 },
-                enabled = title.isNotBlank() && selectedDays.isNotEmpty(),
+                enabled = title.isNotBlank(),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6), contentColor = Color.White),
                 shape = RoundedCornerShape(10.dp)
             ) {

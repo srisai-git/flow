@@ -53,6 +53,16 @@ class ProfileViewModel(
             }
         }
         viewModelScope.launch(Dispatchers.IO) {
+            FocusSessionDatabase.taskTableChangedFlow.collect {
+                refreshLocalStats()
+            }
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            ProductivityRepository.habitTableChangedFlow.collect {
+                refreshLocalStats()
+            }
+        }
+        viewModelScope.launch(Dispatchers.IO) {
             ProductivityRepository.sessionLoggedEventFlow.collect {
                 refreshLocalStats()
             }
@@ -66,18 +76,24 @@ class ProfileViewModel(
                 FocusSessionDatabase.getInstance(ctx).getTotalFocusMinutes(currentUserId)
             } catch (_: Exception) { 0 }
 
+            val localCompletedTasks = try {
+                FocusSessionDatabase.getInstance(ctx).getCompletedTasksCount(currentUserId)
+            } catch (_: Exception) { 0 }
+
             val streakData = StreakRepository.getInstance().getStreaks(currentUserId).getOrNull()
-            val effectiveStreak = streakData?.currentStreak ?: 1
+            val effectiveStreak = streakData?.currentStreak ?: 0
             withContext(Dispatchers.Main) {
                 _uiState.update { current ->
                     val effectiveMins = maxOf(current.profile.totalFocusMinutes, localTotalMins)
                     val effectiveHours = effectiveMins / 60.0f
                     val finalStreak = maxOf(current.profile.currentStreak, effectiveStreak)
+                    val finalTasks = maxOf(current.profile.completedTasksCount, localCompletedTasks)
                     current.copy(
                         profile = current.profile.copy(
                             totalFocusMinutes = effectiveMins,
                             totalFocusHours = effectiveHours,
-                            currentStreak = finalStreak
+                            currentStreak = finalStreak,
+                            completedTasksCount = finalTasks
                         )
                     )
                 }
@@ -228,7 +244,9 @@ class ProfileViewModel(
                         val effectiveMinutes = maxOf(data.totalFocusMinutes, localTotalMinutes)
                         val effectiveHours = effectiveMinutes / 60.0f
                         val streakData = StreakRepository.getInstance().getStreaks(currentUserId).getOrNull()
-                        val effectiveStreak = maxOf(data.currentStreak, streakData?.currentStreak ?: 1)
+                        val effectiveStreak = maxOf(data.currentStreak, streakData?.currentStreak ?: 0)
+                        val localTasksCount = appContext?.let { FocusSessionDatabase.getInstance(it).getCompletedTasksCount(currentUserId) } ?: 0
+                        val effectiveTasks = maxOf(data.completedTasksCount, localTasksCount)
 
                         val finalData = data.copy(
                             name = sName?.takeIf { it.isNotBlank() } ?: data.name,
@@ -239,7 +257,8 @@ class ProfileViewModel(
                             preferredFocusDuration = if (localIntervalMinutes > 0) localIntervalMinutes else data.preferredFocusDuration,
                             totalFocusMinutes = effectiveMinutes,
                             totalFocusHours = effectiveHours,
-                            currentStreak = effectiveStreak
+                            currentStreak = effectiveStreak,
+                            completedTasksCount = effectiveTasks
                         )
                         _uiState.update { it.copy(isLoading = false, profile = finalData) }
                     },

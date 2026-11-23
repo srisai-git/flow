@@ -10,6 +10,7 @@ import com.simats.focusflow.service.FocusBlockerAccessibilityService
 import com.simats.focusflow.service.FocusTimerService
 import com.simats.focusflow.ui.viewmodel.TimerMode
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 
 class GrootActionExecutor(
@@ -27,7 +28,7 @@ class GrootActionExecutor(
             val type = action.type.uppercase()
             when (type) {
                 "START_FOCUS_TIMER", "START_TIMER" -> {
-                    val duration = action.resolvedDuration.coerceIn(1, 180)
+                    val duration = action.resolvedDuration.coerceIn(1, 720)
                     val rawMode = action.resolvedMode.uppercase()
                     val mode = when {
                         rawMode.contains("SHORT") || (rawMode.contains("BREAK") && duration <= 10) -> TimerMode.SHORT_BREAK
@@ -145,7 +146,7 @@ class GrootActionExecutor(
                         } else false
                     } else false
                 }
-                "UPDATE_TASK" -> {
+                "UPDATE_TASK", "EDIT_TASK" -> {
                     val id = action.resolvedId
                     val targetTitle = action.resolvedTitle
                     val newTitleRaw = action.payload["new_title"]?.toString() ?: targetTitle
@@ -206,7 +207,7 @@ class GrootActionExecutor(
                         true
                     } else false
                 }
-                "CHECK_OFF_HABIT", "LOG_HABIT" -> {
+                "CHECK_OFF_HABIT", "LOG_HABIT", "COMPLETE_HABIT" -> {
                     val id = action.resolvedId
                     val targetTitle = action.resolvedTitle
                     val habits = productivityRepository.getHabits(userId).getOrNull()?.habits ?: emptyList()
@@ -227,6 +228,18 @@ class GrootActionExecutor(
                         if (match.isCompletedToday) {
                             productivityRepository.toggleHabit(userId, match.id)
                         }
+                        true
+                    } else false
+                }
+                "EDIT_HABIT", "UPDATE_HABIT" -> {
+                    val id = action.resolvedId
+                    val targetTitle = action.resolvedTitle
+                    val newTitle = action.payload["new_title"]?.toString() ?: targetTitle
+                    val habits = productivityRepository.getHabits(userId).getOrNull()?.habits ?: emptyList()
+                    val match = if (id > 0) habits.firstOrNull { it.id == id } else habits.firstOrNull { it.title.contains(targetTitle, ignoreCase = true) }
+                    if (match != null && newTitle.isNotBlank()) {
+                        productivityRepository.deleteHabit(userId, match.id)
+                        productivityRepository.createHabit(userId, newTitle, match.icon, match.frequency)
                         true
                     } else false
                 }
@@ -267,6 +280,36 @@ class GrootActionExecutor(
                     }
                     true
                 }
+                "EXPORT_DATA" -> {
+                    withContext(Dispatchers.Main) {
+                        val sessionManager = com.simats.focusflow.data.session.SessionManager.getInstance(context)
+                        val session = sessionManager.userSessionFlow.first()
+                        val userName = session.userName ?: "FocusFlow User"
+                        ExportDataHelper.generateAndShareExport(context, userId, userName)
+                    }
+                    true
+                }
+                "UPDATE_PROFILE" -> {
+                    val newName = action.payload["name"]?.toString() ?: action.resolvedTitle
+                    val newBio = action.payload["bio"]?.toString() ?: ""
+                    val sessionManager = com.simats.focusflow.data.session.SessionManager.getInstance(context)
+                    val session = sessionManager.userSessionFlow.first()
+                    val email = session.userEmail ?: "user@focusflow.app"
+                    val avatar = session.userAvatar ?: "avatar:bolt"
+                    val currentBio = session.userBio ?: ""
+                    val targetName = if (newName.isNotBlank() && !newName.equals("Bio", ignoreCase = true)) newName else (session.userName ?: "User")
+                    val targetBio = if (newBio.isNotBlank()) newBio else currentBio
+                    profileRepository.updateProfile(
+                        userId = userId,
+                        name = targetName,
+                        email = email,
+                        bio = targetBio,
+                        avatar = avatar,
+                        sessionManager = sessionManager
+                    )
+                    true
+                }
+                "CHAT" -> true
                 "EXPORT_CHAT" -> {
                     withContext(Dispatchers.Main) {
                         val chatText = action.payload["transcript"]?.toString() ?: ""

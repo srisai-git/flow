@@ -52,6 +52,21 @@ class DashboardViewModel(
                 loadDashboard(showLoadingIndicator = false)
             }
         }
+        viewModelScope.launch(Dispatchers.IO) {
+            com.simats.focusflow.data.local.FocusSessionDatabase.sessionTableChangedFlow.collect {
+                loadDashboard(showLoadingIndicator = false)
+            }
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            com.simats.focusflow.data.local.FocusSessionDatabase.taskTableChangedFlow.collect {
+                loadDashboard(showLoadingIndicator = false)
+            }
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            ProductivityRepository.habitTableChangedFlow.collect {
+                loadDashboard(showLoadingIndicator = false)
+            }
+        }
     }
 
     private var appContext: Context? = null

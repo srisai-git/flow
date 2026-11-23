@@ -264,7 +264,7 @@ class TimerViewModel(
     }
 
     fun updateCustomDurations(focus: Int, shortBreak: Int, longBreak: Int) {
-        val f = focus.coerceIn(1, 180)
+        val f = focus.coerceIn(1, 720)
         val sb = shortBreak.coerceIn(1, 60)
         val lb = longBreak.coerceIn(1, 90)
 
@@ -275,7 +275,7 @@ class TimerViewModel(
     }
 
     fun setCustomFocusDuration(hours: Int, minutes: Int) {
-        val totalMinutes = (hours * 60 + minutes).coerceIn(1, 180)
+        val totalMinutes = (hours * 60 + minutes).coerceIn(1, 720)
         val sb = _uiState.value.shortBreakMinutes
         val lb = _uiState.value.longBreakMinutes
         _uiState.update { current ->

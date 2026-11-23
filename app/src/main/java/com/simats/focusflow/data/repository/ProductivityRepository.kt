@@ -64,6 +64,14 @@ class ProductivityRepository(
             FocusSessionDatabase.notifyTableChanged()
         }
 
+        private val _habitTableChangedFlow = MutableSharedFlow<Unit>(replay = 1, extraBufferCapacity = 10)
+        val habitTableChangedFlow: SharedFlow<Unit> = _habitTableChangedFlow.asSharedFlow()
+
+        fun notifyHabitChanged() {
+            invalidateDashboardCache()
+            _habitTableChangedFlow.tryEmit(Unit)
+        }
+
         suspend fun syncPendingItems() {
             val repository = ProductivityRepository()
             repository.performSyncPendingItems()
@@ -682,7 +690,7 @@ class ProductivityRepository(
 
     suspend fun toggleHabit(userId: Int, habitId: Int): Result<HabitActionResponse> = withContext(Dispatchers.IO) {
         try {
-            invalidateDashboardCache()
+            notifyHabitChanged()
             val request = ToggleHabitRequest(userId, habitId)
             val response = apiService.toggleHabit(request)
             if (response.isSuccessful && response.body()?.status == true) {
@@ -702,7 +710,7 @@ class ProductivityRepository(
         frequency: String = "daily"
     ): Result<HabitItem> = withContext(Dispatchers.IO) {
         try {
-            invalidateDashboardCache()
+            notifyHabitChanged()
             val request = CreateHabitRequest(userId, title, icon, frequency)
             val response = apiService.createHabit(request)
             if (response.isSuccessful && response.body()?.status == true) {
@@ -732,7 +740,7 @@ class ProductivityRepository(
 
     suspend fun deleteHabit(userId: Int, habitId: Int): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
-            invalidateDashboardCache()
+            notifyHabitChanged()
             val request = DeleteHabitRequest(userId, habitId)
             val response = apiService.deleteHabit(request)
             Result.success(response.isSuccessful && response.body()?.status == true)
