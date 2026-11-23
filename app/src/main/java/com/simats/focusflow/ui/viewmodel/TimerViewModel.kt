@@ -9,8 +9,6 @@ import com.simats.focusflow.data.models.FocusSessionRecord
 import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.service.FocusTimerService
-import com.simats.focusflow.utils.AdaptiveBreakEngine
-import com.simats.focusflow.utils.BreakRecommendation
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -46,9 +44,7 @@ data class TimerUiState(
     val recentSessions: List<FocusSessionRecord> = emptyList(),
     val toastMessage: String? = null,
     val isSettingsOpen: Boolean = false,
-    val isHistoryOpen: Boolean = false,
-    val hadInterruptions: Boolean = false,
-    val adaptiveBreak: BreakRecommendation = BreakRecommendation(5, "Balanced 1:5 focus-to-rest ratio for cognitive recharge", false)
+    val isHistoryOpen: Boolean = false
 ) {
     val progress: Float
         get() = if (totalSeconds > 0) remainingSeconds.toFloat() / totalSeconds.toFloat() else 0f
@@ -88,12 +84,6 @@ class TimerViewModel(
             try {
                 FocusTimerService.timerStateFlow.collect { serviceState ->
                     _uiState.update { current ->
-                        val rec = AdaptiveBreakEngine.calculateRecommendation(
-                            focusMinutes = serviceState.focusMinutes,
-                            completedSessionsToday = serviceState.completedSessions,
-                            recentSessions = current.recentSessions,
-                            hadInterruptions = current.hadInterruptions
-                        )
                         current.copy(
                             currentMode = serviceState.currentMode,
                             isBreak = serviceState.currentMode != TimerMode.FOCUS,
@@ -105,8 +95,7 @@ class TimerViewModel(
                             isRunning = serviceState.isRunning,
                             isPaused = !serviceState.isRunning && serviceState.remainingSeconds > 0 && serviceState.remainingSeconds < serviceState.totalSeconds,
                             completedSessions = serviceState.completedSessions,
-                            toastMessage = serviceState.toastMessage,
-                            adaptiveBreak = rec
+                            toastMessage = serviceState.toastMessage
                         )
                     }
                 }
@@ -181,16 +170,9 @@ class TimerViewModel(
                 val localTodayCount = distinctLocal.count { it.startedAt.startsWith(todayPrefix) }
                 withContext(Dispatchers.Main) {
                     _uiState.update { current ->
-                        val rec = AdaptiveBreakEngine.calculateRecommendation(
-                            focusMinutes = current.focusMinutes,
-                            completedSessionsToday = localTodayCount,
-                            recentSessions = distinctLocal,
-                            hadInterruptions = current.hadInterruptions
-                        )
                         current.copy(
                             recentSessions = distinctLocal,
-                            completedSessions = localTodayCount,
-                            adaptiveBreak = rec
+                            completedSessions = localTodayCount
                         )
                     }
                 }
@@ -215,16 +197,9 @@ class TimerViewModel(
 
                         val todayCount = distinct.count { it.startedAt.startsWith(todayPrefix) }
                         _uiState.update { current ->
-                            val rec = AdaptiveBreakEngine.calculateRecommendation(
-                                focusMinutes = current.focusMinutes,
-                                completedSessionsToday = todayCount,
-                                recentSessions = distinct,
-                                hadInterruptions = current.hadInterruptions
-                            )
                             current.copy(
                                 recentSessions = distinct,
-                                completedSessions = todayCount,
-                                adaptiveBreak = rec
+                                completedSessions = todayCount
                             )
                         }
                     },
@@ -291,17 +266,6 @@ class TimerViewModel(
         }
     }
 
-    fun applyAdaptiveBreak(minutes: Int) {
-        val sb = minutes.coerceIn(1, 60)
-        val f = _uiState.value.focusMinutes
-        val lb = _uiState.value.longBreakMinutes
-        updateCustomDurations(focus = f, shortBreak = sb, longBreak = lb)
-        if (_uiState.value.currentMode != TimerMode.FOCUS && !_uiState.value.isRunning) {
-            val secs = sb * 60
-            _uiState.update { it.copy(totalSeconds = secs, remainingSeconds = secs) }
-        }
-    }
-
     fun selectMode(mode: TimerMode) {
         appContext?.let { ctx ->
             FocusTimerService.selectMode(ctx, mode)
@@ -311,18 +275,6 @@ class TimerViewModel(
     fun toggleStartPause() {
         appContext?.let { ctx ->
             if (_uiState.value.isRunning) {
-                _uiState.update { current ->
-                    val had = true
-                    current.copy(
-                        hadInterruptions = had,
-                        adaptiveBreak = AdaptiveBreakEngine.calculateRecommendation(
-                            current.focusMinutes,
-                            current.completedSessions,
-                            current.recentSessions,
-                            had
-                        )
-                    )
-                }
                 FocusTimerService.pauseTimer(ctx)
             } else {
                 activeSessionId = java.util.UUID.randomUUID().toString()
@@ -333,20 +285,6 @@ class TimerViewModel(
     }
 
     fun startTimer() {
-        if (_uiState.value.remainingSeconds == _uiState.value.totalSeconds) {
-            _uiState.update { current ->
-                val had = false
-                current.copy(
-                    hadInterruptions = had,
-                    adaptiveBreak = AdaptiveBreakEngine.calculateRecommendation(
-                        current.focusMinutes,
-                        current.completedSessions,
-                        current.recentSessions,
-                        had
-                    )
-                )
-            }
-        }
         activeSessionId = java.util.UUID.randomUUID().toString()
         isSessionPersisted.set(false)
         appContext?.let { ctx ->
@@ -355,38 +293,12 @@ class TimerViewModel(
     }
 
     fun pauseTimer() {
-        _uiState.update { current ->
-            val had = true
-            current.copy(
-                hadInterruptions = had,
-                adaptiveBreak = AdaptiveBreakEngine.calculateRecommendation(
-                    current.focusMinutes,
-                    current.completedSessions,
-                    current.recentSessions,
-                    had
-                )
-            )
-        }
         appContext?.let { ctx ->
             FocusTimerService.pauseTimer(ctx)
         }
     }
 
     fun resetTimer() {
-        if (_uiState.value.isRunning || _uiState.value.isPaused) {
-            _uiState.update { current ->
-                val had = true
-                current.copy(
-                    hadInterruptions = had,
-                    adaptiveBreak = AdaptiveBreakEngine.calculateRecommendation(
-                        current.focusMinutes,
-                        current.completedSessions,
-                        current.recentSessions,
-                        had
-                    )
-                )
-            }
-        }
         appContext?.let { ctx ->
             FocusTimerService.resetTimer(ctx)
         }

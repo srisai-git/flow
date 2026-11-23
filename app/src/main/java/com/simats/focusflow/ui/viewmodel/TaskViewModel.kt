@@ -6,8 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.simats.focusflow.data.models.TaskItem
 import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.session.SessionManager
-import com.simats.focusflow.utils.AcademicCalendarHelper
-import com.simats.focusflow.utils.AcademicEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,9 +36,7 @@ data class TaskUiState(
     val searchQuery: String = "",
     val errorMessage: String? = null,
     val isBottomSheetOpen: Boolean = false,
-    val editingTask: TaskItem? = null,
-    val academicEvents: List<AcademicEvent> = emptyList(),
-    val isSyncingCalendar: Boolean = false
+    val editingTask: TaskItem? = null
 ) {
     val filteredTasks: List<TaskItem>
         get() {
@@ -351,33 +347,6 @@ class TaskViewModel(
                         _uiState.update { it.copy(errorMessage = err.localizedMessage) }
                     }
                 )
-            }
-        }
-    }
-
-    fun syncAcademicCalendar(context: android.content.Context) {
-        viewModelScope.launch(Dispatchers.IO) {
-            withContext(Dispatchers.Main) {
-                _uiState.update { it.copy(isSyncingCalendar = true) }
-            }
-            val events = AcademicCalendarHelper.fetchAcademicEvents(context)
-            val currentTasks = _uiState.value.tasks
-            val created = AcademicCalendarHelper.autoSchedulePrepTasks(
-                events = events,
-                existingTasks = currentTasks,
-                userId = currentUserId,
-                repository = repository
-            )
-            withContext(Dispatchers.Main) {
-                _uiState.update {
-                    it.copy(
-                        academicEvents = events,
-                        isSyncingCalendar = false
-                    )
-                }
-                if (created) {
-                    loadTasks()
-                }
             }
         }
     }
