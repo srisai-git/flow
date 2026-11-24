@@ -13,10 +13,10 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    private const val DEFAULT_BASE_URL = "https://reaction-union-sublevel.ngrok-free.dev/flow_backend/"
+    private const val DEFAULT_BASE_URL = "http://172.23.176.89/flow_backend/"
     const val LOCAL_BASE_URL = "http://10.0.2.2/flow_backend/"
     const val LAN_BASE_URL = "http://172.23.176.89/flow_backend/"
-    const val GROOT_AI_BASE_URL = "https://focusflow-groot-ai.onrender.com/"
+    const val GROOT_AI_BASE_URL = "http://172.23.176.89:8000/"
 
     @Volatile
     private var customBaseUrl: String? = null

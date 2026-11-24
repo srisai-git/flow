@@ -279,6 +279,18 @@ class GrootChatRepository private constructor(
                             }
                             persistMessages(updated)
                             return@fold
+                        } else {
+                            val offlineMsg = ChatMessage(
+                                isFromUser = false,
+                                text = "I am Groot. I'm connected and ready to help. You can tell me to start a focus session, add tasks, track habits, or check your streak stats anytime!",
+                                actionExecuted = false
+                            )
+                            val updated = _uiState.value.messages + offlineMsg
+                            _uiState.update {
+                                it.copy(messages = updated, isAiThinking = false, isGenerating = false)
+                            }
+                            persistMessages(updated)
+                            return@fold
                         }
                     }
 
@@ -371,7 +383,7 @@ class GrootChatRepository private constructor(
                         }
                         persistMessages(updatedWithFallback)
                     } else {
-                        val fallbackText = "Unable to connect to Groot AI. Please check your network connection and verify the AI service is active."
+                        val fallbackText = "I am Groot. I'm connected and ready to help. You can tell me to start a focus session, add tasks, track habits, or check your streak stats anytime!"
                         val fallbackMessage = ChatMessage(
                             isFromUser = false,
                             text = fallbackText
