@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.simats.focusflow.data.local.FocusSessionDatabase
 import com.simats.focusflow.data.models.DashboardData
 import com.simats.focusflow.data.models.HabitItem
 import com.simats.focusflow.data.models.TaskItem
@@ -162,17 +163,25 @@ class DashboardViewModel(
                 Result.failure(e)
             }
 
+            val localTasks = appContext?.let { FocusSessionDatabase.getInstance(it).getLocalTasks(currentUserId) } ?: emptyList()
+            val localCompletedIds = localTasks.filter { it.isCompleted }.map { it.id }.toSet()
+            val pendingLocalPriority = localTasks.filter { !it.isCompleted }
+
             withContext(Dispatchers.Main) {
                 result.fold(
                     onSuccess = { data ->
                         val finalAvatar = if (sessionAvatar.isNotBlank()) sessionAvatar else data.userAvatar
                         val resolvedGoal = if (localGoalMinutes > 0) localGoalMinutes else data.focusGoalMinutes
+                        val filteredPriority = (data.priorityTasks.filter { !it.isCompleted && !localCompletedIds.contains(it.id) } + pendingLocalPriority)
+                            .distinctBy { it.id }
+                            .sortedWith(compareBy({ when (it.priority.lowercase()) { "high" -> 0; "medium" -> 1; else -> 2 } }, { -it.id }))
+                            .take(3)
                         val finalData = if (data.userName.isNotBlank()) {
-                            data.copy(focusGoalMinutes = resolvedGoal)
+                            data.copy(focusGoalMinutes = resolvedGoal, priorityTasks = filteredPriority)
                         } else if (sessionName.isNotBlank()) {
-                            data.copy(userName = sessionName, focusGoalMinutes = resolvedGoal)
+                            data.copy(userName = sessionName, focusGoalMinutes = resolvedGoal, priorityTasks = filteredPriority)
                         } else {
-                            data.copy(userName = "User", focusGoalMinutes = resolvedGoal)
+                            data.copy(userName = "User", focusGoalMinutes = resolvedGoal, priorityTasks = filteredPriority)
                         }
                         _uiState.update {
                             it.copy(
@@ -184,11 +193,15 @@ class DashboardViewModel(
                     },
                     onFailure = { err ->
                         val fallbackName = if (sessionName.isNotBlank()) sessionName else "User"
+                        val filteredPriority = pendingLocalPriority
+                            .distinctBy { it.id }
+                            .sortedWith(compareBy({ when (it.priority.lowercase()) { "high" -> 0; "medium" -> 1; else -> 2 } }, { -it.id }))
+                            .take(3)
                         _uiState.update { current ->
                             val resolvedGoal = if (localGoalMinutes > 0) localGoalMinutes else current.data.focusGoalMinutes
                             current.copy(
                                 isLoading = false,
-                                data = current.data.copy(userName = fallbackName, focusGoalMinutes = resolvedGoal),
+                                data = current.data.copy(userName = fallbackName, focusGoalMinutes = resolvedGoal, priorityTasks = filteredPriority),
                                 userAvatar = sessionAvatar,
                                 errorMessage = err.localizedMessage
                             )
@@ -215,27 +228,29 @@ class DashboardViewModel(
     }
 
     fun toggleTask(taskId: Int) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val tasks = _uiState.value.data.priorityTasks
-            val task = tasks.find { it.id == taskId } ?: return@launch
-            val newCompleted = !task.isCompleted
+        val tasks = _uiState.value.data.priorityTasks
+        val task = tasks.find { it.id == taskId } ?: return
+        val newCompleted = !task.isCompleted
 
-            val updatedTasks = tasks.map {
+        _uiState.update { current ->
+            val curData = current.data
+            val updatedTasks = curData.priorityTasks.map {
                 if (it.id == taskId) it.copy(isCompleted = newCompleted) else it
             }
-            val currentData = _uiState.value.data
-            withContext(Dispatchers.Main) {
-                _uiState.update {
-                    it.copy(
-                        data = currentData.copy(
-                            priorityTasks = updatedTasks,
-                            completedTaskCount = if (newCompleted) currentData.completedTaskCount + 1 else (currentData.completedTaskCount - 1).coerceAtLeast(0),
-                            pendingTaskCount = if (newCompleted) (currentData.pendingTaskCount - 1).coerceAtLeast(0) else currentData.pendingTaskCount + 1
-                        )
-                    )
-                }
-            }
+            val remainingTasks = if (newCompleted) updatedTasks.filter { it.id != taskId } else updatedTasks
+            current.copy(
+                data = curData.copy(
+                    priorityTasks = remainingTasks,
+                    completedTaskCount = if (newCompleted) curData.completedTaskCount + 1 else (curData.completedTaskCount - 1).coerceAtLeast(0),
+                    pendingTaskCount = if (newCompleted) (curData.pendingTaskCount - 1).coerceAtLeast(0) else curData.pendingTaskCount + 1
+                )
+            )
+        }
 
+        viewModelScope.launch(Dispatchers.IO) {
+            appContext?.let { ctx ->
+                FocusSessionDatabase.getInstance(ctx).updateTaskCompletionLocally(taskId, newCompleted)
+            }
             repository.toggleTask(currentUserId, taskId, newCompleted)
         }
     }

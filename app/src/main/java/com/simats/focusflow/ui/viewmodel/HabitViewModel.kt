@@ -36,6 +36,7 @@ data class HabitReportData(
     val consistencyScore: Int = 0,
     val strongestHabit: String = "",
     val strongestHabitStreak: Int = 0,
+    val needsAttentionHabit: String = "",
     val dropOffDays: String = "",
     val recommendation: String = ""
 )
@@ -272,10 +273,17 @@ class HabitViewModel(
                 else -> "Anchor your daily routines immediately after your morning focus block to protect streak continuity and eliminate evening fatigue drop-off."
             }
 
+            val attentionHabit = habits.filter { !it.isCompletedToday }.minByOrNull { it.streakCount }
+                ?: habits.minByOrNull { it.streakCount }
+            val attentionTitle = if (attentionHabit != null) {
+                "${attentionHabit.title} (${attentionHabit.streakCount}d streak)"
+            } else "All routines on track"
+
             val report = HabitReportData(
                 consistencyScore = consistencyScore,
                 strongestHabit = strongestTitle,
                 strongestHabitStreak = strongestStreak,
+                needsAttentionHabit = attentionTitle,
                 dropOffDays = dropOffDaysStr,
                 recommendation = finalRecommendation
             )

@@ -65,6 +65,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -675,7 +676,8 @@ private fun HabitsInsightsView(
             habitReport = habitReport,
             isGeneratingReport = isGeneratingReport,
             onGenerateReport = onGenerateReport,
-            userStats = userStats
+            userStats = userStats,
+            habits = habits
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -801,7 +803,8 @@ private fun GrootAiHabitInsightsCard(
     habitReport: HabitReportData?,
     isGeneratingReport: Boolean,
     onGenerateReport: () -> Unit,
-    userStats: HabitUserStats
+    userStats: HabitUserStats,
+    habits: List<HabitItem> = emptyList()
 ) {
     val colors = FocusFlowTheme.colors
 
@@ -817,7 +820,10 @@ private fun GrootAiHabitInsightsCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     GrootAvatar(
                         size = 32.dp,
                         containerColor = colors.primary.copy(alpha = 0.16f),
@@ -825,7 +831,7 @@ private fun GrootAiHabitInsightsCard(
                         tint = colors.primaryLight
                     )
                     Spacer(modifier = Modifier.width(10.dp))
-                    Column {
+                    Column(modifier = Modifier.weight(1f, fill = false)) {
                         Text(
                             text = "GROOT AI HABIT INSIGHTS",
                             fontSize = 11.sp,
@@ -837,10 +843,14 @@ private fun GrootAiHabitInsightsCard(
                             text = "Consistency & Performance Audit",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = colors.textPrimary
+                            color = colors.textPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.width(8.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     val score = habitReport?.consistencyScore ?: userStats.avgConsistencyPercent.toInt()
@@ -933,99 +943,124 @@ private fun GrootAiHabitInsightsCard(
                     fontWeight = FontWeight.Normal
                 )
 
-                if (habitReport != null) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Row(
+                val strongestTitle = habitReport?.strongestHabit?.ifBlank { null }
+                    ?: habits.maxByOrNull { it.streakCount }?.title ?: "Daily Habit"
+                val strongestStreak = habitReport?.strongestHabitStreak
+                    ?: maxOf(habits.maxByOrNull { it.streakCount }?.streakCount ?: 0, userStats.currentStreak)
+                val attentionTitle = habitReport?.needsAttentionHabit?.ifBlank { null }
+                    ?: habits.filter { !it.isCompletedToday }.minByOrNull { it.streakCount }?.let { "${it.title} (${it.streakCount}d streak)" }
+                    ?: habits.minByOrNull { it.streakCount }?.let { "${it.title} (${it.streakCount}d streak)" }
+                    ?: "All routines on track"
+                val nextActionText = habitReport?.recommendation?.ifBlank { null }
+                    ?: insight?.ifBlank { null }
+                    ?: "Anchor your daily routines immediately following your morning focus block to protect streak continuity."
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(colors.surfaceVariant, RoundedCornerShape(12.dp))
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "STRONGEST STREAK",
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textMuted,
+                            letterSpacing = 0.8.sp
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = strongestTitle,
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textPrimary
+                        )
+                    }
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .background(colors.surfaceVariant, RoundedCornerShape(12.dp))
-                            .padding(12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                            .background(Color(0xFFF59E0B).copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "STRONGEST ROUTINE",
-                                fontSize = 10.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.textMuted,
-                                letterSpacing = 0.8.sp
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = habitReport.strongestHabit,
-                                fontSize = 13.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.textPrimary
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .background(Color(0xFFF59E0B).copy(alpha = 0.15f), RoundedCornerShape(8.dp))
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = "${habitReport.strongestHabitStreak}d Streak",
-                                fontSize = 11.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFFF59E0B)
-                            )
-                        }
+                        Text(
+                            text = "${strongestStreak}d Streak",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFF59E0B)
+                        )
                     }
+                }
 
-                    if (habitReport.dropOffDays.isNotBlank() && habitReport.dropOffDays != "None") {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(colors.surfaceVariant, RoundedCornerShape(12.dp))
-                                .padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text = "DROP-OFF DAYS & WEAK SPOTS",
-                                    fontSize = 10.5.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFEF4444),
-                                    letterSpacing = 0.8.sp
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = habitReport.dropOffDays,
-                                    fontSize = 12.5.sp,
-                                    color = colors.textPrimary
-                                )
-                            }
-                        }
-                    }
+                Spacer(modifier = Modifier.height(8.dp))
 
-                    if (habitReport.recommendation.isNotBlank() && habitReport.recommendation != displayText) {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(colors.primary.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
-                                .border(1.dp, colors.primary.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
-                                .padding(12.dp)
-                        ) {
-                            Text(
-                                text = "ACTIONABLE RECOMMENDATION",
-                                fontSize = 10.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.primaryLight,
-                                letterSpacing = 0.8.sp
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = habitReport.recommendation,
-                                fontSize = 12.5.sp,
-                                lineHeight = 18.sp,
-                                color = colors.textPrimary
-                            )
-                        }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(colors.surfaceVariant, RoundedCornerShape(12.dp))
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "NEEDS ATTENTION",
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFEF4444),
+                            letterSpacing = 0.8.sp
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = attentionTitle,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = colors.textPrimary
+                        )
                     }
-                } else {
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFFEF4444).copy(alpha = 0.12f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "Focus",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFEF4444)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(colors.primary.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+                        .border(1.dp, colors.primary.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+                        .padding(12.dp)
+                ) {
+                    Text(
+                        text = "NEXT ACTION",
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.primaryLight,
+                        letterSpacing = 0.8.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = nextActionText,
+                        fontSize = 12.5.sp,
+                        lineHeight = 18.sp,
+                        color = colors.textPrimary
+                    )
+                }
+
+                if (habitReport == null) {
                     Spacer(modifier = Modifier.height(12.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),

@@ -512,17 +512,10 @@ object UsageStatsHelper {
             ?: return DistractionUsageSummary()
 
         val startOfTodayMillis = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-        val endMillis = System.currentTimeMillis()
-
-        val dailyStatsList = try {
-            usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startOfTodayMillis, endMillis)
-        } catch (_: Exception) {
-            null
-        }
-        val dailyMap = dailyStatsList?.associate { it.packageName to it.totalTimeInForeground } ?: emptyMap()
+        val nowMillis = System.currentTimeMillis()
 
         val events = try {
-            usageStatsManager.queryEvents(startOfTodayMillis, endMillis)
+            usageStatsManager.queryEvents(startOfTodayMillis, nowMillis)
         } catch (_: Exception) {
             null
         } ?: return DistractionUsageSummary()
@@ -532,96 +525,60 @@ object UsageStatsHelper {
         while (events.hasNextEvent()) {
             events.getNextEvent(tempEvt)
             val p = tempEvt.packageName
-            eventList.add(AppEventTransition(p ?: "", tempEvt.eventType, tempEvt.timeStamp))
+            if (!p.isNullOrBlank()) {
+                eventList.add(AppEventTransition(p, tempEvt.eventType, tempEvt.timeStamp))
+            }
         }
         eventList.sortBy { it.timestamp }
 
-        var currentPackage: String? = null
-        var sessionStartMillis = 0L
-        var lastScreenOffMillis = 0L
-        val usageMap = mutableMapOf<String, Long>()
+        var activePackage: String? = null
+        var activeStart = 0L
+        val accumulatedUsage = mutableMapOf<String, Long>()
+
+        val resumedEvent = android.app.usage.UsageEvents.Event.ACTIVITY_RESUMED
+        val pausedEvent = android.app.usage.UsageEvents.Event.ACTIVITY_PAUSED
+        val stoppedEvent = 23
+        val screenOffEvent = 16
+        val keyguardEvent = 17
 
         for (event in eventList) {
             val pkg = event.packageName
             val eventType = event.eventType
             val time = event.timestamp
 
-            val isForeground = eventType == android.app.usage.UsageEvents.Event.ACTIVITY_RESUMED ||
-                    eventType == EVENT_MOVE_TO_FOREGROUND
-            val isBackground = eventType == android.app.usage.UsageEvents.Event.ACTIVITY_PAUSED ||
-                    eventType == EVENT_ACTIVITY_STOPPED
-            val isScreenOff = eventType == EVENT_SCREEN_NON_INTERACTIVE ||
-                    eventType == EVENT_KEYGUARD_SHOWN
-
-            if (isForeground && pkg.isNotBlank()) {
-                if (currentPackage != null && currentPackage != pkg) {
-                    if (sessionStartMillis >= startOfTodayMillis && sessionStartMillis > 0L) {
-                        val boundedEnd = minOf(time, endMillis)
-                        val delta = (boundedEnd - sessionStartMillis).coerceAtLeast(0L)
-                        if (delta >= 60_000L) {
-                            usageMap[currentPackage!!] = (usageMap[currentPackage!!] ?: 0L) + delta
-                        }
-                    }
-                    currentPackage = pkg
-                    sessionStartMillis = maxOf(time, startOfTodayMillis)
-                } else if (currentPackage == null) {
-                    currentPackage = pkg
-                    sessionStartMillis = maxOf(time, startOfTodayMillis)
+            if (eventType == resumedEvent) {
+                if (activePackage == pkg) {
+                    continue
                 }
-            } else if (isBackground && pkg.isNotBlank()) {
-                if (currentPackage == pkg) {
-                    if (sessionStartMillis >= startOfTodayMillis && sessionStartMillis > 0L) {
-                        val boundedEnd = minOf(time, endMillis)
-                        val delta = (boundedEnd - sessionStartMillis).coerceAtLeast(0L)
-                        if (delta >= 60_000L) {
-                            usageMap[pkg] = (usageMap[pkg] ?: 0L) + delta
-                        }
+                if (activePackage != null) {
+                    val duration = (time - activeStart).coerceIn(0L, 4 * 3600_000L)
+                    if (duration > 0L) {
+                        accumulatedUsage[activePackage!!] = (accumulatedUsage[activePackage!!] ?: 0L) + duration
                     }
-                    currentPackage = null
-                    sessionStartMillis = 0L
                 }
-            } else if (isScreenOff) {
-                if (currentPackage != null) {
-                    if (sessionStartMillis >= startOfTodayMillis && sessionStartMillis > 0L) {
-                        val boundedEnd = minOf(time, endMillis)
-                        val delta = (boundedEnd - sessionStartMillis).coerceAtLeast(0L)
-                        if (delta >= 60_000L) {
-                            usageMap[currentPackage!!] = (usageMap[currentPackage!!] ?: 0L) + delta
+                activePackage = pkg
+                activeStart = maxOf(time, startOfTodayMillis)
+            } else if (eventType == pausedEvent || eventType == stoppedEvent || eventType == screenOffEvent || eventType == keyguardEvent) {
+                if (activePackage != null) {
+                    if (eventType == screenOffEvent || eventType == keyguardEvent || activePackage == pkg) {
+                        val duration = (time - activeStart).coerceIn(0L, 4 * 3600_000L)
+                        if (duration > 0L) {
+                            accumulatedUsage[activePackage!!] = (accumulatedUsage[activePackage!!] ?: 0L) + duration
                         }
+                        activePackage = null
+                        activeStart = 0L
                     }
-                    currentPackage = null
-                    sessionStartMillis = 0L
-                }
-                lastScreenOffMillis = time
-            }
-        }
-
-        if (currentPackage != null && sessionStartMillis >= startOfTodayMillis && sessionStartMillis > 0L) {
-            if (sessionStartMillis >= lastScreenOffMillis) {
-                val delta = (endMillis - sessionStartMillis).coerceAtLeast(0L)
-                if (delta >= 60_000L) {
-                    usageMap[currentPackage!!] = (usageMap[currentPackage!!] ?: 0L) + delta
                 }
             }
         }
 
-        val combinedKeys = (usageMap.keys + dailyMap.keys).toSet()
-        val finalUsageMap = mutableMapOf<String, Long>()
-        for (pkg in combinedKeys) {
-            val eventDuration = usageMap[pkg] ?: 0L
-            val dailyDuration = dailyMap[pkg] ?: 0L
-            val effectiveDuration = if (eventDuration > 0L && dailyDuration > 0L) {
-                minOf(eventDuration, dailyDuration + 120_000L)
-            } else if (eventDuration > 0L) {
-                eventDuration
-            } else if (dailyDuration >= 60_000L) {
-                dailyDuration
-            } else {
-                0L
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
+        if (activePackage != null && powerManager?.isInteractive == true) {
+            val finalSlice = (nowMillis - activeStart).coerceAtLeast(0L).coerceIn(0L, 4 * 3600_000L)
+            if (finalSlice > 0L) {
+                accumulatedUsage[activePackage!!] = (accumulatedUsage[activePackage!!] ?: 0L) + finalSlice
             }
-            if (effectiveDuration >= 60_000L) {
-                finalUsageMap[pkg] = effectiveDuration
-            }
+            activePackage = null
         }
 
         val defaultHome = getDefaultHomeLauncherPackage(context)
@@ -629,7 +586,7 @@ object UsageStatsHelper {
 
         val appInfos = mutableListOf<AppUsageInfo>()
 
-        for ((pkg, durationMs) in finalUsageMap) {
+        for ((pkg, durationMs) in accumulatedUsage) {
             if (isExcludedApp(context, pkg, defaultHome, homeLaunchers)) continue
             if (durationMs < 60_000L) continue
 

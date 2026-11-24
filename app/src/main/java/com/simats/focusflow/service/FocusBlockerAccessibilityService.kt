@@ -4,8 +4,6 @@ import android.accessibilityservice.AccessibilityService
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
@@ -27,14 +25,15 @@ class FocusBlockerAccessibilityService : AccessibilityService() {
     private val repository = ProductivityRepository()
     private val handler = Handler(Looper.getMainLooper())
     private var lastLogTimestamp = 0L
-    private var lastBlockedPkg: String? = null
-    private var lastBlockActionTime = 0L
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event == null || event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
-
-        val pkgName = event.packageName?.toString() ?: return
-        if (BlockedAppsManager.isSystemOrEssentialPackage(applicationContext, pkgName)) return
+        if (event == null) return
+        val eventType = event.eventType
+        if (eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
+            eventType != AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED &&
+            eventType != AccessibilityEvent.TYPE_WINDOWS_CHANGED) {
+            return
+        }
 
         val timerState = FocusTimerService.timerStateFlow.value
         if (!timerState.isRunning || timerState.currentMode != TimerMode.FOCUS || !timerState.isStrictFocus) {
@@ -42,39 +41,62 @@ class FocusBlockerAccessibilityService : AccessibilityService() {
         }
 
         val blockedAppsManager = BlockedAppsManager.getInstance(applicationContext)
-        if (!blockedAppsManager.isAppBlocked(pkgName)) {
-            return
+        val eventPkg = event.packageName?.toString()
+        val rootPkg = try { rootInActiveWindow?.packageName?.toString() } catch (_: Exception) { null }
+
+        val targetPkg = when {
+            rootPkg != null && !isAllowedPackage(rootPkg) && blockedAppsManager.isAppBlocked(rootPkg) -> rootPkg
+            eventPkg != null && !isAllowedPackage(eventPkg) && blockedAppsManager.isAppBlocked(eventPkg) -> eventPkg
+            else -> null
         }
 
-        val now = System.currentTimeMillis()
-        if (now - lastBlockActionTime < 400L) {
-            return
-        }
-        lastBlockActionTime = now
-        lastBlockedPkg = pkgName
+        if (targetPkg != null) {
+            performGlobalAction(GLOBAL_ACTION_HOME)
 
-        performGlobalAction(GLOBAL_ACTION_HOME)
+            handler.postDelayed({
+                val activePkg = try { rootInActiveWindow?.packageName?.toString() } catch (_: Exception) { null }
+                if (activePkg != null && !isAllowedPackage(activePkg) && blockedAppsManager.isAppBlocked(activePkg)) {
+                    performGlobalAction(GLOBAL_ACTION_HOME)
+                }
+            }, 150L)
 
-        if (now - lastLogTimestamp > 30000L) {
-            lastLogTimestamp = now
-            val activeUid = timerState.activeUserId
-            val appLabel = UsageStatsHelper.getAppLabel(applicationContext, pkgName)
-            val cat = UsageStatsHelper.categorizePackage(pkgName, appLabel, applicationContext)
-            serviceScope.launch(Dispatchers.IO) {
-                repository.logDistraction(
-                    userId = activeUid,
-                    reason = "Blocked app opened: $appLabel",
-                    category = cat,
-                    durationSeconds = 0
-                )
+            handler.postDelayed({
+                val activePkg = try { rootInActiveWindow?.packageName?.toString() } catch (_: Exception) { null }
+                if (activePkg != null && !isAllowedPackage(activePkg) && blockedAppsManager.isAppBlocked(activePkg)) {
+                    performGlobalAction(GLOBAL_ACTION_HOME)
+                }
+            }, 350L)
+
+            val now = System.currentTimeMillis()
+            if (now - lastLogTimestamp > 15000L) {
+                lastLogTimestamp = now
+                val activeUid = timerState.activeUserId
+                val appLabel = UsageStatsHelper.getAppLabel(applicationContext, targetPkg)
+                val cat = UsageStatsHelper.categorizePackage(targetPkg, appLabel, applicationContext)
+                serviceScope.launch(Dispatchers.IO) {
+                    repository.logDistraction(
+                        userId = activeUid,
+                        reason = "Blocked app opened: $appLabel",
+                        category = cat,
+                        durationSeconds = 0
+                    )
+                }
             }
         }
+    }
+
+    private fun isAllowedPackage(pkg: String): Boolean {
+        if (pkg == applicationContext.packageName) return true
+        if (pkg == "com.android.systemui") return true
+        if (BlockedAppsManager.isSystemOrEssentialPackage(applicationContext, pkg)) return true
+        return false
     }
 
     override fun onInterrupt() {}
 
     override fun onDestroy() {
         super.onDestroy()
+        handler.removeCallbacksAndMessages(null)
         serviceJob.cancel()
     }
 

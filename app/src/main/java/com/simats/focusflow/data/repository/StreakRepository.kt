@@ -10,6 +10,11 @@ import kotlinx.coroutines.withContext
 
 
 
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+
 class StreakRepository(
     private val apiService: FlowApiService = RetrofitClient.flowApiService
 ) {
@@ -84,20 +89,107 @@ class StreakRepository(
     private suspend fun calculateFallbackStreak(userId: Int): StreakData {
         return try {
             val ctx = ProductivityRepository.appContext
-            if (ctx == null) {
-                return StreakData(userId = userId, currentStreak = 0, longestStreak = 0)
-            }
+                ?: return StreakData(userId = userId, currentStreak = 0, longestStreak = 0, totalActiveDays = 0)
             val db = FocusSessionDatabase.getInstance(ctx)
-            val sessions = db.getRecentSessions(userId, 100)
-            val days = sessions.mapNotNull { it.startedAt.take(10).ifBlank { null } }.distinct().size
+            val sessions = db.getRecentSessions(userId, 500).filter {
+                it.status.equals("completed", ignoreCase = true) && !it.sessionType.contains("break", ignoreCase = true)
+            }
+            val tasks = db.getLocalTasks(userId).filter { it.isCompleted }
+            val activeDates = mutableSetOf<String>()
+            for (s in sessions) {
+                val d = if (s.completedAt.length >= 10) s.completedAt.take(10) else s.startedAt.take(10)
+                if (d.length == 10 && d.contains("-")) activeDates.add(d)
+            }
+            for (t in tasks) {
+                val d = t.createdAt?.take(10) ?: t.dueDate.take(10)
+                if (d.length == 10 && d.contains("-")) activeDates.add(d)
+            }
+            val habits = try {
+                ProductivityRepository().getHabits(userId).getOrNull()?.habits ?: emptyList()
+            } catch (_: Exception) {
+                emptyList()
+            }
+            val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+            if (habits.any { it.isCompletedToday }) {
+                activeDates.add(todayStr)
+            }
+
+            val sortedDates = activeDates.sortedDescending()
+            if (sortedDates.isEmpty()) {
+                return StreakData(userId = userId, currentStreak = 0, longestStreak = 0, totalActiveDays = 0)
+            }
+
+            val cal = Calendar.getInstance()
+            cal.set(Calendar.HOUR_OF_DAY, 0)
+            cal.set(Calendar.MINUTE, 0)
+            cal.set(Calendar.SECOND, 0)
+            cal.set(Calendar.MILLISECOND, 0)
+            val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val todayDate = cal.time
+            cal.add(Calendar.DAY_OF_YEAR, -1)
+            val yesterdayDate = cal.time
+            val yesterdayStr = sdf.format(yesterdayDate)
+
+            var currentStreak = 0
+            if (sortedDates.first() == todayStr) {
+                val checkCal = Calendar.getInstance().apply { time = todayDate }
+                for (d in sortedDates) {
+                    if (d == sdf.format(checkCal.time)) {
+                        currentStreak++
+                        checkCal.add(Calendar.DAY_OF_YEAR, -1)
+                    } else {
+                        break
+                    }
+                }
+            } else if (sortedDates.first() == yesterdayStr) {
+                val checkCal = Calendar.getInstance().apply { time = yesterdayDate }
+                for (d in sortedDates) {
+                    if (d == sdf.format(checkCal.time)) {
+                        currentStreak++
+                        checkCal.add(Calendar.DAY_OF_YEAR, -1)
+                    } else {
+                        break
+                    }
+                }
+            } else {
+                currentStreak = 0
+            }
+
+            var longestStreak = 0
+            var tempStreak = 0
+            var prevDate: Date? = null
+            val ascDates = sortedDates.reversed().mapNotNull {
+                try { sdf.parse(it) } catch (_: Exception) { null }
+            }
+            for (cur in ascDates) {
+                if (prevDate == null) {
+                    tempStreak = 1
+                } else {
+                    val diff = ((cur.time - prevDate.time) / (1000 * 60 * 60 * 24)).toInt()
+                    if (diff == 1) {
+                        tempStreak++
+                    } else if (diff > 1) {
+                        tempStreak = 1
+                    }
+                }
+                prevDate = cur
+                if (tempStreak > longestStreak) {
+                    longestStreak = tempStreak
+                }
+            }
+            if (longestStreak < currentStreak) {
+                longestStreak = currentStreak
+            }
+
             StreakData(
                 userId = userId,
-                currentStreak = days,
-                longestStreak = days,
-                totalActiveDays = days
+                currentStreak = currentStreak,
+                longestStreak = longestStreak,
+                totalActiveDays = sortedDates.size,
+                lastActiveDate = sortedDates.firstOrNull()
             )
         } catch (e: Exception) {
-            StreakData(userId = userId, currentStreak = 0, longestStreak = 0)
+            StreakData(userId = userId, currentStreak = 0, longestStreak = 0, totalActiveDays = 0)
         }
     }
 }

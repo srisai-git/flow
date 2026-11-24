@@ -2,35 +2,26 @@ package com.simats.focusflow.ui.viewmodel
 
 import android.content.Context
 import androidx.compose.runtime.Immutable
-import androidx.core.text.HtmlCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import com.simats.focusflow.data.models.AiAction
-import com.simats.focusflow.data.models.ChatHistoryMessage
 import com.simats.focusflow.data.repository.AiRepository
+import com.simats.focusflow.data.repository.GrootChatRepository
 import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.repository.ProfileRepository
+import com.simats.focusflow.data.session.BlockedAppsManager
 import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.service.FocusTimerService
-import com.simats.focusflow.utils.GrootActionExecutor
-import com.simats.focusflow.utils.GrootActionParser
-import com.simats.focusflow.utils.GrootGuardrailHelper
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
+import java.util.UUID
 
 @Immutable
 data class ChatMessage(
@@ -66,23 +57,23 @@ class GrootAiViewModel(
     private var sessionManager: SessionManager? = null
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(GrootAiUiState())
-    val uiState: StateFlow<GrootAiUiState> = _uiState.asStateFlow()
+    private val chatRepo: GrootChatRepository by lazy {
+        GrootChatRepository.getInstance(appContext)
+    }
 
-    private val _navigationEvent = MutableSharedFlow<String>(extraBufferCapacity = 1)
-    val navigationEvent: SharedFlow<String> = _navigationEvent.asSharedFlow()
+    val uiState: StateFlow<GrootAiUiState>
+        get() = chatRepo.uiState
+
+    val navigationEvent: SharedFlow<String>
+        get() = chatRepo.navigationEvent
 
     private var appContext: Context? = null
     private var currentUserId: Int = 1
-    private var actionExecutor: GrootActionExecutor? = null
-    private val gson = Gson()
-    private var activeChatJob: kotlinx.coroutines.Job? = null
 
     fun initContext(context: Context, manager: SessionManager) {
         this.appContext = context.applicationContext
         this.sessionManager = manager
-        this.actionExecutor = GrootActionExecutor(context.applicationContext, productivityRepository, profileRepository)
-        loadPersistedMessages()
+        GrootChatRepository.init(context)
         viewModelScope.launch(Dispatchers.IO) {
             val session = manager.userSessionFlow.first()
             if (session.userId != null && session.userId > 0) {
@@ -93,10 +84,7 @@ class GrootAiViewModel(
 
     fun initSessionManager(manager: SessionManager) {
         this.sessionManager = manager
-        if (actionExecutor == null && appContext != null) {
-            this.actionExecutor = GrootActionExecutor(appContext!!, productivityRepository, profileRepository)
-        }
-        loadPersistedMessages()
+        appContext?.let { GrootChatRepository.init(it) }
         viewModelScope.launch(Dispatchers.IO) {
             val session = manager.userSessionFlow.first()
             if (session.userId != null && session.userId > 0) {
@@ -105,336 +93,24 @@ class GrootAiViewModel(
         }
     }
 
-    private fun persistMessages(messages: List<ChatMessage>) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                appContext?.let { ctx ->
-                    val file = File(ctx.filesDir, "groot_chat_history.json")
-                    val json = gson.toJson(messages)
-                    file.writeText(json)
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
-
-    private fun loadPersistedMessages() {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                appContext?.let { ctx ->
-                    val file = File(ctx.filesDir, "groot_chat_history.json")
-                    if (file.exists()) {
-                        val json = file.readText()
-                        if (json.isNotBlank()) {
-                            val type = object : TypeToken<List<ChatMessage>>() {}.type
-                            val saved: List<ChatMessage>? = gson.fromJson(json, type)
-                            if (!saved.isNullOrEmpty()) {
-                                withContext(Dispatchers.Main) {
-                                    _uiState.update { it.copy(messages = saved) }
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
-
     fun onInputTextChanged(newText: String) {
-        _uiState.update { it.copy(inputText = newText) }
+        chatRepo.onInputTextChanged(newText)
     }
 
     fun clearChat() {
-        aiRepository.clearHistory()
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                appContext?.let { ctx ->
-                    val file = File(ctx.filesDir, "groot_chat_history.json")
-                    if (file.exists()) {
-                        file.delete()
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-        val defaultList = listOf(
-            ChatMessage(
-                isFromUser = false,
-                text = "I am Groot, your AI productivity companion inside FocusFlow. I can help optimize your focus timer, track habits, analyze distractions, and guide your daily workflow."
-            )
-        )
-        _uiState.update {
-            it.copy(
-                messages = defaultList,
-                inputText = "",
-                isAiThinking = false
-            )
-        }
+        chatRepo.clearChat()
     }
 
     fun sendMessage(query: String? = null) {
-        val textToSend = (query ?: _uiState.value.inputText).trim()
-        if (textToSend.isBlank() || _uiState.value.isAiThinking) return
-
-        val userMessage = ChatMessage(isFromUser = true, text = textToSend)
-        val updatedWithUser = _uiState.value.messages + userMessage
-
-        if (com.simats.focusflow.utils.GrootGuardrailHelper.isOffTopicQuery(textToSend)) {
-            val declineMessage = ChatMessage(
-                isFromUser = false,
-                text = com.simats.focusflow.utils.GrootGuardrailHelper.DECLINE_MESSAGE
-            )
-            val updatedWithDecline = updatedWithUser + declineMessage
-            _uiState.update {
-                it.copy(
-                    messages = updatedWithDecline,
-                    inputText = if (query == null) "" else it.inputText,
-                    isAiThinking = false
-                )
-            }
-            persistMessages(updatedWithDecline)
-            return
-        }
-
-        val currentHistory = updatedWithUser.takeLast(10).map {
-            ChatHistoryMessage(
-                role = if (it.isFromUser) "user" else "assistant",
-                content = it.text
-            )
-        }
-
-        _uiState.update {
-            it.copy(
-                messages = updatedWithUser,
-                inputText = if (query == null) "" else it.inputText,
-                isAiThinking = true,
-                isGenerating = true
-            )
-        }
-        persistMessages(updatedWithUser)
-
-        activeChatJob?.cancel()
-        activeChatJob = viewModelScope.launch(Dispatchers.IO) {
-            val session = sessionManager?.userSessionFlow?.first()
-            val userName = session?.userName?.ifBlank { null } ?: "Sri Sai"
-            val db = appContext?.let { com.simats.focusflow.data.local.FocusSessionDatabase.getInstance(it) }
-            val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-            val todaySessions = db?.getRecentSessions(currentUserId, 50)?.filter {
-                it.startedAt.startsWith(todayStr)
-            } ?: emptyList()
-            val sessionCount = todaySessions.size
-            val todayFocusMins = db?.getTodayFocusMinutes(currentUserId) ?: 0
-
-            val streakData = com.simats.focusflow.data.repository.StreakRepository.getInstance().getStreaks(currentUserId).getOrNull()
-            val streak = streakData?.currentStreak ?: 1
-
-            val localTasks = db?.getLocalTasks(currentUserId) ?: emptyList()
-            val pendingTasks = localTasks.filter { !it.isCompleted }
-            val doneTasksCount = localTasks.count { it.isCompleted }
-            val topPendingTitles = pendingTasks.take(3).joinToString { it.title }
-
-            val habitsRes = try {
-                productivityRepository.getHabits(currentUserId).getOrNull()
-            } catch (_: Exception) { null }
-            val habitsList = habitsRes?.habits ?: emptyList()
-            val completedHabitsCount = habitsList.count { it.isCompletedToday }
-            val topHabitTitle = habitsList.maxByOrNull { it.streakCount }?.title ?: "None"
-
-            val distractionSummary = appContext?.let {
-                com.simats.focusflow.utils.UsageStatsHelper.queryTodayDistractionStats(it)
-            }
-            val distractionMins = distractionSummary?.totalDistractionMinutes ?: 0
-            val topDistractApp = distractionSummary?.apps?.firstOrNull { it.usageMinutes > 0 }
-            val topDistractStr = if (topDistractApp != null) "${topDistractApp.appName} (${topDistractApp.usageMinutes}m)" else "Minimal"
-
-            val appContextSummary = "Active User: $userName, Streak: $streak days, Focus Today: ${todayFocusMins}m across $sessionCount sessions, Tasks: ${pendingTasks.size} pending (${if (topPendingTitles.isNotBlank()) topPendingTitles else "None"}), $doneTasksCount done, Habits: ${habitsList.size} active ($completedHabitsCount completed today, top: $topHabitTitle), Distractions: ${distractionMins}m ($topDistractStr)"
-            val promptWithContext = "[$appContextSummary]\n$textToSend"
-
-            val result = aiRepository.getAiInsights(
-                userId = currentUserId,
-                queryType = "chat",
-                prompt = promptWithContext,
-                history = currentHistory
-            )
-
-            result.fold(
-                onSuccess = { response ->
-                    if (response.status == "offline" || response.status == "fallback") {
-                        val offlineResult = GrootActionParser.parseActions(textToSend)
-                        if (offlineResult != null && offlineResult.actions.isNotEmpty()) {
-                            var anyExec = false
-                            val transcript = (_uiState.value.messages + userMessage).joinToString("\n") {
-                                (if (it.isFromUser) "User: " else "Groot: ") + it.text
-                            }
-                            for (act in offlineResult.actions) {
-                                val prepAct = if (act.type.equals("EXPORT_CHAT", ignoreCase = true) && !act.payload.containsKey("transcript")) {
-                                    act.copy(payload = act.payload + ("transcript" to transcript))
-                                } else act
-                                val ok = actionExecutor?.executeAction(
-                                    action = prepAct,
-                                    userId = currentUserId,
-                                    onNavigate = { _navigationEvent.tryEmit(it) },
-                                    onClearChat = { clearChat() }
-                                ) ?: false
-                                if (ok) anyExec = true
-                            }
-                            val offlineMsg = ChatMessage(
-                                isFromUser = false,
-                                text = offlineResult.confirmationMessage,
-                                action = offlineResult.actions.firstOrNull(),
-                                actions = offlineResult.actions,
-                                actionExecuted = anyExec
-                            )
-                            withContext(Dispatchers.Main) {
-                                val updated = _uiState.value.messages + offlineMsg
-                                _uiState.update {
-                                    it.copy(messages = updated, isAiThinking = false, isGenerating = false)
-                                }
-                                persistMessages(updated)
-                            }
-                            return@fold
-                        }
-                    }
-
-                    val rawAiText = response.resolvedText.ifBlank {
-                        response.reply ?: response.response ?: response.text ?: response.insight ?: response.message ?: "I am Groot. Focus on your top priority task."
-                    }
-                    val unescapedText = HtmlCompat.fromHtml(rawAiText, HtmlCompat.FROM_HTML_MODE_LEGACY).toString().trim()
-                    val aiText = if (unescapedText.trimStart().startsWith("{") && unescapedText.contains("\"insight\"")) {
-                        response.message ?: "I am Groot, ready to assist."
-                    } else {
-                        unescapedText
-                    }
-                    val safeAiText = if (aiText.isNotBlank()) aiText else "I am Groot, ready to assist. How can I guide your focus or workflow today?"
-
-                    val actionsToProcess = when {
-                        response.actions.isNotEmpty() -> response.actions
-                        response.action != null -> listOf(response.action)
-                        else -> GrootActionParser.parseActions(textToSend)?.actions ?: emptyList()
-                    }
-
-                    var actionExecuted = false
-                    val transcript = (_uiState.value.messages + userMessage).joinToString("\n") {
-                        (if (it.isFromUser) "User: " else "Groot: ") + it.text
-                    }
-                    for (act in actionsToProcess) {
-                        val prepAct = if (act.type.equals("EXPORT_CHAT", ignoreCase = true) && !act.payload.containsKey("transcript")) {
-                            act.copy(payload = act.payload + ("transcript" to transcript))
-                        } else act
-                        val ok = actionExecutor?.executeAction(
-                            action = prepAct,
-                            userId = currentUserId,
-                            onNavigate = { _navigationEvent.tryEmit(it) },
-                            onClearChat = { clearChat() }
-                        ) ?: false
-                        if (ok) actionExecuted = true
-                    }
-
-                    val aiMessage = ChatMessage(
-                        isFromUser = false,
-                        text = safeAiText,
-                        action = actionsToProcess.firstOrNull(),
-                        actions = actionsToProcess,
-                        actionExecuted = actionExecuted
-                    )
-
-                    withContext(Dispatchers.Main) {
-                        val updatedWithAi = _uiState.value.messages + aiMessage
-                        _uiState.update {
-                            it.copy(
-                                messages = updatedWithAi,
-                                isAiThinking = false,
-                                isGenerating = false
-                            )
-                        }
-                        persistMessages(updatedWithAi)
-                    }
-                },
-                onFailure = {
-                    val offlineResult = GrootActionParser.parseActions(textToSend)
-                    if (offlineResult != null && offlineResult.actions.isNotEmpty()) {
-                        var anyExec = false
-                        val transcript = (_uiState.value.messages + userMessage).joinToString("\n") {
-                            (if (it.isFromUser) "User: " else "Groot: ") + it.text
-                        }
-                        for (act in offlineResult.actions) {
-                            val prepAct = if (act.type.equals("EXPORT_CHAT", ignoreCase = true) && !act.payload.containsKey("transcript")) {
-                                act.copy(payload = act.payload + ("transcript" to transcript))
-                            } else act
-                            val ok = actionExecutor?.executeAction(
-                                action = prepAct,
-                                userId = currentUserId,
-                                onNavigate = { _navigationEvent.tryEmit(it) },
-                                onClearChat = { clearChat() }
-                            ) ?: false
-                            if (ok) anyExec = true
-                        }
-                        val offlineMsg = ChatMessage(
-                            isFromUser = false,
-                            text = offlineResult.confirmationMessage,
-                            action = offlineResult.actions.firstOrNull(),
-                            actions = offlineResult.actions,
-                            actionExecuted = anyExec
-                        )
-                        withContext(Dispatchers.Main) {
-                            val updatedWithFallback = _uiState.value.messages + offlineMsg
-                            _uiState.update {
-                                it.copy(
-                                    messages = updatedWithFallback,
-                                    isAiThinking = false,
-                                    isGenerating = false
-                                )
-                            }
-                            persistMessages(updatedWithFallback)
-                        }
-                    } else {
-                        val fallbackText = "Unable to connect to Groot AI. Please check your network connection and verify the AI service is active."
-                        val fallbackMessage = ChatMessage(
-                            isFromUser = false,
-                            text = fallbackText
-                        )
-                        withContext(Dispatchers.Main) {
-                            val updatedWithFallback = _uiState.value.messages + fallbackMessage
-                            _uiState.update {
-                                it.copy(
-                                    messages = updatedWithFallback,
-                                    isAiThinking = false,
-                                    isGenerating = false
-                                )
-                            }
-                            persistMessages(updatedWithFallback)
-                        }
-                    }
-                }
-            )
-        }
+        chatRepo.sendMessage(query, currentUserId, sessionManager)
     }
 
     fun stopGeneration() {
-        activeChatJob?.cancel()
-        activeChatJob = null
-        val stoppedMsg = ChatMessage(
-            isFromUser = false,
-            text = "Response stopped."
-        )
-        val updated = _uiState.value.messages + stoppedMsg
-        _uiState.update {
-            it.copy(
-                isAiThinking = false,
-                isGenerating = false,
-                messages = updated
-            )
-        }
-        persistMessages(updated)
+        chatRepo.stopGeneration()
     }
 
     override fun onCleared() {
         super.onCleared()
-        activeChatJob?.cancel()
     }
 
     fun handleActionClick(action: AiAction, onNavigate: (String) -> Unit) {
@@ -486,14 +162,14 @@ class GrootAiViewModel(
                     val apps = (action.payload["apps"] as? List<*>)?.mapNotNull { it?.toString() }
                         ?: listOfNotNull(action.payload["title"]?.toString(), action.resolvedTitle.takeIf { it.isNotBlank() })
                     withContext(Dispatchers.Main) {
-                        com.simats.focusflow.data.session.BlockedAppsManager.getInstance(context).blockAppsByNames(apps, block = false)
+                        BlockedAppsManager.getInstance(context).blockAppsByNames(apps, block = false)
                     }
                 }
                 "UNBLOCK_APPS" -> {
                     val apps = (action.payload["apps"] as? List<*>)?.mapNotNull { it?.toString() }
                         ?: listOfNotNull(action.payload["title"]?.toString(), action.resolvedTitle.takeIf { it.isNotBlank() })
                     withContext(Dispatchers.Main) {
-                        com.simats.focusflow.data.session.BlockedAppsManager.getInstance(context).blockAppsByNames(apps, block = true)
+                        BlockedAppsManager.getInstance(context).blockAppsByNames(apps, block = true)
                     }
                 }
                 "CREATE_TASK" -> {
@@ -534,11 +210,7 @@ class GrootAiViewModel(
                 isFromUser = false,
                 text = "Undid action: ${action.title.ifBlank { action.type }}"
             )
-            withContext(Dispatchers.Main) {
-                val updated = _uiState.value.messages + undoMsg
-                _uiState.update { it.copy(messages = updated) }
-                persistMessages(updated)
-            }
+            chatRepo.persistMessages(chatRepo.uiState.value.messages + undoMsg)
         }
     }
 }

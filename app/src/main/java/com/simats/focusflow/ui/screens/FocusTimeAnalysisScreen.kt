@@ -55,6 +55,9 @@ private data class MonthWeekBreakdown(
 fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
     val context = LocalContext.current
     val colors = FocusFlowTheme.colors
+    val sessionManager = remember { SessionManager.getInstance(context) }
+    val dailyGoalMinutes by sessionManager.dailyFocusGoalMinutesFlow.collectAsState(initial = 240)
+    val weeklyGoalMinutes = dailyGoalMinutes * 7
 
     var selectedPeriod by remember { mutableStateOf("This Week") }
     var insightsData by remember { mutableStateOf(InsightsData()) }
@@ -699,8 +702,9 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                                     letterSpacing = 1.sp
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
+                                val activeDailyGoal = if (dailyGoalMinutes > 0) dailyGoalMinutes else 60
                                 Text(
-                                    text = "Daily Goal: 60m threshold",
+                                    text = "Daily Goal: ${activeDailyGoal}m threshold",
                                     fontSize = 13.sp,
                                     color = colors.textMuted
                                 )
@@ -711,8 +715,9 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                                     .background(colors.primary.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
                                     .padding(horizontal = 8.dp, vertical = 4.dp)
                             ) {
+                                val activeDailyGoal = if (dailyGoalMinutes > 0) dailyGoalMinutes else 60
                                 Text(
-                                    text = "${displayDays.count { it.focusMinutes >= 60 }}/7 Met Goal",
+                                    text = "${displayDays.count { it.focusMinutes >= activeDailyGoal }}/7 Met Goal",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = colors.primaryLight
@@ -722,8 +727,9 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        val weekChartMax = maxOf(70f, (displayDays.maxOfOrNull { it.focusMinutes.toFloat() } ?: 60f) * 1.15f)
-                        val goalRatio = (60f / weekChartMax).coerceIn(0.1f, 0.95f)
+                        val activeDailyGoal = if (dailyGoalMinutes > 0) dailyGoalMinutes else 60
+                        val weekChartMax = maxOf(activeDailyGoal.toFloat() * 1.15f, (displayDays.maxOfOrNull { it.focusMinutes.toFloat() } ?: activeDailyGoal.toFloat()) * 1.15f)
+                        val goalRatio = (activeDailyGoal.toFloat() / weekChartMax).coerceIn(0.1f, 0.95f)
 
                         Box(
                             modifier = Modifier
@@ -748,7 +754,7 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = "Goal 60m",
+                                        text = "Goal ${activeDailyGoal}m",
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = colors.primaryLight
@@ -763,7 +769,7 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                             ) {
                                 displayDays.forEach { item ->
                                     val isToday = item.date == todayDateKey
-                                    val metGoal = item.focusMinutes >= 60
+                                    val metGoal = item.focusMinutes >= activeDailyGoal
                                     val heightRatio = if (weekChartMax > 0f) {
                                         (item.focusMinutes / weekChartMax).coerceIn(0.04f, 1f)
                                     } else 0.04f
@@ -821,8 +827,10 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                                 fontSize = 13.sp,
                                 color = colors.textMuted
                             )
+                            val targetWeeklyGoal = if (weeklyGoalMinutes > 0) weeklyGoalMinutes else 420
+                            val weeklyPercent = if (targetWeeklyGoal > 0) ((totalWeekMinutes * 100) / targetWeeklyGoal).coerceAtMost(100) else 0
                             Text(
-                                text = "${totalWeekMinutes}m / 420m (${(totalWeekMinutes * 100 / 420).coerceAtMost(100)}%)",
+                                text = "${totalWeekMinutes}m / ${targetWeeklyGoal}m (${weeklyPercent}%)",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = colors.textPrimary

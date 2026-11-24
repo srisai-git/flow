@@ -502,7 +502,11 @@ fun DashboardScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        if (data.priorityTasks.isEmpty()) {
+        val incompletePriorities = remember(data.priorityTasks) {
+            data.priorityTasks.filter { !it.isCompleted }.distinctBy { it.id }.take(3)
+        }
+
+        if (incompletePriorities.isEmpty()) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -531,7 +535,7 @@ fun DashboardScreen(
             }
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                data.priorityTasks.take(3).forEach { task ->
+                incompletePriorities.forEach { task ->
                     key(task.id) {
                         PriorityTaskRow(
                             task = task,

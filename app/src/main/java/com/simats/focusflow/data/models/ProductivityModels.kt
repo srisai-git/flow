@@ -476,7 +476,7 @@ data class ProfileData(
     val completedTasksCount: Int = 0,
 
     @SerializedName("current_streak")
-    val currentStreak: Int = 1,
+    val currentStreak: Int = 0,
 
     @SerializedName("daily_focus_goal_minutes")
     val dailyFocusGoalMinutes: Int = 240,
@@ -752,9 +752,9 @@ data class ResetStatsResponse(
 @Immutable
 data class StreakData(
     @SerializedName("user_id") val userId: Int = 1,
-    @SerializedName("current_streak") val currentStreak: Int = 1,
-    @SerializedName("longest_streak") val longestStreak: Int = 1,
-    @SerializedName("total_active_days") val totalActiveDays: Int = 1,
+    @SerializedName("current_streak") val currentStreak: Int = 0,
+    @SerializedName("longest_streak") val longestStreak: Int = 0,
+    @SerializedName("total_active_days") val totalActiveDays: Int = 0,
     @SerializedName("last_active_date") val lastActiveDate: String? = null
 )
 

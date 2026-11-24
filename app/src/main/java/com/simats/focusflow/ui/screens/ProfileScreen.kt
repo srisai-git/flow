@@ -59,6 +59,7 @@ import coil.request.ImageRequest
 import com.simats.focusflow.data.models.ProfileData
 import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.ui.components.AmbientMeshGlowHeader
+import com.simats.focusflow.ui.components.FlowLoadingIndicator
 import com.simats.focusflow.ui.components.bounceClick
 import com.simats.focusflow.ui.theme.FocusFlowTheme
 import com.simats.focusflow.ui.viewmodel.ProfileViewModel
@@ -119,6 +120,7 @@ fun ProfileScreen(
     var showFocusDetailSheet by remember { mutableStateOf(false) }
     var showTasksDetailSheet by remember { mutableStateOf(false) }
     var showStreakDetailSheet by remember { mutableStateOf(false) }
+    var isExporting by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
@@ -394,11 +396,17 @@ fun ProfileScreen(
                 Column {
                     ProfileMenuRow(
                         icon = Icons.Default.Share,
-                        title = "Export Productivity Data",
-                        subtitle = "Generate & share complete records",
+                        title = if (isExporting) "Exporting Records..." else "Export Productivity Data",
+                        subtitle = if (isExporting) "Generating complete historical records..." else "Generate & share complete records",
                         onClick = {
+                            if (isExporting) return@ProfileMenuRow
+                            isExporting = true
                             coroutineScope.launch {
-                                com.simats.focusflow.utils.ExportDataHelper.generateAndShareExport(context, profile.id, profile.name)
+                                try {
+                                    com.simats.focusflow.utils.ExportDataHelper.generateAndShareExport(context, profile.id, profile.name)
+                                } finally {
+                                    isExporting = false
+                                }
                             }
                         }
                     )
@@ -571,6 +579,38 @@ fun ProfileScreen(
                     }
                 }
             )
+        }
+
+        if (isExporting) {
+            androidx.compose.ui.window.Dialog(onDismissRequest = {}) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = colors.surface,
+                    border = BorderStroke(1.dp, colors.border)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        FlowLoadingIndicator(size = 24.dp, strokeWidth = 2.5.dp)
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column {
+                            Text(
+                                text = "Exporting Records...",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textPrimary
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Compiling full productivity history",
+                                fontSize = 12.sp,
+                                color = colors.textMuted
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         if (showFocusDetailSheet) {
