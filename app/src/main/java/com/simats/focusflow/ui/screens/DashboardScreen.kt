@@ -414,10 +414,29 @@ fun DashboardScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        val context = LocalContext.current
+        var realDistractMins by remember { mutableStateOf(0) }
+        var realDistractAppsCount by remember { mutableStateOf(0) }
+        var realDistractTrend by remember { mutableStateOf(listOf(3f, 2f, 2f, 1f, 1f, 0f, 0f)) }
+
+        LaunchedEffect(Unit) {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                try {
+                    val summary = com.simats.focusflow.utils.UsageStatsHelper.queryTodayDistractionStats(context)
+                    realDistractMins = summary.totalDistractionMinutes
+                    realDistractAppsCount = summary.apps.count { it.usageMinutes > 0 }
+                    val trend = summary.apps.take(7).map { it.usageMinutes.toFloat() }
+                    if (trend.isNotEmpty()) {
+                        realDistractTrend = trend
+                    }
+                } catch (_: Exception) {}
+            }
+        }
+
         val weeklyTrend = listOf(20f, 40f, 35f, 60f, 50f, 75f, (data.focusMinutesToday.toFloat()).coerceAtLeast(15f))
         val streakTrend = listOf(1f, 2f, 3f, 3f, 4f, 5f, data.streakDays.toFloat().coerceAtLeast(1f))
         val taskTrend = listOf(1f, 3f, 2f, 4f, 3f, 5f, data.completedTaskCount.toFloat().coerceAtLeast(1f))
-        val distractTrend = listOf(3f, 2f, 2f, 1f, 1f, 0f, 0f)
+        val distractTrend = realDistractTrend
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -463,10 +482,13 @@ fun DashboardScreen(
                 onClick = onNavigateToTasks
             )
 
+            val shieldValue = if (realDistractMins > 0) "${realDistractMins}m" else if (data.distractionCountToday > 0) "${data.distractionCountToday} Blocked" else "Active"
+            val shieldSub = if (realDistractMins > 0) "$realDistractAppsCount apps monitored" else if (data.distractionCountToday > 0) "${data.distractionCountToday} shielded today" else "Zero interruptions"
+
             BentoSparklineTile(
                 label = "Distraction Shield",
-                value = "Active",
-                subValue = "Zero interruptions",
+                value = shieldValue,
+                subValue = shieldSub,
                 accentColor = Color(0xFFFF5A5F),
                 icon = Icons.Default.PieChart,
                 sparklineData = distractTrend,
