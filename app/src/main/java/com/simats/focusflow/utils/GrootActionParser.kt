@@ -141,36 +141,38 @@ object GrootActionParser {
                 continue
             }
 
-            val blockAppMatch = Regex("(?i)\\b(?:block|restrict|lock|add)\\s+(?:apps?\\s+)?(?:called\\s+)?([a-zA-Z0-9,\\s&]+?)(?:\\s+to\\s+blocked(?:\\s+apps?)?)?$").find(clause)
-            if (blockAppMatch != null && (cLower.startsWith("block") || cLower.contains("to blocked"))) {
-                val rawApps = blockAppMatch.groupValues[1]
-                val appNames = rawApps.split(Regex("(?i)\\s+(?:and|&)\\s+|,\\s*")).map { it.trim() }.filter { it.isNotBlank() && !it.equals("apps", ignoreCase = true) }
+            val blockAppMatch = Regex("(?i)\\b(?:block|restrict|lock|add)\\s+(?:apps?\\s+)?(?:called\\s+)?([a-zA-Z0-9,\\s&]+?)(?:\\s+(?:to|in|into)\\s+(?:strict(?:\\s+focus)?(?:\\s+mode)?|blocked(?:\\s+apps?)?))?$").find(clause)
+            if (blockAppMatch != null && (cLower.startsWith("block") || cLower.startsWith("restrict") || cLower.startsWith("lock") || cLower.contains("strict") || cLower.contains("blocked"))) {
+                var rawApps = blockAppMatch.groupValues[1].trim()
+                rawApps = rawApps.replace(Regex("(?i)\\s+(?:to|in|into)\\s+(?:strict(?:\\s+focus)?(?:\\s+mode)?|blocked(?:\\s+apps?)?)$"), "").trim()
+                val appNames = rawApps.split(Regex("(?i)\\s+(?:and|&)\\s+|,\\s*|\\s+")).map { it.trim() }.filter { it.isNotBlank() && !it.equals("apps", ignoreCase = true) && !it.equals("app", ignoreCase = true) && !it.equals("the", ignoreCase = true) }
                 if (appNames.isNotEmpty()) {
                     actions.add(
                         AiAction(
                             type = "BLOCK_APPS",
                             title = "Block " + appNames.joinToString(", "),
-                            payload = mapOf("apps" to appNames)
+                            payload = mapOf("apps" to appNames, "title" to appNames.joinToString(", "))
                         )
                     )
-                    replies.add("Added ${appNames.joinToString(", ")} to blocked apps list.")
+                    replies.add("Added ${appNames.joinToString(", ")} to Strict Focus Mode blocked apps.")
                     continue
                 }
             }
 
-            val unblockAppMatch = Regex("(?i)\\b(?:unblock|unlock|allow|remove)\\s+(?:apps?\\s+)?(?:called\\s+)?([a-zA-Z0-9,\\s&]+?)(?:\\s+from\\s+blocked(?:\\s+apps?)?)?$").find(clause)
-            if (unblockAppMatch != null && (cLower.startsWith("unblock") || cLower.contains("from blocked"))) {
-                val rawApps = unblockAppMatch.groupValues[1]
-                val appNames = rawApps.split(Regex("(?i)\\s+(?:and|&)\\s+|,\\s*")).map { it.trim() }.filter { it.isNotBlank() && !it.equals("apps", ignoreCase = true) }
+            val unblockAppMatch = Regex("(?i)\\b(?:unblock|unlock|allow|remove)\\s+(?:apps?\\s+)?(?:called\\s+)?([a-zA-Z0-9,\\s&]+?)(?:\\s+(?:from|out\\s+of)\\s+(?:strict(?:\\s+focus)?(?:\\s+mode)?|blocked(?:\\s+apps?)?))?$").find(clause)
+            if (unblockAppMatch != null && (cLower.startsWith("unblock") || cLower.startsWith("unlock") || cLower.startsWith("allow") || cLower.contains("strict") || cLower.contains("blocked"))) {
+                var rawApps = unblockAppMatch.groupValues[1].trim()
+                rawApps = rawApps.replace(Regex("(?i)\\s+(?:from|out\\s+of)\\s+(?:strict(?:\\s+focus)?(?:\\s+mode)?|blocked(?:\\s+apps?)?)$"), "").trim()
+                val appNames = rawApps.split(Regex("(?i)\\s+(?:and|&)\\s+|,\\s*|\\s+")).map { it.trim() }.filter { it.isNotBlank() && !it.equals("apps", ignoreCase = true) && !it.equals("app", ignoreCase = true) && !it.equals("the", ignoreCase = true) }
                 if (appNames.isNotEmpty()) {
                     actions.add(
                         AiAction(
                             type = "UNBLOCK_APPS",
                             title = "Unblock " + appNames.joinToString(", "),
-                            payload = mapOf("apps" to appNames)
+                            payload = mapOf("apps" to appNames, "title" to appNames.joinToString(", "))
                         )
                     )
-                    replies.add("Removed ${appNames.joinToString(", ")} from blocked apps list.")
+                    replies.add("Removed ${appNames.joinToString(", ")} from Strict Focus Mode blocked apps.")
                     continue
                 }
             }

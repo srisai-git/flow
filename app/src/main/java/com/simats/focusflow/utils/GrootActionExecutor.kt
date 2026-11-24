@@ -78,8 +78,9 @@ class GrootActionExecutor(
                     true
                 }
                 "BLOCK_APPS" -> {
-                    val apps = (action.payload["apps"] as? List<*>)?.mapNotNull { it?.toString() }
+                    val rawApps = (action.payload["apps"] as? List<*>)?.mapNotNull { it?.toString() }
                         ?: listOfNotNull(action.payload["title"]?.toString(), action.resolvedTitle.takeIf { it.isNotBlank() })
+                    val apps = rawApps.flatMap { it.split(Regex("(?i)\\s+(?:and|&)\\s+|,\\s*")) }.map { it.trim() }.filter { it.isNotBlank() }
                     withContext(Dispatchers.Main) {
                         val manager = com.simats.focusflow.data.session.BlockedAppsManager.getInstance(context)
                         manager.blockAppsByNames(apps, block = true)
@@ -87,8 +88,9 @@ class GrootActionExecutor(
                     true
                 }
                 "UNBLOCK_APPS" -> {
-                    val apps = (action.payload["apps"] as? List<*>)?.mapNotNull { it?.toString() }
+                    val rawApps = (action.payload["apps"] as? List<*>)?.mapNotNull { it?.toString() }
                         ?: listOfNotNull(action.payload["title"]?.toString(), action.resolvedTitle.takeIf { it.isNotBlank() })
+                    val apps = rawApps.flatMap { it.split(Regex("(?i)\\s+(?:and|&)\\s+|,\\s*")) }.map { it.trim() }.filter { it.isNotBlank() }
                     withContext(Dispatchers.Main) {
                         val manager = com.simats.focusflow.data.session.BlockedAppsManager.getInstance(context)
                         manager.blockAppsByNames(apps, block = false)
