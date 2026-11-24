@@ -158,7 +158,7 @@ class FocusTimerService : Service() {
                         isBreak = nextMode != TimerMode.FOCUS,
                         isRunning = false,
                         isPaused = false,
-                        isStrictFocus = it.isStrictFocus,
+                        isStrictFocus = false,
                         totalSeconds = nextSecs,
                         remainingSeconds = nextSecs,
                         targetEndTimeMillis = 0L,
@@ -191,12 +191,6 @@ class FocusTimerService : Service() {
         }
 
         fun setStrictFocus(context: Context, enabled: Boolean) {
-            try {
-                context.applicationContext.getSharedPreferences("focusflow_blocked_apps_prefs", Context.MODE_PRIVATE)
-                    .edit()
-                    .putBoolean("pref_strict_focus_enabled", enabled)
-                    .apply()
-            } catch (_: Exception) {}
             _timerStateFlow.update { it.copy(isStrictFocus = enabled) }
             val intent = Intent(context, FocusTimerService::class.java).apply {
                 action = ACTION_SET_STRICT_FOCUS
@@ -296,19 +290,12 @@ class FocusTimerService : Service() {
             state = _timerStateFlow.value
         }
 
-        val isStrict = try {
-            applicationContext.getSharedPreferences("focusflow_blocked_apps_prefs", Context.MODE_PRIVATE)
-                .getBoolean("pref_strict_focus_enabled", _timerStateFlow.value.isStrictFocus)
-        } catch (_: Exception) {
-            _timerStateFlow.value.isStrictFocus
-        }
         val targetEnd = SystemClock.elapsedRealtime() + (state.remainingSeconds * 1000L)
         _timerStateFlow.update {
             it.copy(
                 isRunning = true,
                 isPaused = false,
                 isBreak = state.currentMode != TimerMode.FOCUS,
-                isStrictFocus = if (state.currentMode == TimerMode.FOCUS) isStrict else false,
                 targetEndTimeMillis = targetEnd,
                 toastMessage = null
             )
@@ -325,19 +312,12 @@ class FocusTimerService : Service() {
             _timerStateFlow.update { it.copy(totalSeconds = secs, remainingSeconds = secs) }
         }
 
-        val isStrict = try {
-            applicationContext.getSharedPreferences("focusflow_blocked_apps_prefs", Context.MODE_PRIVATE)
-                .getBoolean("pref_strict_focus_enabled", _timerStateFlow.value.isStrictFocus)
-        } catch (_: Exception) {
-            _timerStateFlow.value.isStrictFocus
-        }
         val targetEnd = SystemClock.elapsedRealtime() + (_timerStateFlow.value.remainingSeconds * 1000L)
         _timerStateFlow.update {
             it.copy(
                 isRunning = true,
                 isPaused = false,
                 isBreak = _timerStateFlow.value.currentMode != TimerMode.FOCUS,
-                isStrictFocus = if (_timerStateFlow.value.currentMode == TimerMode.FOCUS) isStrict else false,
                 targetEndTimeMillis = targetEnd,
                 toastMessage = null
             )
@@ -391,7 +371,7 @@ class FocusTimerService : Service() {
                 isRunning = false,
                 isPaused = false,
                 isBreak = false,
-                isStrictFocus = it.isStrictFocus,
+                isStrictFocus = false,
                 totalSeconds = secs,
                 remainingSeconds = secs,
                 targetEndTimeMillis = 0L,
@@ -417,7 +397,7 @@ class FocusTimerService : Service() {
                 isBreak = nextMode != TimerMode.FOCUS,
                 isRunning = false,
                 isPaused = false,
-                isStrictFocus = it.isStrictFocus,
+                isStrictFocus = false,
                 totalSeconds = nextSecs,
                 remainingSeconds = nextSecs,
                 targetEndTimeMillis = 0L,
@@ -436,7 +416,7 @@ class FocusTimerService : Service() {
                 isBreak = mode != TimerMode.FOCUS,
                 isRunning = false,
                 isPaused = false,
-                isStrictFocus = it.isStrictFocus,
+                isStrictFocus = false,
                 totalSeconds = secs,
                 remainingSeconds = secs,
                 targetEndTimeMillis = 0L,
@@ -579,7 +559,7 @@ class FocusTimerService : Service() {
                     isRunning = true,
                     isPaused = false,
                     isBreak = true,
-                    isStrictFocus = it.isStrictFocus,
+                    isStrictFocus = false,
                     completedSessions = newCompletedCount,
                     currentMode = nextMode,
                     totalSeconds = nextSecs,
@@ -612,7 +592,7 @@ class FocusTimerService : Service() {
                     isRunning = false,
                     isPaused = false,
                     isBreak = false,
-                    isStrictFocus = it.isStrictFocus,
+                    isStrictFocus = false,
                     currentMode = TimerMode.FOCUS,
                     totalSeconds = nextSecs,
                     remainingSeconds = nextSecs,

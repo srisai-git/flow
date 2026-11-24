@@ -141,9 +141,9 @@ class AiRepository(
 
     private fun tryDirectFastApiCall(promptText: String): String? {
         val client = okhttp3.OkHttpClient.Builder()
-            .connectTimeout(3, java.util.concurrent.TimeUnit.SECONDS)
-            .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
-            .writeTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+            .connectTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
             .build()
         val jsonPayload = com.google.gson.Gson().toJson(
             mapOf(
@@ -157,15 +157,12 @@ class AiRepository(
         val body = jsonPayload.toRequestBody(mediaType)
 
         val urls = listOf(
-            "http://127.0.0.1:8000/chat",
-            "http://172.23.176.89:8000/chat",
+            "https://focusflow-groot-ai.onrender.com/chat",
+            "https://focusflow-groot-ai.onrender.com/ask_groot",
             "http://10.0.2.2:8000/chat",
-            "http://127.0.0.1:8000/ask_groot",
-            "http://172.23.176.89:8000/ask_groot",
             "http://10.0.2.2:8000/ask_groot",
-            "http://172.23.176.89/flow_backend/ask_groot.php",
-            "http://10.0.2.2/flow_backend/ask_groot.php",
-            "http://127.0.0.1/flow_backend/ask_groot.php"
+            "http://127.0.0.1:8000/chat",
+            "http://127.0.0.1:8000/ask_groot"
         )
         for (url in urls) {
             try {

@@ -67,8 +67,6 @@ data class InstalledAppDisplayItem(
     val appLabel: String
 )
 
-private val appIconCache = java.util.concurrent.ConcurrentHashMap<String, androidx.compose.ui.graphics.ImageBitmap>()
-
 private fun drawableToBitmap(drawable: Drawable): Bitmap {
     if (drawable is BitmapDrawable && drawable.bitmap != null) {
         return drawable.bitmap
@@ -117,12 +115,6 @@ fun SelectBlockedAppsSheet(
                     info.loadLabel(pm).toString()
                 } catch (_: Exception) {
                     pkg
-                }
-                if (!appIconCache.containsKey(pkg)) {
-                    try {
-                        val drawable = info.loadIcon(pm)
-                        appIconCache[pkg] = drawableToBitmap(drawable).asImageBitmap()
-                    } catch (_: Exception) {}
                 }
                 InstalledAppDisplayItem(packageName = pkg, appLabel = label)
             }.distinctBy { it.packageName }.sortedBy { it.appLabel.lowercase() }
@@ -261,11 +253,9 @@ private fun AppItemRow(
     onCheckedChange: (Boolean) -> Unit
 ) {
     val iconBitmap = remember(app.packageName) {
-        appIconCache[app.packageName] ?: try {
+        try {
             val drawable = pm.getApplicationIcon(app.packageName)
-            val bmp = drawableToBitmap(drawable).asImageBitmap()
-            appIconCache[app.packageName] = bmp
-            bmp
+            drawableToBitmap(drawable).asImageBitmap()
         } catch (_: Exception) {
             null
         }

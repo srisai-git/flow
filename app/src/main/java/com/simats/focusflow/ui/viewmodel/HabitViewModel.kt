@@ -205,6 +205,7 @@ class HabitViewModel(
     fun selectTab(tab: HabitTab) {
         _uiState.update { it.copy(selectedTab = tab) }
         if (tab == HabitTab.INSIGHTS) {
+            loadAiInsight()
             if (_uiState.value.habitReport == null) {
                 generateHabitReport()
             }
