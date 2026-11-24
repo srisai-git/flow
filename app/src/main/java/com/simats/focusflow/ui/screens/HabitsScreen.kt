@@ -277,7 +277,7 @@ fun HabitsScreen(
             ) {
                 listOf(
                     HabitTab.ROUTINE to "Today's Routine",
-                    HabitTab.INSIGHTS to "Insights & Trends"
+                    HabitTab.INSIGHTS to "Trends"
                 ).forEach { (tab, label) ->
                     val isSelected = state.selectedTab == tab
                     val tabBg by animateColorAsState(
@@ -669,19 +669,6 @@ private fun HabitsInsightsView(
             .verticalScroll(rememberScrollState())
             .padding(bottom = 24.dp)
     ) {
-        GrootAiHabitInsightsCard(
-            insight = aiInsight,
-            isLoading = isAiLoading,
-            onRefresh = onRefreshAi,
-            habitReport = habitReport,
-            isGeneratingReport = isGeneratingReport,
-            onGenerateReport = onGenerateReport,
-            userStats = userStats,
-            habits = habits
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(18.dp),
