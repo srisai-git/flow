@@ -21,6 +21,7 @@ class BlockedAppsManager private constructor(private val context: Context) {
     val blockedPackagesFlow: StateFlow<Set<String>> = _blockedPackagesFlow.asStateFlow()
 
     private fun loadBlockedPackages(): Set<String> {
+        val installed = getInstalledLaunchablePackages(context)
         val isInitialized = prefs.getBoolean(KEY_INITIALIZED, false)
         if (!isInitialized) {
             val initial = mutableSetOf<String>()
@@ -38,7 +39,7 @@ class BlockedAppsManager private constructor(private val context: Context) {
                 "org.telegram.messenger"
             )
             for (pkg in candidates) {
-                if (isPackageInstalled(context, pkg) && !isSystemOrEssentialPackage(context, pkg)) {
+                if (installed.contains(pkg)) {
                     initial.add(pkg)
                 }
             }
@@ -48,7 +49,31 @@ class BlockedAppsManager private constructor(private val context: Context) {
                 .apply()
             return initial
         }
-        return prefs.getStringSet(KEY_BLOCKED_PACKAGES, emptySet())?.toSet() ?: emptySet()
+        val stored = prefs.getStringSet(KEY_BLOCKED_PACKAGES, emptySet())?.toSet() ?: emptySet()
+        val sanitized = if (installed.isNotEmpty()) {
+            stored.filter { installed.contains(it) }.toSet()
+        } else {
+            stored.filter { isLaunchablePackage(context, it) }.toSet()
+        }
+        if (sanitized != stored) {
+            prefs.edit().putStringSet(KEY_BLOCKED_PACKAGES, sanitized).apply()
+        }
+        return sanitized
+    }
+
+    fun refreshBlockedPackages(): Set<String> {
+        val installed = getInstalledLaunchablePackages(context)
+        val stored = prefs.getStringSet(KEY_BLOCKED_PACKAGES, emptySet())?.toSet() ?: emptySet()
+        val sanitized = if (installed.isNotEmpty()) {
+            stored.filter { installed.contains(it) }.toSet()
+        } else {
+            stored.filter { isLaunchablePackage(context, it) }.toSet()
+        }
+        if (sanitized != stored) {
+            prefs.edit().putStringSet(KEY_BLOCKED_PACKAGES, sanitized).apply()
+        }
+        _blockedPackagesFlow.value = sanitized
+        return sanitized
     }
 
     fun getBlockedPackages(): Set<String> {
@@ -62,6 +87,7 @@ class BlockedAppsManager private constructor(private val context: Context) {
 
     fun setAppBlocked(packageName: String, blocked: Boolean) {
         if (isSystemOrEssentialPackage(context, packageName)) return
+        if (blocked && !isLaunchablePackage(context, packageName)) return
         val current = _blockedPackagesFlow.value.toMutableSet()
         if (blocked) {
             current.add(packageName)
@@ -73,19 +99,36 @@ class BlockedAppsManager private constructor(private val context: Context) {
     }
 
     fun setBlockedPackages(packages: Set<String>) {
-        val filtered = packages.filterNot { isSystemOrEssentialPackage(context, it) }.toSet()
+        val installed = getInstalledLaunchablePackages(context)
+        val filtered = if (installed.isNotEmpty()) {
+            packages.filter { installed.contains(it) }.toSet()
+        } else {
+            packages.filter { isLaunchablePackage(context, it) }.toSet()
+        }
         prefs.edit().putStringSet(KEY_BLOCKED_PACKAGES, filtered).apply()
         _blockedPackagesFlow.value = filtered
     }
 
     fun blockAppsByNames(names: List<String>, block: Boolean): List<String> {
         val pm = context.packageManager
-        val installed = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            pm.getInstalledApplications(PackageManager.ApplicationInfoFlags.of(0L))
+        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        val resolveInfos = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            pm.queryIntentActivities(intent, PackageManager.ResolveInfoFlags.of(0L))
         } else {
             @Suppress("DEPRECATION")
-            pm.getInstalledApplications(0)
+            pm.queryIntentActivities(intent, 0)
         }
+
+        val launchable = resolveInfos.mapNotNull { info ->
+            val pkg = info.activityInfo?.packageName ?: return@mapNotNull null
+            if (isSystemOrEssentialPackage(context, pkg)) return@mapNotNull null
+            val label = try {
+                info.loadLabel(pm).toString()
+            } catch (_: Exception) {
+                pkg
+            }
+            Pair(pkg, label)
+        }.distinctBy { it.first }
 
         val modifiedNames = mutableListOf<String>()
         val current = _blockedPackagesFlow.value.toMutableSet()
@@ -93,14 +136,7 @@ class BlockedAppsManager private constructor(private val context: Context) {
         for (name in names) {
             val query = name.trim().lowercase()
             if (query.isBlank()) continue
-            for (app in installed) {
-                val pkg = app.packageName ?: continue
-                if (isSystemOrEssentialPackage(context, pkg)) continue
-                val label = try {
-                    pm.getApplicationLabel(app).toString()
-                } catch (_: Exception) {
-                    pkg.substringAfterLast('.')
-                }
+            for ((pkg, label) in launchable) {
                 if (label.lowercase().contains(query) || pkg.lowercase().contains(query)) {
                     if (block) {
                         current.add(pkg)
@@ -114,8 +150,10 @@ class BlockedAppsManager private constructor(private val context: Context) {
             }
         }
 
-        prefs.edit().putStringSet(KEY_BLOCKED_PACKAGES, current).apply()
-        _blockedPackagesFlow.value = current
+        val validPackages = launchable.map { it.first }.toSet()
+        val sanitized = current.filter { validPackages.contains(it) }.toSet()
+        prefs.edit().putStringSet(KEY_BLOCKED_PACKAGES, sanitized).apply()
+        _blockedPackagesFlow.value = sanitized
         return modifiedNames
     }
 
@@ -159,6 +197,40 @@ class BlockedAppsManager private constructor(private val context: Context) {
                 true
             } catch (_: Exception) {
                 false
+            }
+        }
+
+        fun isLaunchablePackage(context: Context, packageName: String): Boolean {
+            if (isSystemOrEssentialPackage(context, packageName)) return false
+            return try {
+                val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER).setPackage(packageName)
+                val resolveInfos = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    context.packageManager.queryIntentActivities(intent, PackageManager.ResolveInfoFlags.of(0L))
+                } else {
+                    @Suppress("DEPRECATION")
+                    context.packageManager.queryIntentActivities(intent, 0)
+                }
+                resolveInfos.isNotEmpty()
+            } catch (_: Exception) {
+                false
+            }
+        }
+
+        fun getInstalledLaunchablePackages(context: Context): Set<String> {
+            return try {
+                val pm = context.packageManager
+                val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+                val resolveInfos = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    pm.queryIntentActivities(intent, PackageManager.ResolveInfoFlags.of(0L))
+                } else {
+                    @Suppress("DEPRECATION")
+                    pm.queryIntentActivities(intent, 0)
+                }
+                resolveInfos.mapNotNull { it.activityInfo?.packageName }
+                    .filterNot { isSystemOrEssentialPackage(context, it) }
+                    .toSet()
+            } catch (_: Exception) {
+                emptySet()
             }
         }
 

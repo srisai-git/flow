@@ -104,6 +104,7 @@ fun TimerScreen(
 
     LaunchedEffect(Unit) {
         viewModel.initSessionManager(context, SessionManager.getInstance(context))
+        blockedAppsManager.refreshBlockedPackages()
     }
 
     val state by viewModel.uiState.collectAsState()
@@ -199,7 +200,10 @@ fun TimerScreen(
 
     if (showSelectBlockedAppsSheet) {
         SelectBlockedAppsSheet(
-            onDismiss = { showSelectBlockedAppsSheet = false }
+            onDismiss = {
+                showSelectBlockedAppsSheet = false
+                blockedAppsManager.refreshBlockedPackages()
+            }
         )
     }
 

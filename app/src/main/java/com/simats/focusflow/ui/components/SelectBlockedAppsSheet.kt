@@ -95,6 +95,7 @@ fun SelectBlockedAppsSheet(
     var installedApps by remember { mutableStateOf<List<InstalledAppDisplayItem>>(emptyList()) }
 
     LaunchedEffect(Unit) {
+        blockedAppsManager.refreshBlockedPackages()
         withContext(Dispatchers.IO) {
             val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).apply {
                 action = Intent.ACTION_MAIN
@@ -157,8 +158,13 @@ fun SelectBlockedAppsSheet(
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(2.dp))
+                    val blockedCount = if (installedApps.isNotEmpty()) {
+                        installedApps.count { blockedPackages.contains(it.packageName) }
+                    } else {
+                        blockedPackages.size
+                    }
                     Text(
-                        text = "${blockedPackages.size} apps will be locked in Strict Mode",
+                        text = "$blockedCount ${if (blockedCount == 1) "app" else "apps"} will be locked in Strict Mode",
                         color = Color(0xFF94A3B8),
                         fontSize = 13.sp
                     )
