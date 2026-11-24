@@ -181,7 +181,7 @@ object GrootActionParser {
                 continue
             }
 
-            val compMatch = Regex("(?i)\\b(?:complete|finish|done|mark\\s+complete|check\\s+off)\\s+(?:task\\s+)?[\"']?([^\"'\\n]+)[\"']?$").find(clause)
+            val compMatch = Regex("(?i)\\b(?:complete|finish|done|mark\\s+complete|mark\\s+done|check\\s+off)\\s+(?:a\\s+|the\\s+)?task\\s+[\"']?([^\"'\\n]+)[\"']?$").find(clause)
             if (compMatch != null && !cLower.contains("habit") && !cLower.contains("timer")) {
                 val tTitle = compMatch.groupValues[1].trim().trimEnd('.', '!')
                 actions.add(AiAction(type = "COMPLETE_TASK", title = tTitle, payload = mapOf("title" to tTitle)))
@@ -189,7 +189,7 @@ object GrootActionParser {
                 continue
             }
 
-            val uncompMatch = Regex("(?i)\\b(?:uncomplete|reopen|undo)\\s+(?:task\\s+)?[\"']?([^\"'\\n]+)[\"']?$").find(clause)
+            val uncompMatch = Regex("(?i)\\b(?:uncomplete|reopen|undo)\\s+(?:a\\s+|the\\s+)?task\\s+[\"']?([^\"'\\n]+)[\"']?$").find(clause)
             if (uncompMatch != null && !cLower.contains("habit") && !cLower.contains("timer")) {
                 val tTitle = uncompMatch.groupValues[1].trim().trimEnd('.', '!')
                 actions.add(AiAction(type = "UNCOMPLETE_TASK", title = tTitle, payload = mapOf("title" to tTitle)))
@@ -197,7 +197,7 @@ object GrootActionParser {
                 continue
             }
 
-            val delTaskMatch = Regex("(?i)\\b(?:delete|remove)\\s+task\\s+[\"']?([^\"'\\n]+)[\"']?$").find(clause)
+            val delTaskMatch = Regex("(?i)\\b(?:delete|remove)\\s+(?:a\\s+|the\\s+)?task\\s+[\"']?([^\"'\\n]+)[\"']?$").find(clause)
             if (delTaskMatch != null) {
                 val tTitle = delTaskMatch.groupValues[1].trim().trimEnd('.', '!')
                 actions.add(AiAction(type = "DELETE_TASK", title = tTitle, payload = mapOf("title" to tTitle)))
@@ -205,7 +205,7 @@ object GrootActionParser {
                 continue
             }
 
-            val taskMatch = Regex("(?i)\\b(?:create|add|new|schedule)\\s+(?:a\\s+)?task\\s+(?:named|to|called)?\\s*[\"']?([^\"'\\n]+)[\"']?").find(clause)
+            val taskMatch = Regex("(?i)\\b(?:set|create|add|new|schedule)\\s+(?:a\\s+)?task\\s+(?:named|to|called)?\\s*[\"']?([^\"'\\n]+)[\"']?").find(clause)
             if (taskMatch != null) {
                 var rawTitle = taskMatch.groupValues[1].trim().trimEnd('.', '!')
                 var priority = "medium"
@@ -254,7 +254,7 @@ object GrootActionParser {
                 continue
             }
 
-            val habitMatch = Regex("(?i)\\b(?:create|add|new|track|build)\\s+(?:a\\s+)?habit\\s+(?:named|to|called)?\\s*[\"']?([^\"'\\n]+)[\"']?").find(clause)
+            val habitMatch = Regex("(?i)\\b(?:set|create|add|new|track|build)\\s+(?:a\\s+)?habit\\s+(?:named|to|called)?\\s*[\"']?([^\"'\\n]+)[\"']?").find(clause)
             if (habitMatch != null) {
                 var hTitle = habitMatch.groupValues[1].trim().trimEnd('.', '!')
                 var frequency = "daily"
@@ -277,7 +277,7 @@ object GrootActionParser {
                 continue
             }
 
-            val chkHabitMatch = Regex("(?i)\\b(?:check\\s+off|log|complete|done)\\s+(?:habit\\s+)?[\"']?([^\"'\\n]+)[\"']?").find(clause)
+            val chkHabitMatch = Regex("(?i)\\b(?:check\\s+off|log|complete|done|mark\\s+complete|mark\\s+done)\\s+(?:a\\s+|the\\s+)?habit\\s+[\"']?([^\"'\\n]+)[\"']?").find(clause)
             if (chkHabitMatch != null && !cLower.contains("task") && !cLower.contains("timer")) {
                 val hTitle = chkHabitMatch.groupValues[1].trim().trimEnd('.', '!')
                 actions.add(AiAction(type = "CHECK_OFF_HABIT", title = hTitle, payload = mapOf("title" to hTitle)))
@@ -285,7 +285,7 @@ object GrootActionParser {
                 continue
             }
 
-            val delHabitMatch = Regex("(?i)\\b(?:delete|remove)\\s+habit\\s+[\"']?([^\"'\\n]+)[\"']?").find(clause)
+            val delHabitMatch = Regex("(?i)\\b(?:delete|remove)\\s+(?:a\\s+|the\\s+)?habit\\s+[\"']?([^\"'\\n]+)[\"']?").find(clause)
             if (delHabitMatch != null) {
                 val hTitle = delHabitMatch.groupValues[1].trim().trimEnd('.', '!')
                 actions.add(AiAction(type = "DELETE_HABIT", title = hTitle, payload = mapOf("title" to hTitle)))
@@ -305,7 +305,7 @@ object GrootActionParser {
                 continue
             }
 
-            val navMatch = Regex("(?i)\\b(?:open|show|go to|take me to|navigate to|view)\\s+(?:my\\s+)?(timer|focus timer|insights|analytics|habits|tasks|task manager|profile|settings|dashboard|home)\\b").find(clause)
+            val navMatch = Regex("(?i)\\b(?:open|show|go to|take me to|navigate to|view|switch to)?\\s*(?:my\\s+|the\\s+)?(timer|focus timer|focus screen|focus|insights|analytics|habits screen|habits|tasks screen|tasks|task manager|profile|settings|dashboard|home screen|home)\\b").find(clause)
             if (navMatch != null) {
                 val dest = navMatch.groupValues[1].lowercase()
                 val tab = when {

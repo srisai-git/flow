@@ -294,8 +294,8 @@ class GrootChatRepository private constructor(
                     val safeAiText = if (aiText.isNotBlank()) aiText else "I am Groot, ready to assist. How can I guide your focus or workflow today?"
 
                     val actionsToProcess = when {
-                        response.actions.isNotEmpty() -> response.actions
-                        response.action != null -> listOf(response.action)
+                        response.actions.isNotEmpty() -> response.actions.filter { !it.type.equals("NONE", ignoreCase = true) }
+                        response.action != null && response.action.type.isNotBlank() && !response.action.type.equals("NONE", ignoreCase = true) -> listOf(response.action)
                         else -> GrootActionParser.parseActions(textToSend)?.actions ?: emptyList()
                     }
 
@@ -304,6 +304,7 @@ class GrootChatRepository private constructor(
                         (if (it.isFromUser) "User: " else "Groot: ") + it.text
                     }
                     for (act in actionsToProcess) {
+                        if (act.type.equals("NONE", ignoreCase = true)) continue
                         val prepAct = if (act.type.equals("EXPORT_CHAT", ignoreCase = true) && !act.payload.containsKey("transcript")) {
                             act.copy(payload = act.payload + ("transcript" to transcript))
                         } else act

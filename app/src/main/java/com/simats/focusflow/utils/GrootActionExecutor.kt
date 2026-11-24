@@ -270,8 +270,10 @@ class GrootActionExecutor(
                         target.contains("task") -> "tasks"
                         target.contains("timer") || target.contains("focus") -> "timer"
                         target.contains("habit") -> "habits"
-                        target.contains("insight") || target.contains("analytic") -> "insights"
-                        target.contains("profile") || target.contains("setting") -> "profile"
+                        target.contains("analysis") || target.contains("analytic") || target.contains("insight") -> "focus_time_analysis"
+                        target.contains("distract") -> "distraction_analysis"
+                        target.contains("profile") -> "profile"
+                        target.contains("setting") -> "data_ai_preferences"
                         target.contains("home") || target.contains("dash") -> "dashboard"
                         else -> target.ifBlank { "dashboard" }
                     }
