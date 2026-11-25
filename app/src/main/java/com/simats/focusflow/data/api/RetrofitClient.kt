@@ -16,7 +16,6 @@ object RetrofitClient {
     private const val DEFAULT_BASE_URL = "https://reaction-union-sublevel.ngrok-free.dev/flow_backend/"
     const val LOCAL_BASE_URL = "http://10.0.2.2/flow_backend/"
     const val LAN_BASE_URL = "http://172.23.176.89/flow_backend/"
-    const val GROOT_AI_BASE_URL = "https://focusflow-groot-ai.onrender.com/"
 
     @Volatile
     private var customBaseUrl: String? = null
@@ -56,41 +55,6 @@ object RetrofitClient {
         builder.build()
     }
 
-    val grootOkHttpClient: OkHttpClient by lazy {
-        OkHttpClient.Builder()
-            .connectTimeout(75, TimeUnit.SECONDS)
-            .readTimeout(75, TimeUnit.SECONDS)
-            .writeTimeout(75, TimeUnit.SECONDS)
-            .connectionPool(ConnectionPool(5, 5, TimeUnit.MINUTES))
-            .retryOnConnectionFailure(true)
-            .addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .header("ngrok-skip-browser-warning", "true")
-                    .build()
-                var response: okhttp3.Response? = null
-                var exception: java.io.IOException? = null
-                try {
-                    response = chain.proceed(request)
-                } catch (e: java.io.IOException) {
-                    exception = e
-                }
-                if (exception != null || response?.code in listOf(502, 503)) {
-                    response?.close()
-                    try {
-                        Thread.sleep(2000)
-                    } catch (_: InterruptedException) {
-                    }
-                    try {
-                        return@addInterceptor chain.proceed(request)
-                    } catch (e: java.io.IOException) {
-                        throw exception ?: e
-                    }
-                }
-                response ?: throw (exception ?: java.io.IOException("Network request failed"))
-            }
-            .build()
-    }
-
     @Volatile
     private var retrofitInstance: Retrofit? = null
 
@@ -125,30 +89,6 @@ object RetrofitClient {
         get() = flowApiServiceInstance ?: synchronized(this) {
             flowApiServiceInstance ?: getRetrofit().create(FlowApiService::class.java).also {
                 flowApiServiceInstance = it
-            }
-        }
-
-    @Volatile
-    private var grootRetrofitInstance: Retrofit? = null
-
-    private fun getGrootRetrofit(): Retrofit {
-        return grootRetrofitInstance ?: synchronized(this) {
-            grootRetrofitInstance ?: Retrofit.Builder()
-                .baseUrl(GROOT_AI_BASE_URL)
-                .client(grootOkHttpClient)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build()
-                .also { grootRetrofitInstance = it }
-        }
-    }
-
-    @Volatile
-    private var grootApiServiceInstance: GrootApiService? = null
-
-    val grootApiService: GrootApiService
-        get() = grootApiServiceInstance ?: synchronized(this) {
-            grootApiServiceInstance ?: getGrootRetrofit().create(GrootApiService::class.java).also {
-                grootApiServiceInstance = it
             }
         }
 }

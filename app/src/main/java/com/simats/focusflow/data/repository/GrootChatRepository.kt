@@ -4,16 +4,14 @@ import android.content.Context
 import androidx.core.text.HtmlCompat
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.simats.focusflow.data.api.RetrofitClient
 import com.simats.focusflow.data.local.FocusSessionDatabase
 import com.simats.focusflow.data.models.ChatHistoryMessage
 import com.simats.focusflow.data.session.SessionManager
 import com.simats.focusflow.ui.viewmodel.ChatMessage
 import com.simats.focusflow.ui.viewmodel.GrootAiUiState
 import com.simats.focusflow.utils.GrootActionExecutor
-import com.simats.focusflow.utils.GrootActionParser
 import com.simats.focusflow.utils.GrootGuardrailHelper
-import com.simats.focusflow.utils.UsageStatsHelper
+import com.simats.focusflow.utils.LocalGrootBrain
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -24,18 +22,9 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.Request
-import okhttp3.Response
 import java.io.File
-import java.io.IOException
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 class GrootChatRepository private constructor(
     private val appContext: Context,
@@ -58,25 +47,6 @@ class GrootChatRepository private constructor(
     init {
         actionExecutor = GrootActionExecutor(appContext, productivityRepository, profileRepository)
         loadPersistedMessages()
-        prewarmConnection()
-    }
-
-    fun prewarmConnection() {
-        scope.launch {
-            try {
-                val pingUrl = RetrofitClient.GROOT_AI_BASE_URL
-                val request = Request.Builder()
-                    .url(pingUrl)
-                    .head()
-                    .build()
-                RetrofitClient.okHttpClient.newCall(request).enqueue(object : Callback {
-                    override fun onFailure(call: Call, e: IOException) {}
-                    override fun onResponse(call: Call, response: Response) {
-                        response.close()
-                    }
-                })
-            } catch (_: Exception) {}
-        }
     }
 
     private fun loadPersistedMessages() {
@@ -186,13 +156,6 @@ class GrootChatRepository private constructor(
             return
         }
 
-        val currentHistory = updatedWithUser.takeLast(10).map {
-            ChatHistoryMessage(
-                role = if (it.isFromUser) "user" else "assistant",
-                content = it.text
-            )
-        }
-
         _uiState.update {
             it.copy(
                 messages = updatedWithUser,
@@ -205,232 +168,53 @@ class GrootChatRepository private constructor(
 
         activeChatJob?.cancel()
         activeChatJob = scope.launch {
-            val session = sessionManager?.userSessionFlow?.first()
-            val userName = session?.userName?.ifBlank { null } ?: "Sri Sai"
-            val db = FocusSessionDatabase.getInstance(appContext)
-            val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-            val todaySessions = db.getRecentSessions(userId, 50).filter {
-                it.startedAt.startsWith(todayStr)
+            val brainResult = LocalGrootBrain.process(
+                query = textToSend,
+                context = appContext,
+                userId = userId
+            )
+
+            var actionExecuted = false
+            val transcript = (_uiState.value.messages + userMessage).joinToString("\n") {
+                (if (it.isFromUser) "User: " else "Groot: ") + it.text
             }
-            val sessionCount = todaySessions.size
-            val todayFocusMins = db.getTodayFocusMinutes(userId)
+            for (act in brainResult.actions) {
+                if (act.type.equals("NONE", ignoreCase = true)) continue
+                val prepAct = if (act.type.equals("EXPORT_CHAT", ignoreCase = true) && !act.payload.containsKey("transcript")) {
+                    act.copy(payload = act.payload + ("transcript" to transcript))
+                } else act
+                val ok = actionExecutor?.executeAction(
+                    action = prepAct,
+                    userId = userId,
+                    onNavigate = { _navigationEvent.tryEmit(it) },
+                    onClearChat = { clearChat() }
+                ) ?: false
+                if (ok) actionExecuted = true
+            }
 
-            val streakData = StreakRepository.getInstance().getStreaks(userId).getOrNull()
-            val streak = streakData?.currentStreak ?: 0
-
-            val localTasks = db.getLocalTasks(userId)
-            val pendingTasks = localTasks.filter { !it.isCompleted }
-            val doneTasksCount = localTasks.count { it.isCompleted }
-            val topPendingTitles = pendingTasks.take(3).joinToString { it.title }
-
-            val habitsRes = try {
-                productivityRepository.getHabits(userId).getOrNull()
-            } catch (_: Exception) { null }
-            val habitsList = habitsRes?.habits ?: emptyList()
-            val completedHabitsCount = habitsList.count { it.isCompletedToday }
-            val topHabitTitle = habitsList.maxByOrNull { it.streakCount }?.title ?: "None"
-
-            val distractionSummary = UsageStatsHelper.queryTodayDistractionStats(appContext)
-            val distractionMins = distractionSummary.totalDistractionMinutes
-            val topDistractApp = distractionSummary.apps.firstOrNull { it.usageMinutes > 0 }
-            val topDistractStr = if (topDistractApp != null) "${topDistractApp.appName} (${topDistractApp.usageMinutes}m)" else "Minimal"
-
-            val appKnowledge = "FocusFlow Architecture: 1. Focus Timer: Custom duration of any minutes (1-720m) across FOCUS, SHORT_BREAK, and LONG_BREAK modes. 2. Strict Focus Mode: AccessibilityService blocker with zero overlay permissions, immediately redirects home on blocked app launch with 150ms/350ms follow-up enforcement. 3. Tasks: Priority (high/medium/low), exact deadline dates and times, and instant status updates. 4. Habits: Pure daily frequency without day-of-week selectors, dotted momentum graph, and streak tracking based only on real productivity actions. 5. Distraction Analysis: Single-foreground UsageStats tracking with minimal horizontal bars, filtering non-interactive/keyguard events. 6. Focus Time Analysis: Today focus stats + Past 7 Days Focus bar chart with threshold goal line and reactive weekly goal target. 7. Profile & Settings: Avatar selection, daily focus goal sync to MySQL, mini streak calendar, and instant reactive DataStore updates. 8. Full Export: Complete CSV/JSON productivity and chat export. 9. Agentic Actions: START_TIMER, NAVIGATE (home, tasks, habits, timer, focus_analysis, distractions, profile, settings), EXPORT_DATA, CREATE_TASK, EDIT_TASK, COMPLETE_TASK, CREATE_HABIT, EDIT_HABIT, COMPLETE_HABIT, BLOCK_APPS, UNBLOCK_APPS, UPDATE_PROFILE, NONE."
-            val appContextSummary = "Active User: $userName, Streak: $streak days, Focus Today: ${todayFocusMins}m across $sessionCount sessions, Tasks: ${pendingTasks.size} pending (${if (topPendingTitles.isNotBlank()) topPendingTitles else "None"}), $doneTasksCount done, Habits: ${habitsList.size} active ($completedHabitsCount completed today, top: $topHabitTitle), Distractions: ${distractionMins}m ($topDistractStr)"
-            val promptWithContext = "[$appContextSummary]\n[App Knowledge: $appKnowledge]\n$textToSend"
-
-            val result = aiRepository.getAiInsights(
-                userId = userId,
-                queryType = "chat",
-                prompt = promptWithContext,
-                history = currentHistory,
-                appContext = appContextSummary,
-                appKnowledge = appKnowledge
-            )
-
-            result.fold(
-                onSuccess = { response ->
-                    if (response.status == "offline" || response.status == "fallback") {
-                        val offlineResult = GrootActionParser.parseActions(textToSend)
-                        if (offlineResult != null && offlineResult.actions.isNotEmpty()) {
-                            var anyExec = false
-                            val transcript = (_uiState.value.messages + userMessage).joinToString("\n") {
-                                (if (it.isFromUser) "User: " else "Groot: ") + it.text
-                            }
-                            for (act in offlineResult.actions) {
-                                val prepAct = if (act.type.equals("EXPORT_CHAT", ignoreCase = true) && !act.payload.containsKey("transcript")) {
-                                    act.copy(payload = act.payload + ("transcript" to transcript))
-                                } else act
-                                val ok = actionExecutor?.executeAction(
-                                    action = prepAct,
-                                    userId = userId,
-                                    onNavigate = { _navigationEvent.tryEmit(it) },
-                                    onClearChat = { clearChat() }
-                                ) ?: false
-                                if (ok) anyExec = true
-                            }
-                            val offlineMsg = ChatMessage(
-                                isFromUser = false,
-                                text = offlineResult.confirmationMessage,
-                                action = offlineResult.actions.firstOrNull(),
-                                actions = offlineResult.actions,
-                                actionExecuted = anyExec
-                            )
-                            val updated = _uiState.value.messages + offlineMsg
-                            _uiState.update {
-                                it.copy(messages = updated, isAiThinking = false, isGenerating = false)
-                            }
-                            persistMessages(updated)
-                            return@fold
-                        } else {
-                            val offlineText = resolveOfflineResponse(textToSend, appContextSummary)
-                            val offlineMsg = ChatMessage(
-                                isFromUser = false,
-                                text = offlineText
-                            )
-                            val updated = _uiState.value.messages + offlineMsg
-                            _uiState.update {
-                                it.copy(messages = updated, isAiThinking = false, isGenerating = false)
-                            }
-                            persistMessages(updated)
-                            return@fold
-                        }
-                    }
-
-                    val rawAiText = response.resolvedText.ifBlank {
-                        response.reply ?: response.response ?: response.text ?: response.insight ?: response.message ?: "Hey! Ready to lock in—want to start a focus timer or check today's tasks?"
-                    }
-                    val unescapedText = HtmlCompat.fromHtml(rawAiText, HtmlCompat.FROM_HTML_MODE_LEGACY).toString().trim()
-                    val aiText = if (unescapedText.trimStart().startsWith("{") && unescapedText.contains("\"insight\"")) {
-                        response.message ?: "Hey! Ready to lock in—want to start a focus timer or check today's tasks?"
-                    } else {
-                        unescapedText
-                    }
-                    val safeAiText = if (aiText.isNotBlank()) aiText else "Hey! Ready to lock in—want to start a focus timer or check today's tasks?"
-
-                    val actionsToProcess = when {
-                        response.actions.isNotEmpty() -> response.actions.filter { !it.type.equals("NONE", ignoreCase = true) }
-                        response.action != null && response.action.type.isNotBlank() && !response.action.type.equals("NONE", ignoreCase = true) -> listOf(response.action)
-                        else -> GrootActionParser.parseActions(textToSend)?.actions ?: emptyList()
-                    }
-
-                    var actionExecuted = false
-                    val transcript = (_uiState.value.messages + userMessage).joinToString("\n") {
-                        (if (it.isFromUser) "User: " else "Groot: ") + it.text
-                    }
-                    for (act in actionsToProcess) {
-                        if (act.type.equals("NONE", ignoreCase = true)) continue
-                        val prepAct = if (act.type.equals("EXPORT_CHAT", ignoreCase = true) && !act.payload.containsKey("transcript")) {
-                            act.copy(payload = act.payload + ("transcript" to transcript))
-                        } else act
-                        val ok = actionExecutor?.executeAction(
-                            action = prepAct,
-                            userId = userId,
-                            onNavigate = { _navigationEvent.tryEmit(it) },
-                            onClearChat = { clearChat() }
-                        ) ?: false
-                        if (ok) actionExecuted = true
-                    }
-
-                    val aiMessage = ChatMessage(
-                        isFromUser = false,
-                        text = safeAiText,
-                        action = actionsToProcess.firstOrNull(),
-                        actions = actionsToProcess,
-                        actionExecuted = actionExecuted
-                    )
-
-                    val updatedWithAi = _uiState.value.messages + aiMessage
-                    _uiState.update {
-                        it.copy(
-                            messages = updatedWithAi,
-                            isAiThinking = false,
-                            isGenerating = false
-                        )
-                    }
-                    persistMessages(updatedWithAi)
-                },
-                onFailure = {
-                    val offlineResult = GrootActionParser.parseActions(textToSend)
-                    if (offlineResult != null && offlineResult.actions.isNotEmpty()) {
-                        var anyExec = false
-                        val transcript = (_uiState.value.messages + userMessage).joinToString("\n") {
-                            (if (it.isFromUser) "User: " else "Groot: ") + it.text
-                        }
-                        for (act in offlineResult.actions) {
-                            val prepAct = if (act.type.equals("EXPORT_CHAT", ignoreCase = true) && !act.payload.containsKey("transcript")) {
-                                act.copy(payload = act.payload + ("transcript" to transcript))
-                            } else act
-                            val ok = actionExecutor?.executeAction(
-                                action = prepAct,
-                                userId = userId,
-                                onNavigate = { _navigationEvent.tryEmit(it) },
-                                onClearChat = { clearChat() }
-                            ) ?: false
-                            if (ok) anyExec = true
-                        }
-                        val offlineMsg = ChatMessage(
-                            isFromUser = false,
-                            text = offlineResult.confirmationMessage,
-                            action = offlineResult.actions.firstOrNull(),
-                            actions = offlineResult.actions,
-                            actionExecuted = anyExec
-                        )
-                        val updatedWithFallback = _uiState.value.messages + offlineMsg
-                        _uiState.update {
-                            it.copy(
-                                messages = updatedWithFallback,
-                                isAiThinking = false,
-                                isGenerating = false
-                            )
-                        }
-                        persistMessages(updatedWithFallback)
-                    } else {
-                        val fallbackText = resolveOfflineResponse(textToSend, appContextSummary)
-                        val fallbackMessage = ChatMessage(
-                            isFromUser = false,
-                            text = fallbackText
-                        )
-                        val updatedWithFallback = _uiState.value.messages + fallbackMessage
-                        _uiState.update {
-                            it.copy(
-                                messages = updatedWithFallback,
-                                isAiThinking = false,
-                                isGenerating = false
-                            )
-                        }
-                        persistMessages(updatedWithFallback)
-                    }
-                }
-            )
-        }
-    }
-
-    private fun resolveOfflineResponse(query: String, userContext: String): String {
-        val q = query.trim().lowercase(Locale.ROOT)
-        return when {
-            q.contains("strict") || q.contains("block") || q.contains("accessibility") ->
-                "Strict Focus Mode runs directly via FocusBlockerAccessibilityService with zero overlay permissions required. When active, opening any blocked app immediately redirects you back to the home screen with 150ms and 350ms follow-up checks."
-            q.contains("distract") || q.contains("usage") || q.contains("screen time") ->
-                "Distraction Analysis uses UsageStatsManager with a strict single-foreground tracker. It ignores background events and keyguard states, displaying minimal horizontal bars for apps used for at least one minute."
-            q.contains("timer") || q.contains("pomodoro") || q.contains("session") ->
-                "The Focus Timer supports custom durations from 1 to 720 minutes across FOCUS, SHORT_BREAK, and LONG_BREAK modes, tracking exact focus minutes without auto-counting streaks on login alone."
-            q.contains("habit") || q.contains("momentum") ->
-                "Habits operate on a pure daily cycle without day-of-week selectors, featuring a dotted momentum graph and real-time streak validation requiring real actions."
-            q.contains("task") || q.contains("deadline") || q.contains("priority") ->
-                "Tasks support high, medium, and low priorities, exact deadline dates and times, and instant status updates that sync directly to the Today's Priority dashboard."
-            q.contains("past 7") || q.contains("analysis") || q.contains("chart") || q.contains("week") ->
-                "Focus Time Analysis provides an exact today breakdown alongside the Past 7 Days Focus bar chart with a threshold goal line and a reactive weekly goal target."
-            q.contains("streak") || q.contains("calendar") ->
-                "Your streak qualifies strictly through completed focus sessions, completed tasks, or checked-off habits, visualized in your Profile mini streak calendar."
-            q.contains("profile") || q.contains("avatar") || q.contains("goal") ->
-                "Profile and settings let you customize your avatar, daily focus goal (which syncs to MySQL), notifications, and break preferences with instant DataStore reaction."
-            q.contains("export") || q.contains("backup") || q.contains("csv") ->
-                "You can export your complete FocusFlow productivity history or chat transcripts anytime into CSV or JSON format."
-            Regex("^(?:hi|hello|hey|yo|sup|good\\s+morning|good\\s+afternoon|good\\s+evening)\\b").containsMatchIn(q) ->
-                "Hey! Ready to get things done today? Let me know if you want to start a focus session or add a task."
-            else ->
+            val safeAiText = if (brainResult.reply.isNotBlank()) {
+                HtmlCompat.fromHtml(brainResult.reply, HtmlCompat.FROM_HTML_MODE_LEGACY).toString().trim()
+            } else {
                 "Hey! Ready to lock in—want to start a focus timer or check today's tasks?"
+            }
+
+            val aiMessage = ChatMessage(
+                isFromUser = false,
+                text = safeAiText,
+                action = brainResult.actions.firstOrNull(),
+                actions = brainResult.actions,
+                actionExecuted = actionExecuted
+            )
+
+            val updatedWithAi = _uiState.value.messages + aiMessage
+            _uiState.update {
+                it.copy(
+                    messages = updatedWithAi,
+                    isAiThinking = false,
+                    isGenerating = false
+                )
+            }
+            persistMessages(updatedWithAi)
         }
     }
 
