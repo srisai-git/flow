@@ -29,7 +29,9 @@ class AiRepository(
         userId: Int,
         queryType: String = "chat",
         prompt: String? = null,
-        history: List<ChatHistoryMessage>? = null
+        history: List<ChatHistoryMessage>? = null,
+        appContext: String? = null,
+        appKnowledge: String? = null
     ): Result<AiResponse> = withContext(Dispatchers.IO) {
         val userPrompt = prompt ?: ""
         val activeHistory = history ?: synchronized(_history) { _history.toList() }
@@ -42,7 +44,9 @@ class AiRepository(
             history = activeHistory,
             queryType = queryType,
             maxTokens = 400,
-            temperature = 0.3f
+            temperature = 0.3f,
+            appContext = appContext,
+            appKnowledge = appKnowledge
         )
 
         try {
@@ -107,7 +111,7 @@ class AiRepository(
             Log.e("GrootAI", "Retrofit getAiInsights exception: ${e.message}", e)
         }
 
-        val directReply = tryDirectFastApiCall(userPrompt)
+        val directReply = tryDirectFastApiCall(userPrompt, appContext, appKnowledge)
         if (!directReply.isNullOrBlank()) {
             if (userPrompt.isNotBlank()) {
                 synchronized(_history) {
@@ -145,16 +149,17 @@ class AiRepository(
         }
     }
 
-    private fun tryDirectFastApiCall(promptText: String): String? {
+    private fun tryDirectFastApiCall(promptText: String, appContext: String? = null, appKnowledge: String? = null): String? {
         val client = RetrofitClient.grootOkHttpClient
-        val jsonPayload = com.google.gson.Gson().toJson(
-            mapOf(
-                "message" to promptText,
-                "prompt" to promptText,
-                "query" to promptText,
-                "text" to promptText
-            )
+        val payloadMap = mutableMapOf<String, Any>(
+            "message" to promptText,
+            "prompt" to promptText,
+            "query" to promptText,
+            "text" to promptText
         )
+        if (!appContext.isNullOrBlank()) payloadMap["app_context"] = appContext
+        if (!appKnowledge.isNullOrBlank()) payloadMap["app_knowledge"] = appKnowledge
+        val jsonPayload = com.google.gson.Gson().toJson(payloadMap)
         val mediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
         val body = jsonPayload.toRequestBody(mediaType)
 

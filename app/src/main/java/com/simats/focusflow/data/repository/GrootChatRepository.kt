@@ -235,14 +235,17 @@ class GrootChatRepository private constructor(
             val topDistractApp = distractionSummary.apps.firstOrNull { it.usageMinutes > 0 }
             val topDistractStr = if (topDistractApp != null) "${topDistractApp.appName} (${topDistractApp.usageMinutes}m)" else "Minimal"
 
+            val appKnowledge = "FocusFlow Architecture: 1. Focus Timer: Custom duration of any minutes (1-720m) across FOCUS, SHORT_BREAK, and LONG_BREAK modes. 2. Strict Focus Mode: AccessibilityService blocker with zero overlay permissions, immediately redirects home on blocked app launch with 150ms/350ms follow-up enforcement. 3. Tasks: Priority (high/medium/low), exact deadline dates and times, and instant status updates. 4. Habits: Pure daily frequency without day-of-week selectors, dotted momentum graph, and streak tracking based only on real productivity actions. 5. Distraction Analysis: Single-foreground UsageStats tracking with minimal horizontal bars, filtering non-interactive/keyguard events. 6. Focus Time Analysis: Today focus stats + Past 7 Days Focus bar chart with threshold goal line and reactive weekly goal target. 7. Profile & Settings: Avatar selection, daily focus goal sync to MySQL, mini streak calendar, and instant reactive DataStore updates. 8. Full Export: Complete CSV/JSON productivity and chat export. 9. Agentic Actions: START_TIMER, NAVIGATE (home, tasks, habits, timer, focus_analysis, distractions, profile, settings), EXPORT_DATA, CREATE_TASK, EDIT_TASK, COMPLETE_TASK, CREATE_HABIT, EDIT_HABIT, COMPLETE_HABIT, BLOCK_APPS, UNBLOCK_APPS, UPDATE_PROFILE, NONE."
             val appContextSummary = "Active User: $userName, Streak: $streak days, Focus Today: ${todayFocusMins}m across $sessionCount sessions, Tasks: ${pendingTasks.size} pending (${if (topPendingTitles.isNotBlank()) topPendingTitles else "None"}), $doneTasksCount done, Habits: ${habitsList.size} active ($completedHabitsCount completed today, top: $topHabitTitle), Distractions: ${distractionMins}m ($topDistractStr)"
-            val promptWithContext = "[$appContextSummary]\n$textToSend"
+            val promptWithContext = "[$appContextSummary]\n[App Knowledge: $appKnowledge]\n$textToSend"
 
             val result = aiRepository.getAiInsights(
                 userId = userId,
                 queryType = "chat",
                 prompt = promptWithContext,
-                history = currentHistory
+                history = currentHistory,
+                appContext = appContextSummary,
+                appKnowledge = appKnowledge
             )
 
             result.fold(
@@ -272,6 +275,18 @@ class GrootChatRepository private constructor(
                                 action = offlineResult.actions.firstOrNull(),
                                 actions = offlineResult.actions,
                                 actionExecuted = anyExec
+                            )
+                            val updated = _uiState.value.messages + offlineMsg
+                            _uiState.update {
+                                it.copy(messages = updated, isAiThinking = false, isGenerating = false)
+                            }
+                            persistMessages(updated)
+                            return@fold
+                        } else {
+                            val offlineText = resolveOfflineResponse(textToSend, appContextSummary)
+                            val offlineMsg = ChatMessage(
+                                isFromUser = false,
+                                text = offlineText
                             )
                             val updated = _uiState.value.messages + offlineMsg
                             _uiState.update {
@@ -371,7 +386,7 @@ class GrootChatRepository private constructor(
                         }
                         persistMessages(updatedWithFallback)
                     } else {
-                        val fallbackText = "Hey! Ready to lock in—want to start a focus timer or check today's tasks?"
+                        val fallbackText = resolveOfflineResponse(textToSend, appContextSummary)
                         val fallbackMessage = ChatMessage(
                             isFromUser = false,
                             text = fallbackText
@@ -388,6 +403,34 @@ class GrootChatRepository private constructor(
                     }
                 }
             )
+        }
+    }
+
+    private fun resolveOfflineResponse(query: String, userContext: String): String {
+        val q = query.trim().lowercase(Locale.ROOT)
+        return when {
+            q.contains("strict") || q.contains("block") || q.contains("accessibility") ->
+                "Strict Focus Mode runs directly via FocusBlockerAccessibilityService with zero overlay permissions required. When active, opening any blocked app immediately redirects you back to the home screen with 150ms and 350ms follow-up checks."
+            q.contains("distract") || q.contains("usage") || q.contains("screen time") ->
+                "Distraction Analysis uses UsageStatsManager with a strict single-foreground tracker. It ignores background events and keyguard states, displaying minimal horizontal bars for apps used for at least one minute."
+            q.contains("timer") || q.contains("pomodoro") || q.contains("session") ->
+                "The Focus Timer supports custom durations from 1 to 720 minutes across FOCUS, SHORT_BREAK, and LONG_BREAK modes, tracking exact focus minutes without auto-counting streaks on login alone."
+            q.contains("habit") || q.contains("momentum") ->
+                "Habits operate on a pure daily cycle without day-of-week selectors, featuring a dotted momentum graph and real-time streak validation requiring real actions."
+            q.contains("task") || q.contains("deadline") || q.contains("priority") ->
+                "Tasks support high, medium, and low priorities, exact deadline dates and times, and instant status updates that sync directly to the Today's Priority dashboard."
+            q.contains("past 7") || q.contains("analysis") || q.contains("chart") || q.contains("week") ->
+                "Focus Time Analysis provides an exact today breakdown alongside the Past 7 Days Focus bar chart with a threshold goal line and a reactive weekly goal target."
+            q.contains("streak") || q.contains("calendar") ->
+                "Your streak qualifies strictly through completed focus sessions, completed tasks, or checked-off habits, visualized in your Profile mini streak calendar."
+            q.contains("profile") || q.contains("avatar") || q.contains("goal") ->
+                "Profile and settings let you customize your avatar, daily focus goal (which syncs to MySQL), notifications, and break preferences with instant DataStore reaction."
+            q.contains("export") || q.contains("backup") || q.contains("csv") ->
+                "You can export your complete FocusFlow productivity history or chat transcripts anytime into CSV or JSON format."
+            Regex("^(?:hi|hello|hey|yo|sup|good\\s+morning|good\\s+afternoon|good\\s+evening)\\b").containsMatchIn(q) ->
+                "Hey! Ready to get things done today? Let me know if you want to start a focus session or add a task."
+            else ->
+                "Hey! Ready to lock in—want to start a focus timer or check today's tasks?"
         }
     }
 

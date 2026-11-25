@@ -734,30 +734,30 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(180.dp)
+                                .height(190.dp)
                         ) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .align(Alignment.BottomStart)
-                                    .padding(bottom = (180.dp * goalRatio))
+                                    .padding(bottom = 30.dp + (130.dp * goalRatio))
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(1.dp)
-                                            .background(colors.primary.copy(alpha = 0.45f))
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
                                     Text(
                                         text = "Goal ${activeDailyGoal}m",
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = colors.primaryLight
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(1.dp)
+                                            .background(colors.primary.copy(alpha = 0.45f))
                                     )
                                 }
                             }
@@ -776,36 +776,56 @@ fun FocusTimeAnalysisScreen(onBack: () -> Unit = {}) {
 
                                     Column(
                                         horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.Bottom,
-                                        modifier = Modifier.fillMaxHeight()
+                                        verticalArrangement = Arrangement.SpaceBetween,
+                                        modifier = Modifier
+                                            .width(36.dp)
+                                            .fillMaxHeight()
                                     ) {
-                                        Text(
-                                            text = if (item.focusMinutes > 0) "${item.focusMinutes}m" else "-",
-                                            fontSize = 11.sp,
-                                            fontWeight = if (metGoal || isToday) FontWeight.Bold else FontWeight.Normal,
-                                            color = if (metGoal) colors.primaryLight else if (item.focusMinutes > 0) colors.textPrimary else colors.textMuted
-                                        )
-                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Box(
+                                            modifier = Modifier.height(24.dp),
+                                            contentAlignment = Alignment.BottomCenter
+                                        ) {
+                                            Text(
+                                                text = if (item.focusMinutes > 0) "${item.focusMinutes}m" else "-",
+                                                fontSize = 11.sp,
+                                                fontWeight = if (metGoal || isToday) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (metGoal) colors.primaryLight else if (item.focusMinutes > 0) colors.textPrimary else colors.textMuted
+                                            )
+                                        }
+
                                         Box(
                                             modifier = Modifier
                                                 .width(28.dp)
-                                                .fillMaxHeight(heightRatio)
-                                                .background(
-                                                    if (item.focusMinutes > 0) {
-                                                        if (metGoal) colors.primary else colors.primary.copy(alpha = 0.65f)
-                                                    } else {
-                                                        colors.border.copy(alpha = 0.4f)
-                                                    },
-                                                    RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp)
-                                                )
-                                        )
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Text(
-                                            text = item.day,
-                                            fontSize = 12.sp,
-                                            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Medium,
-                                            color = if (isToday) colors.primaryLight else if (item.focusMinutes > 0) colors.textPrimary else colors.textMuted
-                                        )
+                                                .height(130.dp),
+                                            contentAlignment = Alignment.BottomCenter
+                                        ) {
+                                            val barHeight = (130.dp * heightRatio).coerceAtLeast(6.dp)
+                                            Box(
+                                                modifier = Modifier
+                                                    .width(28.dp)
+                                                    .height(barHeight)
+                                                    .background(
+                                                        if (item.focusMinutes > 0) {
+                                                            if (metGoal) colors.primary else colors.primary.copy(alpha = 0.65f)
+                                                        } else {
+                                                            colors.border.copy(alpha = 0.4f)
+                                                        },
+                                                        RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp)
+                                                    )
+                                            )
+                                        }
+
+                                        Box(
+                                            modifier = Modifier.height(24.dp),
+                                            contentAlignment = Alignment.TopCenter
+                                        ) {
+                                            Text(
+                                                text = item.day,
+                                                fontSize = 12.sp,
+                                                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Medium,
+                                                color = if (isToday) colors.primaryLight else if (item.focusMinutes > 0) colors.textPrimary else colors.textMuted
+                                            )
+                                        }
                                     }
                                 }
                             }
