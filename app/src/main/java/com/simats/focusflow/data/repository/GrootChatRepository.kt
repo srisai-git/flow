@@ -195,7 +195,7 @@ class GrootChatRepository private constructor(
             val safeAiText = if (brainResult.reply.isNotBlank()) {
                 HtmlCompat.fromHtml(brainResult.reply, HtmlCompat.FROM_HTML_MODE_LEGACY).toString().trim()
             } else {
-                "Hey! Ready to lock in—want to start a focus timer or check today's tasks?"
+                "Hey! Ready to get things done today? Let me know if you want to start a focus session or add a task."
             }
 
             val aiMessage = ChatMessage(

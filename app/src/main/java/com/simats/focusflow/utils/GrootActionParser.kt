@@ -78,8 +78,9 @@ object GrootActionParser {
                 val minMatch = Regex("(?i)(\\d+)\\s*(?:mins?|minutes?|m)\\b").find(clause)
                 val timerKeywordMatch = Regex("(?i)\\b(?:start|set|run|begin|launch|activate)\\s+(?:a\\s+)?(?:(\\d+)\\s*)?(focus|timer|session|break|pomodoro)?\\b").find(clause)
                 val hasTimerKeyword = cLower.contains("timer") || cLower.contains("focus") || cLower.contains("break") || cLower.contains("pomodoro") || cLower.contains("session")
+                val isQuestion = Regex("(?i)\\b(?:how|what|why|explain|tell|can you explain|describe)\\b").containsMatchIn(clause)
 
-                if (hourMatch != null || minMatch != null || (timerKeywordMatch != null && hasTimerKeyword)) {
+                if (!isQuestion && (hourMatch != null || minMatch != null || (timerKeywordMatch != null && hasTimerKeyword))) {
                     var mins = 25
                     if (hourMatch != null) {
                         val h = hourMatch.groupValues[1].toIntOrNull() ?: 1
@@ -245,17 +246,6 @@ object GrootActionParser {
                 continue
             }
 
-            if (Regex("(?i)\\b(?:list|show|view|get|what are)\\s+(?:my\\s+)?(?:pending|overdue|completed|all)?\\s*tasks\\b").containsMatchIn(clause)) {
-                var flt = "all"
-                if (cLower.contains("pending")) flt = "pending"
-                else if (cLower.contains("completed")) flt = "completed"
-                else if (cLower.contains("overdue")) flt = "overdue"
-                else if (cLower.contains("high")) flt = "high_priority"
-                actions.add(AiAction(type = "LIST_TASKS", title = "Tasks Overview", payload = mapOf("filter" to flt)))
-                replies.add("Here is your $flt tasks overview.")
-                continue
-            }
-
             val habitMatch = Regex("(?i)\\b(?:set|create|add|new|track|build)\\s+(?:a\\s+)?habit\\s+(?:named|to|called)?\\s*[\"']?([^\"'\\n]+)[\"']?").find(clause)
             if (habitMatch != null) {
                 var hTitle = habitMatch.groupValues[1].trim().trimEnd('.', '!')
@@ -295,19 +285,7 @@ object GrootActionParser {
                 continue
             }
 
-            if (Regex("(?i)\\b(?:habit\\s+status|check\\s+habits|my\\s+habits\\s+today|how\\s+are\\s+my\\s+habits)\\b").containsMatchIn(clause)) {
-                actions.add(AiAction(type = "HABIT_STATUS", title = "Habit Status"))
-                replies.add("Here is your habit completion status for today.")
-                continue
-            }
-
-            if (Regex("(?i)\\b(?:focus\\s+summary|my\\s+stats|my\\s+analytics|how\\s+much\\s+did\\s+i\\s+focus|today'?s?\\s+stats|focus\\s+minutes)\\b").containsMatchIn(clause)) {
-                actions.add(AiAction(type = "GET_FOCUS_SUMMARY", title = "Focus Summary"))
-                replies.add("Here is your focus and productivity breakdown.")
-                continue
-            }
-
-            val navMatch = Regex("(?i)\\b(?:open|show|go to|take me to|navigate to|view|switch to)?\\s*(?:my\\s+|the\\s+)?(timer|focus timer|focus screen|focus|insights|analytics|habits screen|habits|tasks screen|tasks|task manager|profile|settings|dashboard|home screen|home)\\b").find(clause)
+            val navMatch = Regex("(?i)\\b(?:open|show|go to|take me to|navigate to|view|switch to)\\s+(?:my\\s+|the\\s+)?(timer|focus timer|focus screen|focus|insights|analytics|habits screen|habits|tasks screen|tasks|task manager|profile|settings|dashboard|home screen|home)\\b").find(clause)
             if (navMatch != null) {
                 val dest = navMatch.groupValues[1].lowercase()
                 val tab = when {

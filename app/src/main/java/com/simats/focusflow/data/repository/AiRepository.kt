@@ -40,7 +40,7 @@ class AiRepository {
             when (queryType) {
                 "habit_insights", "habit_report" -> "Consistency compounds over time. Keep your daily routines active to maintain peak streak momentum."
                 "focus_advice" -> "Structure your workday into focused blocks with short breathers to maximize cognitive stamina."
-                else -> "Hey! Ready to lock in—want to start a focus timer or check today's tasks?"
+                else -> "Hey! Ready to get things done today? Let me know if you want to start a focus session or add a task."
             }
         }
         Result.success(

@@ -100,7 +100,7 @@ object LocalGrootBrain {
     ): LocalGrootResult {
         var cleaned = query.trim()
         if (cleaned.isBlank()) {
-            return LocalGrootResult("Hey! Ready to lock in—want to start a focus timer or check today's tasks?")
+            return LocalGrootResult("Hey! Ready to get things done today? Let me know if you want to start a focus session or add a task.")
         }
 
         val ctxPrefixMatch = Regex("^\\[(?:Active (?:User|FocusFlow)|Active FocusFlow App Context:?)[\\s\\S]*?\\]\\s*\\n?([\\s\\S]*)$", RegexOption.IGNORE_CASE).find(cleaned)
@@ -112,7 +112,7 @@ object LocalGrootBrain {
             cleaned = knPrefixMatch.groupValues[1].trim()
         }
         if (cleaned.isBlank()) {
-            return LocalGrootResult("Hey! Ready to lock in—want to start a focus timer or check today's tasks?")
+            return LocalGrootResult("Hey! Ready to get things done today? Let me know if you want to start a focus session or add a task.")
         }
 
         if (GrootGuardrailHelper.isOffTopicQuery(cleaned)) {
@@ -124,12 +124,6 @@ object LocalGrootBrain {
 
         if (Regex("(?i)\\b(?:bye\\s+byee?|bye\\b|goodbye|cya|see\\s+ya|catch\\s+you\\s+later)\\b").containsMatchIn(cleaned)) {
             return LocalGrootResult("Bye byee! Great focus session today. Keep crushing it and lock in again soon!")
-        }
-
-        if (Regex("^(?:hi|hello|hey|yo|what'?s\\s+up|wassup|sup|good\\s+morning|good\\s+afternoon|good\\s+evening|morning)(?:\\s+(?:there|groot|focusflow|everyone|friend|buddy))?[!.]*$", RegexOption.IGNORE_CASE).containsMatchIn(cleaned)
-            || (Regex("(?i)\\b(?:hi|hello|hey|yo|good\\s+morning)\\b").containsMatchIn(cleaned) && cleaned.split("\\s+".toRegex()).size <= 4)
-        ) {
-            return LocalGrootResult("Hey! Ready to get things done today? Let me know if you want to start a focus session or add a task.")
         }
 
         if (Regex("(?i)\\b(?:fr|for\\s+real|no\\s+cap)\\b").containsMatchIn(cleaned) && cleaned.split("\\s+".toRegex()).size <= 4) {
@@ -158,46 +152,63 @@ object LocalGrootBrain {
             )
         }
 
-        if (Regex("(?i)\\b(core purpose|tech stack|what is focusflow|what stack|built with|architecture)\\b").containsMatchIn(cleaned)) {
-            return LocalGrootResult("FocusFlow (com.simats.focusflow) is an offline-first Android productivity app built with Kotlin, Jetpack Compose, Room, DataStore, and a 100% on-device Groot AI engine.")
+        if (Regex("(?i)\\b(?:how\\s+are\\s+you|how\\s+are\\s+you\\s+doing|what'?s\\s+up|wassup|sup|how'?s\\s+it\\s+going|how\\s+you\\s+doing)\\b").containsMatchIn(cleaned)) {
+            return LocalGrootResult("I'm locked in and ready to help you hit your goals today! Would you like to start a focus sprint, review today's priorities, or check your stats?")
         }
 
-        if (Regex("(?i)\\b(strict focus|accessibility service|how strict mode|how strict focus|strict mode work|block app)\\b").containsMatchIn(cleaned)
-            && !Regex("(?i)\\b(block|unblock)\\s+(?!mode)").containsMatchIn(cleaned)
+        if (Regex("(?i)\\b(?:who\\s+are\\s+you|what\\s+is\\s+your\\s+name|who\\s+is\\s+groot|what\\s+are\\s+you)\\b").containsMatchIn(cleaned)) {
+            return LocalGrootResult("I am Groot, your AI productivity companion inside FocusFlow. I can help optimize your focus timer, track habits, analyze distractions, and guide your daily workflow.")
+        }
+
+        if (Regex("(?i)\\b(?:what\\s+can\\s+you\\s+do|capabilities|what\\s+actions\\s+can\\s+you\\s+do|commands|help\\s+me\\s+with\\s+commands|what\\s+do\\s+you\\s+do)\\b").containsMatchIn(cleaned) || cleaned.equals("help", ignoreCase = true)) {
+            return LocalGrootResult("Here are the actions I can take for you right now:\n• Focus Timer: 'start a 25 min timer', 'lock in for 90 mins', '15 min break'\n• Strict Focus Mode: 'enable strict mode', 'block Instagram', 'unblock YouTube'\n• Tasks: 'add task Study Physics at 5 pm with high priority', 'finish task Study Physics', 'rename task'\n• Habits: 'create habit Read 20 pages daily', 'check off habit Read 20 pages'\n• Navigation: 'go to timer', 'open distractions', 'show habits', 'open tasks'\n• Profile & Export: 'change name to Sri', 'update bio', 'export my data'\n• Analytics & Advice: 'my stats today', 'how do streaks work', 'Pomodoro tips'")
+        }
+
+        if (Regex("^(?:hi|hello|hey|yo|good\\s+morning|good\\s+afternoon|good\\s+evening|morning)(?:\\s+(?:there|groot|focusflow|everyone|friend|buddy))?[!.]*$", RegexOption.IGNORE_CASE).containsMatchIn(cleaned)
+            || (Regex("(?i)\\b(?:hi|hello|hey|yo|good\\s+morning)\\b").containsMatchIn(cleaned) && cleaned.split("\\s+".toRegex()).size <= 3)
         ) {
-            return LocalGrootResult("Strict Focus Mode runs directly via FocusBlockerAccessibilityService (GLOBAL_ACTION_HOME) with zero overlay permissions required. When active, opening any blocked app immediately redirects home with 150ms and 350ms follow-up enforcement.")
+            return LocalGrootResult("Hey! Ready to get things done today? Let me know if you want to start a focus session or add a task.")
         }
 
-        if (Regex("(?i)\\b(explain the focus timer|how timer work|how does timer work|how does the focus timer work|timer architecture)\\b").containsMatchIn(cleaned)
-            || (Regex("(?i)\\b(focus timer|foreground service)\\b").containsMatchIn(cleaned) && Regex("(?i)\\b(how|what|explain|tell|describe|work)\\b").containsMatchIn(cleaned))
-        ) {
-            return LocalGrootResult("Focus Timer supports any custom duration (e.g., 25m, 90m, 180m, or any duration 1-720m) across FOCUS, SHORT_BREAK, and LONG_BREAK modes via a ForegroundService with live notification.")
+        if (Regex("(?i)\\b(pomodoro|pomodoro technique|how.*pomodoro|explain.*pomodoro|pomodoro method)\\b").containsMatchIn(cleaned)) {
+            return LocalGrootResult("The Pomodoro Technique breaks work into 25-minute focused sprints followed by 5-minute short breaks. After 4 cycles, take a longer 15-30 minute restorative break. In FocusFlow, you can start any custom sprint by saying 'start a 25 min timer' or 'lock in for 45 mins'.")
         }
 
-        if (Regex("(?i)\\b(distraction analysis|how distraction|usage stat|screen time work|track distraction|distraction tracking)\\b").containsMatchIn(cleaned)) {
-            return LocalGrootResult("Distraction Analysis tracks foreground usage via a single-foreground UsageStatsManager state machine displayed with clean horizontal progress bars for apps used for at least one minute.")
+        if (Regex("(?i)\\b(how.*streak|streak.*work|streak.*rule|streak.*calculate|streak.*increment|streak.*qualif|explain.*streak)\\b").containsMatchIn(cleaned)) {
+            return LocalGrootResult("In FocusFlow, streaks increment strictly on real productivity completions: completing a focus session, checking off a task, or completing a habit today (never on login alone). Complete at least one action every day to keep your streak compounding!")
         }
 
-        if (Regex("(?i)\\b(past 7|focus time analysis|weekly focus goal|7 days focus)\\b").containsMatchIn(cleaned)
-            && !Regex("(?i)\\b(open|show|go to|navigate)\\b").containsMatchIn(cleaned)
-        ) {
-            return LocalGrootResult("Focus Time Analysis shows Today's time-of-day breakdown plus a rolling Past 7 Days Focus bar chart against the user's reactive weekly goal with a left-aligned threshold goal line.")
+        if (Regex("(?i)\\b(?:my\\s+stats|today'?s?\\s+stats|focus\\s+stats|focus\\s+summary|daily\\s+summary|my\\s+progress|how\\s+did\\s+i\\s+do|how\\s+am\\s+i\\s+doing|today'?s?\\s+progress|stats\\s+today|my\\s+analytics)\\b").containsMatchIn(cleaned)) {
+            val statsReply = buildString {
+                append("Here is your productivity breakdown today, ${ctx.userName}:\n")
+                append("• Focus Time: ${ctx.todayFocusMinutes}m across ${ctx.sessionCount} session(s)\n")
+                append("• Active Streak: ${ctx.streak} day(s)\n")
+                append("• Screen Distractions: ${ctx.totalDistractionMinutes}m (Top: ${ctx.topDistractingApp})\n")
+                append("• Habits Completed: ${ctx.completedHabitsCount}/${ctx.habits.size} (Top streak: ${ctx.topHabitTitle})\n")
+                append("• Tasks: ${ctx.completedTasksCount} completed, ${ctx.pendingTasks.size} pending")
+                if (ctx.pendingTasks.isNotEmpty()) {
+                    append(" (${ctx.pendingTasks.take(2).joinToString { it.title }})")
+                }
+            }
+            return LocalGrootResult(statsReply)
         }
 
-        if (Regex("(?i)\\b(momentum|habit graph|habit tracking|how habit|habits work|how do habits|how are habits|how tasks and habits)\\b").containsMatchIn(cleaned)) {
-            return LocalGrootResult("Tasks show exact deadline times with no countdown clutter. Habits use frictionless creation (no day-of-week selector), inline streak counts, a unified Groot AI Habit Insights card with consistency score, and a dotted-line momentum trend graph.")
+        if (Regex("(?i)\\b(what are my tasks|pending tasks|my tasks|list tasks|show tasks)\\b").containsMatchIn(cleaned)) {
+            val rep = if (ctx.pendingTasks.isNotEmpty()) {
+                "You have ${ctx.pendingTasks.size} pending task(s):\n" + ctx.pendingTasks.take(5).joinToString("\n") { "• ${it.title} [${it.priority.uppercase()}]${if (it.dueDate.isNotBlank()) " due ${it.dueDate}" else ""}" }
+            } else {
+                "All tasks are completed! You have zero pending tasks."
+            }
+            return LocalGrootResult(rep)
         }
 
-        if (Regex("(?i)\\b(streak qualification|how streak|streak rule|streak calculate|streak calculated|streak increment|streaks calculated)\\b").containsMatchIn(cleaned)) {
-            return LocalGrootResult("Streaks increment strictly on real completions (focus session, task, or habit - never on login alone) and open a mini Streak Calendar in Profile.")
-        }
-
-        if (Regex("(?i)\\b(how does export|how export work|explain export)\\b").containsMatchIn(cleaned)) {
-            return LocalGrootResult("Export Productivity Data generates a comprehensive full-history report in CSV and JSON formats covering all past focus sessions, tasks, habits, and distractions across all time.")
-        }
-
-        if (Regex("(?i)\\b(agentic|what actions can you do|what can groot do|what can you do|capabilities|agent capabilities)\\b").containsMatchIn(cleaned)) {
-            return LocalGrootResult("Groot AI executes START_TIMER (exact minutes), CREATE_TASK / EDIT_TASK / COMPLETE_TASK, CREATE_HABIT / EDIT_HABIT / COMPLETE_HABIT, NAVIGATE (any screen), UPDATE_PROFILE (name/bio), EXPORT_DATA, and honest, context-grounded Q&A.")
+        if (Regex("(?i)\\b(how are my habits|my habits|active habits|habit status|habits today)\\b").containsMatchIn(cleaned)) {
+            val rep = if (ctx.habits.isNotEmpty()) {
+                "Today's Habit Tracker (${ctx.completedHabitsCount}/${ctx.habits.size} completed):\n" + ctx.habits.joinToString("\n") { "• ${it.title}: ${if (it.isCompletedToday) "Completed" else "Pending"} (${it.streakCount} day streak)" }
+            } else {
+                "You don't have any active habits created yet. Tell me 'create habit <name>' to start tracking one!"
+            }
+            return LocalGrootResult(rep)
         }
 
         if (Regex("(?i)\\b(how much focus|focus time today|how much did i focus|today'?s? focus|focus today|my focus minutes)\\b").containsMatchIn(cleaned)) {
@@ -227,22 +238,68 @@ object LocalGrootBrain {
             return LocalGrootResult(rep)
         }
 
-        if (Regex("(?i)\\b(what are my tasks|pending tasks|my tasks|list tasks|show tasks)\\b").containsMatchIn(cleaned)) {
+        if (Regex("(?i)\\b(procrastinat|stop procrastinating|how to stop procrastination|beat procrastination)\\b").containsMatchIn(cleaned)) {
+            return LocalGrootResult("Procrastination happens when a task feels too big or ambiguous. Beat it with the 2-Minute Rule: commit to working on the first small step for just 2 minutes. Once you start, momentum takes over. Tell me 'start a 15 min timer' to begin!")
+        }
+
+        if (Regex("(?i)\\b(help me focus|how to focus|study tips|how to study|study advice|focus tips|focus advice)\\b").containsMatchIn(cleaned)) {
+            return LocalGrootResult("Here are 3 key focus rules:\n1. Lock out distractions: turn on Strict Focus Mode to block social media.\n2. Single-task: pick only your top priority task.\n3. Sprint: start a 25 or 45-minute timer and don't stop until the bell rings. Tell me 'lock in for 25 mins' to start!")
+        }
+
+        if (Regex("(?i)\\b(motivat.*|give me motivation|quote|inspire|feeling lazy|unmotivated)\\b").containsMatchIn(cleaned)) {
+            return LocalGrootResult("Discipline is choosing between what you want now and what you want most. Every 25-minute focus block you complete compounds into massive long-term progress. You've got this—let's lock in for one focused sprint right now!")
+        }
+
+        if (Regex("(?i)\\b(what should i do next|what'?s next|what to do now|next task|recommend task)\\b").containsMatchIn(cleaned)) {
             val rep = if (ctx.pendingTasks.isNotEmpty()) {
-                "You have ${ctx.pendingTasks.size} pending tasks: ${ctx.pendingTasks.take(3).joinToString { it.title }}."
+                "Next priority: Tackle '${ctx.pendingTasks.first().title}'. You have ${ctx.pendingTasks.size} pending task(s). Want to start a 25-minute timer on it?"
+            } else if (ctx.habits.any { !it.isCompletedToday }) {
+                "All tasks are complete! You still have daily habits pending (e.g. '${ctx.habits.first { !it.isCompletedToday }.title}'). Want to check it off?"
             } else {
-                "All tasks are completed! You have zero pending tasks."
+                "All tasks and habits completed today! Fantastic job. Ready for another focus sprint or a well-deserved break?"
             }
             return LocalGrootResult(rep)
         }
 
-        if (Regex("(?i)\\b(how are my habits|my habits|active habits|habit status)\\b").containsMatchIn(cleaned)) {
-            val rep = if (ctx.habits.isNotEmpty()) {
-                "You have ${ctx.habits.size} active habits (${ctx.completedHabitsCount} completed today, top streak: ${ctx.topHabitTitle})."
-            } else {
-                "You don't have any active habits created yet."
-            }
-            return LocalGrootResult(rep)
+        if (Regex("(?i)\\b(core purpose|tech stack|what is focusflow|what stack|built with|how does this app work|how focusflow work)\\b").containsMatchIn(cleaned)) {
+            return LocalGrootResult("FocusFlow (com.simats.focusflow) is an offline-first Android productivity app built with Kotlin, Jetpack Compose, Room, DataStore, and a 100% on-device Groot AI engine.")
+        }
+
+        if (Regex("(?i)\\b(strict focus|accessibility service|how strict mode|how strict focus|strict mode work|block app)\\b").containsMatchIn(cleaned)
+            && !Regex("(?i)\\b(block|unblock)\\s+(?!mode)").containsMatchIn(cleaned)
+        ) {
+            return LocalGrootResult("Strict Focus Mode runs directly via FocusBlockerAccessibilityService (GLOBAL_ACTION_HOME) with zero overlay permissions required. When active, opening any blocked app immediately redirects home with 150ms and 350ms follow-up enforcement.")
+        }
+
+        if (Regex("(?i)\\b(explain the focus timer|how timer work|how does timer work|how does the focus timer work|timer architecture)\\b").containsMatchIn(cleaned)
+            || (Regex("(?i)\\b(focus timer|foreground service)\\b").containsMatchIn(cleaned) && Regex("(?i)\\b(how|what|explain|tell|describe|work)\\b").containsMatchIn(cleaned))
+        ) {
+            return LocalGrootResult("Focus Timer supports any custom duration (e.g., 25m, 90m, 180m, or any duration 1-720m) across FOCUS, SHORT_BREAK, and LONG_BREAK modes via a ForegroundService with live notification.")
+        }
+
+        if (Regex("(?i)\\b(distraction analysis|how distraction|usage stat|screen time work|track distraction|distraction tracking)\\b").containsMatchIn(cleaned)) {
+            return LocalGrootResult("Distraction Analysis tracks foreground usage via a single-foreground UsageStatsManager state machine displayed with clean horizontal progress bars for apps used for at least one minute.")
+        }
+
+        if (Regex("(?i)\\b(past 7|focus time analysis|weekly focus goal|7 days focus)\\b").containsMatchIn(cleaned)
+            && !Regex("(?i)\\b(open|show|go to|navigate)\\b").containsMatchIn(cleaned)
+        ) {
+            return LocalGrootResult("Focus Time Analysis shows Today's time-of-day breakdown plus a rolling Past 7 Days Focus bar chart against the user's reactive weekly goal with a left-aligned threshold goal line.")
+        }
+
+        if (Regex("(?i)\\b(momentum|habit graph|habit tracking|how habit|habits work|how do habits|how are habits|how tasks and habits)\\b").containsMatchIn(cleaned)) {
+            return LocalGrootResult("Tasks show exact deadline times with no countdown clutter. Habits use frictionless creation (no day-of-week selector), inline streak counts, a unified Groot AI Habit Insights card with consistency score, and a dotted-line momentum trend graph.")
+        }
+
+        if (Regex("(?i)\\b(how does export|how export work|explain export)\\b").containsMatchIn(cleaned)) {
+            return LocalGrootResult("Export Productivity Data generates a comprehensive full-history report in CSV and JSON formats covering all past focus sessions, tasks, habits, and distractions across all time.")
+        }
+
+        val breakdownMatch = Regex("(?i)\\b(?:break\\s*down|split|steps\\s+for)\\s+(?:task\\s+)?['\"]?([^'\"\\n]+)['\"]?$").find(cleaned)
+        if (breakdownMatch != null) {
+            val t = breakdownMatch.groupValues[1].trim().trimEnd('.', '!')
+            val steps = breakdownTaskLocally(t)
+            return LocalGrootResult("Here is a step-by-step breakdown for '$t':\n" + steps.mapIndexed { idx, s -> "${idx + 1}. $s" }.joinToString("\n"))
         }
 
         val parsedAction = GrootActionParser.parseActions(cleaned)
@@ -431,7 +488,25 @@ object LocalGrootBrain {
             return LocalGrootResult("Cleared chat history.", listOf(act))
         }
 
-        return LocalGrootResult("Hey! Ready to lock in—want to start a focus timer or check today's tasks?")
+        val contextualReply = when {
+            qLower.contains("task") || qLower.contains("todo") ->
+                if (ctx.pendingTasks.isNotEmpty()) "You currently have ${ctx.pendingTasks.size} pending task(s), including '${ctx.pendingTasks.first().title}'. Tell me 'finish task' or 'start a 25 min timer' to work on it."
+                else "All tasks are currently completed! Tell me 'add task <name>' to schedule a new one."
+            qLower.contains("habit") || qLower.contains("routine") ->
+                if (ctx.habits.isNotEmpty()) "You have completed ${ctx.completedHabitsCount} of ${ctx.habits.size} habit(s) today. Tell me 'check off habit <name>' to log completion."
+                else "No habits set yet. Tell me 'create habit <name> daily' to build a new routine."
+            qLower.contains("timer") || qLower.contains("focus") || qLower.contains("break") ->
+                "Want to start a focus session? Tell me 'start a 25 min timer' or 'lock in for 45 mins' and I'll launch it immediately."
+            qLower.contains("distract") || qLower.contains("app") || qLower.contains("screen") ->
+                "Today's distractions: ${ctx.totalDistractionMinutes}m. Enable Strict Focus Mode to lock down distracting apps during focus hours."
+            ctx.pendingTasks.isNotEmpty() ->
+                "I'm here to help, ${ctx.userName}. You currently have ${ctx.pendingTasks.size} pending task(s) like '${ctx.pendingTasks.first().title}' and an active ${ctx.streak}-day streak. Want to start a focus session on it?"
+            ctx.todayFocusMinutes > 0 ->
+                "You've logged ${ctx.todayFocusMinutes}m of focus today with an active ${ctx.streak}-day streak, ${ctx.userName}. Let me know if you want to start another session, add a new task, or review your habits."
+            else ->
+                "Ready to build momentum today, ${ctx.userName}? You can ask me to start a focus timer, create a task, track a habit, or check your productivity stats."
+        }
+        return LocalGrootResult(contextualReply)
     }
 
     fun getLocalHabitInsights(habits: List<HabitItem>): String {
