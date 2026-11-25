@@ -283,15 +283,15 @@ class GrootChatRepository private constructor(
                     }
 
                     val rawAiText = response.resolvedText.ifBlank {
-                        response.reply ?: response.response ?: response.text ?: response.insight ?: response.message ?: "I am Groot. Focus on your top priority task."
+                        response.reply ?: response.response ?: response.text ?: response.insight ?: response.message ?: "Hey! Ready to lock in—want to start a focus timer or check today's tasks?"
                     }
                     val unescapedText = HtmlCompat.fromHtml(rawAiText, HtmlCompat.FROM_HTML_MODE_LEGACY).toString().trim()
                     val aiText = if (unescapedText.trimStart().startsWith("{") && unescapedText.contains("\"insight\"")) {
-                        response.message ?: "I am Groot, ready to assist."
+                        response.message ?: "Hey! Ready to lock in—want to start a focus timer or check today's tasks?"
                     } else {
                         unescapedText
                     }
-                    val safeAiText = if (aiText.isNotBlank()) aiText else "I am Groot, ready to assist. How can I guide your focus or workflow today?"
+                    val safeAiText = if (aiText.isNotBlank()) aiText else "Hey! Ready to lock in—want to start a focus timer or check today's tasks?"
 
                     val actionsToProcess = when {
                         response.actions.isNotEmpty() -> response.actions.filter { !it.type.equals("NONE", ignoreCase = true) }
@@ -371,7 +371,7 @@ class GrootChatRepository private constructor(
                         }
                         persistMessages(updatedWithFallback)
                     } else {
-                        val fallbackText = "Unable to connect to Groot AI. Please check your network connection and verify the AI service is active."
+                        val fallbackText = "Hey! Ready to lock in—want to start a focus timer or check today's tasks?"
                         val fallbackMessage = ChatMessage(
                             isFromUser = false,
                             text = fallbackText

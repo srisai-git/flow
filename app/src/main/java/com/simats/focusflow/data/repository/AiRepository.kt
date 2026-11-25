@@ -126,25 +126,27 @@ class AiRepository(
                 )
             )
         } else {
+            val fallbackText = when (queryType) {
+                "chat" -> "Hey! Ready to lock in—want to start a focus timer or check today's tasks?"
+                "habit_insights", "habit_report" -> "Consistency compounds over time. Keep your daily routines active to maintain peak streak momentum."
+                "focus_advice" -> "Structure your workday into focused blocks with short breathers to maximize cognitive stamina."
+                else -> "Hey! Ready to lock in—want to start a focus timer or check today's tasks?"
+            }
             Result.success(
                 AiResponse(
                     status = "fallback",
-                    insight = "I am Groot. Focus on your highest priority task, maintain deep work intervals, and keep momentum going.",
-                    message = "I am Groot. Focus on your highest priority task, maintain deep work intervals, and keep momentum going.",
-                    reply = "I am Groot. Focus on your highest priority task, maintain deep work intervals, and keep momentum going.",
-                    response = "I am Groot. Focus on your highest priority task, maintain deep work intervals, and keep momentum going.",
-                    text = "I am Groot. Focus on your highest priority task, maintain deep work intervals, and keep momentum going."
+                    insight = fallbackText,
+                    message = fallbackText,
+                    reply = fallbackText,
+                    response = fallbackText,
+                    text = fallbackText
                 )
             )
         }
     }
 
     private fun tryDirectFastApiCall(promptText: String): String? {
-        val client = okhttp3.OkHttpClient.Builder()
-            .connectTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
-            .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
-            .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
-            .build()
+        val client = RetrofitClient.grootOkHttpClient
         val jsonPayload = com.google.gson.Gson().toJson(
             mapOf(
                 "message" to promptText,
@@ -196,7 +198,14 @@ class AiRepository(
     suspend fun getHabitInsights(userId: Int, prompt: String? = null): Result<String> = withContext(Dispatchers.IO) {
         val promptText = prompt ?: "Analyze my habit consistency."
         val res = getAiInsights(userId = userId, queryType = "habit_insights", prompt = promptText)
-        res.map { it.resolvedText.ifBlank { it.reply ?: it.response ?: it.message ?: it.insight ?: "Consistency compounds over time. Keep your daily routines active to maintain peak streak momentum." } }
+        res.map {
+            val text = it.resolvedText.ifBlank { it.reply ?: it.response ?: it.message ?: it.insight ?: "" }
+            if (text.isNotBlank() && !text.contains("lock in—want to", ignoreCase = true)) {
+                text
+            } else {
+                "Consistency compounds over time. Keep your daily routines active to maintain peak streak momentum."
+            }
+        }
     }
 
     suspend fun getFocusAdvice(userId: Int): Result<String> = withContext(Dispatchers.IO) {
@@ -206,7 +215,7 @@ class AiRepository(
 
     suspend fun askGroot(userId: Int, userQuestion: String): Result<String> = withContext(Dispatchers.IO) {
         val res = getAiInsights(userId = userId, queryType = "chat", prompt = userQuestion)
-        res.map { it.resolvedText.ifBlank { it.reply ?: it.response ?: it.message ?: it.insight ?: "I am Groot. Focus on what matters most today." } }
+        res.map { it.resolvedText.ifBlank { it.reply ?: it.response ?: it.message ?: it.insight ?: "Hey! Ready to lock in—want to start a focus timer or check today's tasks?" } }
     }
 
     suspend fun breakdownTask(taskTitle: String): List<String> = withContext(Dispatchers.IO) {

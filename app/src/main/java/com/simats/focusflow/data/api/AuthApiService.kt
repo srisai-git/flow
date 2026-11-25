@@ -83,4 +83,7 @@ interface AuthApiService {
 
     @POST("preferences/save_preferences.php")
     suspend fun savePreferences(@Body request: SavePreferencesRequest): Response<PreferencesResponse>
+
+    @POST("update_preferences.php")
+    suspend fun updatePreferences(@Body request: com.simats.focusflow.data.models.UpdatePreferencesRequest): Response<PreferencesResponse>
 }

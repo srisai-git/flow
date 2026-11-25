@@ -56,6 +56,41 @@ object RetrofitClient {
         builder.build()
     }
 
+    val grootOkHttpClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(75, TimeUnit.SECONDS)
+            .readTimeout(75, TimeUnit.SECONDS)
+            .writeTimeout(75, TimeUnit.SECONDS)
+            .connectionPool(ConnectionPool(5, 5, TimeUnit.MINUTES))
+            .retryOnConnectionFailure(true)
+            .addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .header("ngrok-skip-browser-warning", "true")
+                    .build()
+                var response: okhttp3.Response? = null
+                var exception: java.io.IOException? = null
+                try {
+                    response = chain.proceed(request)
+                } catch (e: java.io.IOException) {
+                    exception = e
+                }
+                if (exception != null || response?.code in listOf(502, 503)) {
+                    response?.close()
+                    try {
+                        Thread.sleep(2000)
+                    } catch (_: InterruptedException) {
+                    }
+                    try {
+                        return@addInterceptor chain.proceed(request)
+                    } catch (e: java.io.IOException) {
+                        throw exception ?: e
+                    }
+                }
+                response ?: throw (exception ?: java.io.IOException("Network request failed"))
+            }
+            .build()
+    }
+
     @Volatile
     private var retrofitInstance: Retrofit? = null
 
@@ -100,7 +135,7 @@ object RetrofitClient {
         return grootRetrofitInstance ?: synchronized(this) {
             grootRetrofitInstance ?: Retrofit.Builder()
                 .baseUrl(GROOT_AI_BASE_URL)
-                .client(okHttpClient)
+                .client(grootOkHttpClient)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
                 .also { grootRetrofitInstance = it }

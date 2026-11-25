@@ -23,13 +23,32 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.simats.focusflow.ui.components.bounceClick
 import com.simats.focusflow.ui.theme.FocusFlowTheme
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @Composable
 fun DailyFocusGoalScreen(onBack: () -> Unit = {}, onSave: () -> Unit = {}) {
     val colors = FocusFlowTheme.colors
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = rememberCoroutineScope()
+    val sessionManager = remember { com.simats.focusflow.data.session.SessionManager.getInstance(context) }
+    val initialGoalMins by sessionManager.dailyFocusGoalMinutesFlow.collectAsState(initial = 240)
+    val initialRhythm by sessionManager.preferredFocusDurationFlow.collectAsState(initial = 45)
+
     var goalHours by remember { mutableFloatStateOf(4f) }
     var selectedRhythm by remember { mutableIntStateOf(45) }
+
+    LaunchedEffect(initialGoalMins) {
+        if (initialGoalMins > 0) {
+            goalHours = (initialGoalMins / 60f).coerceIn(1f, 12f)
+        }
+    }
+    LaunchedEffect(initialRhythm) {
+        if (initialRhythm in listOf(25, 45, 60)) {
+            selectedRhythm = initialRhythm
+        }
+    }
+
     val rhythmOptions = listOf(25, 45, 60)
 
     val days = listOf("M", "T", "W", "T", "F", "S", "S")
@@ -230,7 +249,13 @@ fun DailyFocusGoalScreen(onBack: () -> Unit = {}, onSave: () -> Unit = {}) {
             Spacer(modifier = Modifier.height(32.dp))
 
             Button(
-                onClick = onSave,
+                onClick = {
+                    scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                        val totalMinutes = (goalHours * 60).roundToInt()
+                        sessionManager.saveFocusGoalPreferences(totalMinutes, selectedRhythm)
+                    }
+                    onSave()
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp)

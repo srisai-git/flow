@@ -74,10 +74,6 @@ class DashboardViewModel(
 
     fun initSessionManager(context: Context, manager: SessionManager) {
         this.appContext = context.applicationContext
-        val existingAvatar = ProfileImageManager.getAvatarPathIfExists(context, currentUserId)
-        if (!existingAvatar.isNullOrBlank()) {
-            _uiState.update { it.copy(userAvatar = existingAvatar) }
-        }
         initSessionManager(manager)
     }
 

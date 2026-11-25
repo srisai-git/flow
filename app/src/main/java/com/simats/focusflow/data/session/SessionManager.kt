@@ -57,6 +57,9 @@ class SessionManager private constructor(
         val KEY_IS_FIRST_LOGIN_FLOW = booleanPreferencesKey("is_first_login_flow")
         val KEY_DAILY_FOCUS_GOAL_MINUTES = intPreferencesKey("key_daily_focus_goal_minutes")
         val KEY_PREFERRED_FOCUS_DURATION = intPreferencesKey("key_preferred_focus_duration")
+        val KEY_STRICT_MODE_DEFAULT = booleanPreferencesKey("key_strict_mode_default")
+        val KEY_SHORT_BREAK_DURATION = intPreferencesKey("key_short_break_duration")
+        val KEY_LONG_BREAK_DURATION = intPreferencesKey("key_long_break_duration")
 
         fun keyAvatarForUser(userId: Int) = stringPreferencesKey("key_avatar_for_user_$userId")
 
@@ -140,8 +143,8 @@ class SessionManager private constructor(
 
             val storedUserAvatar = preferences[keyAvatarForUser(userId)]
             val finalAvatar = when {
-                !storedUserAvatar.isNullOrBlank() -> storedUserAvatar
                 avatar.isNotBlank() -> avatar
+                !storedUserAvatar.isNullOrBlank() -> storedUserAvatar
                 else -> preferences[KEY_USER_AVATAR_PATH] ?: ""
             }
 
@@ -150,6 +153,12 @@ class SessionManager private constructor(
                 preferences[KEY_USER_AVATAR_URI] = finalAvatar
                 preferences[KEY_USER_AVATAR_PATH] = finalAvatar
                 preferences[keyAvatarForUser(userId)] = finalAvatar
+                if (finalAvatar.startsWith("avatar:")) {
+                    com.simats.focusflow.data.repository.ProductivityRepository.appContext?.let { ctx ->
+                        val localFile = com.simats.focusflow.utils.ProfileImageManager.getAvatarFile(ctx, userId)
+                        if (localFile.exists()) localFile.delete()
+                    }
+                }
             }
 
             if (bio.isNotBlank()) {
@@ -173,12 +182,16 @@ class SessionManager private constructor(
                 val effectiveUid = userId ?: preferences[KEY_USER_ID]
                 if (effectiveUid != null && effectiveUid > 0) {
                     preferences[keyAvatarForUser(effectiveUid)] = avatar
+                    if (avatar.startsWith("avatar:")) {
+                        com.simats.focusflow.data.repository.ProductivityRepository.appContext?.let { ctx ->
+                            val localFile = com.simats.focusflow.utils.ProfileImageManager.getAvatarFile(ctx, effectiveUid)
+                            if (localFile.exists()) localFile.delete()
+                        }
+                    }
                 }
             }
         }
     }
-
-    
 
     suspend fun saveAvatarPath(path: String, userId: Int? = null) {
         dataStore.edit { preferences ->
@@ -188,6 +201,12 @@ class SessionManager private constructor(
             val effectiveUid = userId ?: preferences[KEY_USER_ID]
             if (effectiveUid != null && effectiveUid > 0) {
                 preferences[keyAvatarForUser(effectiveUid)] = path
+                if (path.startsWith("avatar:")) {
+                    com.simats.focusflow.data.repository.ProductivityRepository.appContext?.let { ctx ->
+                        val localFile = com.simats.focusflow.utils.ProfileImageManager.getAvatarFile(ctx, effectiveUid)
+                        if (localFile.exists()) localFile.delete()
+                    }
+                }
             }
         }
     }
@@ -273,6 +292,13 @@ class SessionManager private constructor(
             preferences[KEY_BREAK_REMINDER_ENABLED] = breakReminder
             preferences.remove(KEY_AI_REPORT_REMINDER_ENABLED)
         }
+        syncPreferencesToBackend(
+            notificationsEnabled = notificationsEnabled,
+            dailyReminder = dailyReminder,
+            reminderTime = reminderTime,
+            deadlineReminder = deadlineReminder,
+            breakReminder = breakReminder
+        )
     }
 
     val isFirstLoginFlow: Flow<Boolean> = dataStore.data
@@ -284,6 +310,90 @@ class SessionManager private constructor(
     suspend fun setFirstLoginFlow(isFirst: Boolean) {
         dataStore.edit { preferences ->
             preferences[KEY_IS_FIRST_LOGIN_FLOW] = isFirst
+        }
+    }
+
+    val strictModeDefaultFlow: Flow<Boolean> = dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { preferences ->
+            preferences[KEY_STRICT_MODE_DEFAULT] ?: false
+        }
+
+    val shortBreakDurationFlow: Flow<Int> = dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { preferences ->
+            preferences[KEY_SHORT_BREAK_DURATION] ?: 5
+        }
+
+    val longBreakDurationFlow: Flow<Int> = dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { preferences ->
+            preferences[KEY_LONG_BREAK_DURATION] ?: 15
+        }
+
+    suspend fun saveBreakPreferences(shortBreak: Int, longBreak: Int) {
+        dataStore.edit { preferences ->
+            preferences[KEY_SHORT_BREAK_DURATION] = shortBreak
+            preferences[KEY_LONG_BREAK_DURATION] = longBreak
+        }
+        syncPreferencesToBackend(shortBreak = shortBreak, longBreak = longBreak)
+    }
+
+    suspend fun saveStrictModeDefault(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[KEY_STRICT_MODE_DEFAULT] = enabled
+        }
+        syncPreferencesToBackend(strictModeDefault = enabled)
+    }
+
+    suspend fun syncPreferencesToBackend(
+        dailyGoalMinutes: Int? = null,
+        focusDuration: Int? = null,
+        notificationsEnabled: Boolean? = null,
+        dailyReminder: Boolean? = null,
+        deadlineReminder: Boolean? = null,
+        breakReminder: Boolean? = null,
+        strictModeDefault: Boolean? = null,
+        reminderTime: String? = null,
+        shortBreak: Int? = null,
+        longBreak: Int? = null
+    ) {
+        kotlinx.coroutines.withContext(Dispatchers.IO) {
+            try {
+                val session = userSessionFlow.first()
+                val uid = session.userId
+                val email = session.userEmail
+                if ((uid == null || uid <= 0) && email.isNullOrBlank()) return@withContext
+
+                val currentGoal = dailyGoalMinutes ?: dailyFocusGoalMinutesFlow.first()
+                val currentDuration = focusDuration ?: preferredFocusDurationFlow.first()
+                val currentNotif = notificationsEnabled ?: true
+                val currentDaily = dailyReminder ?: dailyReminderEnabledFlow.first()
+                val currentDeadline = deadlineReminder ?: deadlineReminderEnabledFlow.first()
+                val currentBreak = breakReminder ?: breakReminderEnabledFlow.first()
+                val currentStrict = strictModeDefault ?: strictModeDefaultFlow.first()
+                val currentTime = reminderTime ?: reminderTimeFlow.first()
+                val currentShort = shortBreak ?: shortBreakDurationFlow.first()
+                val currentLong = longBreak ?: longBreakDurationFlow.first()
+
+                val req = com.simats.focusflow.data.models.UpdatePreferencesRequest(
+                    userId = uid,
+                    email = email,
+                    dailyFocusGoal = currentGoal,
+                    dailyFocusGoalMinutes = currentGoal,
+                    preferredFocusDuration = currentDuration,
+                    notificationsEnabled = if (currentNotif) 1 else 0,
+                    dailyReminderEnabled = if (currentDaily) 1 else 0,
+                    deadlineReminderEnabled = if (currentDeadline) 1 else 0,
+                    breakReminderEnabled = if (currentBreak) 1 else 0,
+                    strictModeDefault = if (currentStrict) 1 else 0,
+                    shortBreakDuration = currentShort,
+                    breakDuration = currentShort,
+                    longBreakDuration = currentLong,
+                    reminderTime = currentTime
+                )
+                com.simats.focusflow.data.api.RetrofitClient.authApiService.updatePreferences(req)
+            } catch (_: Exception) {}
         }
     }
 
@@ -323,6 +433,7 @@ class SessionManager private constructor(
             preferences[KEY_DAILY_FOCUS_GOAL_MINUTES] = goalMinutes
             preferences[KEY_PREFERRED_FOCUS_DURATION] = intervalMinutes
         }
+        syncPreferencesToBackend(dailyGoalMinutes = goalMinutes, focusDuration = intervalMinutes)
     }
 
     suspend fun clearSession() {

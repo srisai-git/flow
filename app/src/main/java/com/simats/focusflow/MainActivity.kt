@@ -787,17 +787,23 @@ class MainActivity : ComponentActivity() {
                             DataAiPreferencesScreen(onBack = { navController.popBackStack() })
                         }
                         composable("setup_profile") {
+                            val setupProfileViewModel: com.simats.focusflow.ui.viewmodel.SetupProfileViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+                            setupProfileViewModel.initSessionManager(sessionManager)
                             SetupProfileScreen(
                                 onBack = { navController.popBackStack() },
                                 onContinue = { navController.navigate("setup") },
-                                onSkip = { navController.navigate("setup") }
+                                onSkip = { navController.navigate("setup") },
+                                viewModel = setupProfileViewModel
                             )
                         }
                         composable("avatar_selection") {
+                            val avatarViewModel: com.simats.focusflow.ui.viewmodel.AvatarSelectionViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+                            avatarViewModel.initSessionManager(sessionManager)
                             AvatarSelectionScreen(
                                 onBack = { navController.popBackStack() },
                                 onContinue = { navController.navigate("setup") },
-                                onSkip = { navController.navigate("setup") }
+                                onSkip = { navController.navigate("setup") },
+                                avatarViewModel = avatarViewModel
                             )
                         }
                         composable("ready_setup_complete") {

@@ -38,7 +38,8 @@ data class HabitReportData(
     val strongestHabitStreak: Int = 0,
     val needsAttentionHabit: String = "",
     val dropOffDays: String = "",
-    val recommendation: String = ""
+    val recommendation: String = "",
+    val nextAction: String = ""
 )
 
 @Immutable
@@ -186,7 +187,10 @@ class HabitViewModel(
                     onSuccess = { insight ->
                         val cleanInsight = if (insight.isNotBlank() &&
                             !insight.contains("offline", ignoreCase = true) &&
-                            !insight.contains("port 8000", ignoreCase = true)) {
+                            !insight.contains("port 8000", ignoreCase = true) &&
+                            !insight.contains("lock in—want to", ignoreCase = true) &&
+                            !insight.contains("start a focus timer", ignoreCase = true) &&
+                            !insight.contains("unable to connect", ignoreCase = true)) {
                             insight
                         } else {
                             computeDynamicHabitInsight(habits, userStats)
@@ -261,6 +265,9 @@ class HabitViewModel(
                     if (!text.isNullOrBlank() &&
                         !text.contains("offline", ignoreCase = true) &&
                         !text.contains("port 8000", ignoreCase = true) &&
+                        !text.contains("lock in—want to", ignoreCase = true) &&
+                        !text.contains("start a focus timer", ignoreCase = true) &&
+                        !text.contains("unable to connect", ignoreCase = true) &&
                         !text.contains("deep-reasoning engine", ignoreCase = true)) {
                         aiRecommendation = text
                     }
@@ -273,11 +280,26 @@ class HabitViewModel(
                 else -> "Anchor your daily routines immediately after your morning focus block to protect streak continuity and eliminate evening fatigue drop-off."
             }
 
-            val attentionHabit = habits.filter { !it.isCompletedToday }.minByOrNull { it.streakCount }
-                ?: habits.minByOrNull { it.streakCount }
-            val attentionTitle = if (attentionHabit != null) {
-                "${attentionHabit.title} (${attentionHabit.streakCount}d streak)"
-            } else "All routines on track"
+            val allCompletedToday = habits.isNotEmpty() && habits.all { it.isCompletedToday }
+            val attentionTitle = when {
+                habits.isEmpty() || allCompletedToday -> "All habits on track!"
+                habits.size > 1 -> {
+                    val otherHabits = habits.filter { it.id != topHabit?.id }
+                    val uncompletedOther = otherHabits.filter { !it.isCompletedToday }
+                    if (uncompletedOther.isNotEmpty()) {
+                        val target = uncompletedOther.minByOrNull { it.streakCount }!!
+                        "${target.title} (${target.streakCount}d streak)"
+                    } else {
+                        "All habits on track!"
+                    }
+                }
+                else -> {
+                    val single = habits.first()
+                    if (single.isCompletedToday) "All habits on track!" else "${single.title} (${single.streakCount}d streak)"
+                }
+            }
+
+            val nextAction = computeHabitNextAction(habits, userStats)
 
             val report = HabitReportData(
                 consistencyScore = consistencyScore,
@@ -285,7 +307,8 @@ class HabitViewModel(
                 strongestHabitStreak = strongestStreak,
                 needsAttentionHabit = attentionTitle,
                 dropOffDays = dropOffDaysStr,
-                recommendation = finalRecommendation
+                recommendation = finalRecommendation,
+                nextAction = nextAction
             )
 
             withContext(Dispatchers.Main) {
@@ -411,18 +434,31 @@ class HabitViewModel(
         if (habits.isEmpty()) {
             return "Start building consistency by creating your first daily habit."
         }
-        val topStreakHabit = habits.maxByOrNull { it.streakCount }
-        val allCompletedToday = habits.isNotEmpty() && habits.all { it.isCompletedToday }
+        val consistencyScore = if (stats.avgConsistencyPercent > 0) {
+            stats.avgConsistencyPercent.toInt().coerceIn(0, 100)
+        } else {
+            val comp = habits.count { it.isCompletedToday }
+            ((comp.toFloat() / habits.size.toFloat()) * 100).toInt().coerceIn(0, 100)
+        }
         val completedCount = habits.count { it.isCompletedToday }
+        val totalCount = habits.size
+        val allCompletedToday = habits.all { it.isCompletedToday }
 
         return when {
-            allCompletedToday -> "Flawless routine today! All ${habits.size} daily habits completed."
-            topStreakHabit != null && topStreakHabit.streakCount >= 3 ->
-                "${topStreakHabit.title} is your longest standing streak at ${topStreakHabit.streakCount} days."
-            completedCount > 0 ->
-                "You're most consistent on weekday mornings ($completedCount/${habits.size} habits logged today)."
-            else ->
-                "Stay consistent today: complete your daily habits to maintain your ${maxOf(1, stats.currentStreak)}-day streak."
+            allCompletedToday -> "Flawless $consistencyScore% consistency! All $totalCount habits completed today with an active ${maxOf(1, stats.currentStreak)}-day streak."
+            completedCount > 0 -> "Maintaining $consistencyScore% consistency with $completedCount of $totalCount habits completed today. Strong momentum across daily routines."
+            else -> "Consistency currently at $consistencyScore%. Complete your scheduled habits today to sustain your ${maxOf(1, stats.currentStreak)}-day streak."
+        }
+    }
+
+    fun computeHabitNextAction(habits: List<HabitItem>, stats: HabitUserStats): String {
+        val uncompleted = habits.count { !it.isCompletedToday }
+        val nextStreak = stats.currentStreak + 1
+        return when {
+            habits.isEmpty() -> "Add your first habit to start tracking your daily consistency."
+            uncompleted == 0 -> "All ${habits.size} habits completed today! Keep this momentum tomorrow to push your streak to $nextStreak days."
+            uncompleted == 1 -> "Complete your remaining 1 habit today to push your streak to $nextStreak days."
+            else -> "Complete all $uncompleted habits today to push your streak to $nextStreak days."
         }
     }
 }

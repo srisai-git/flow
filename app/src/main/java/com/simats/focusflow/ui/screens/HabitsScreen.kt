@@ -932,9 +932,31 @@ private fun GrootAiHabitInsightsCard(
                     )
                 }
             } else {
-                val displayText = insight?.ifBlank { null }
-                    ?: habitReport?.recommendation
-                    ?: "You have active habits ready to compound. Complete your primary routine to build lasting streak momentum."
+                val isChatFallback = !insight.isNullOrBlank() && (
+                    insight.contains("lock in—want to", ignoreCase = true) ||
+                    insight.contains("start a focus timer", ignoreCase = true) ||
+                    insight.contains("unable to connect", ignoreCase = true) ||
+                    insight.contains("offline", ignoreCase = true) ||
+                    insight.contains("I am Groot", ignoreCase = true)
+                )
+
+                val defaultInsight = run {
+                    val comp = habits.count { it.isCompletedToday }
+                    val consistency = if (userStats.avgConsistencyPercent > 0) userStats.avgConsistencyPercent.toInt() else if (habits.isNotEmpty()) ((comp * 100) / habits.size) else 0
+                    if (habits.isNotEmpty() && habits.all { it.isCompletedToday }) {
+                        "Flawless $consistency% consistency! All ${habits.size} habits completed today with an active ${maxOf(1, userStats.currentStreak)}-day streak."
+                    } else if (comp > 0) {
+                        "Maintaining $consistency% consistency with $comp of ${habits.size} habits completed today. Strong momentum across daily routines."
+                    } else {
+                        "Consistency currently at $consistency%. Complete your scheduled habits today to sustain your ${maxOf(1, userStats.currentStreak)}-day streak."
+                    }
+                }
+
+                val displayText = if (!insight.isNullOrBlank() && !isChatFallback) {
+                    insight
+                } else {
+                    habitReport?.recommendation ?: defaultInsight
+                }
                 Text(
                     text = displayText,
                     fontSize = 13.sp,
@@ -947,13 +969,41 @@ private fun GrootAiHabitInsightsCard(
                     ?: habits.maxByOrNull { it.streakCount }?.title ?: "Daily Habit"
                 val strongestStreak = habitReport?.strongestHabitStreak
                     ?: maxOf(habits.maxByOrNull { it.streakCount }?.streakCount ?: 0, userStats.currentStreak)
-                val attentionTitle = habitReport?.needsAttentionHabit?.ifBlank { null }
-                    ?: habits.filter { !it.isCompletedToday }.minByOrNull { it.streakCount }?.let { "${it.title} (${it.streakCount}d streak)" }
-                    ?: habits.minByOrNull { it.streakCount }?.let { "${it.title} (${it.streakCount}d streak)" }
-                    ?: "All routines on track"
-                val nextActionText = habitReport?.recommendation?.ifBlank { null }
-                    ?: insight?.ifBlank { null }
-                    ?: "Anchor your daily routines immediately following your morning focus block to protect streak continuity."
+
+                val allHabitsCompleted = habits.isNotEmpty() && habits.all { it.isCompletedToday }
+                val topHabit = habits.maxByOrNull { it.streakCount }
+                val attentionTitle = when {
+                    habits.isEmpty() || allHabitsCompleted -> "All habits on track!"
+                    !habitReport?.needsAttentionHabit.isNullOrBlank() -> habitReport!!.needsAttentionHabit
+                    habits.size > 1 -> {
+                        val otherHabits = habits.filter { it.id != topHabit?.id }
+                        val uncompletedOther = otherHabits.filter { !it.isCompletedToday }
+                        if (uncompletedOther.isNotEmpty()) {
+                            val target = uncompletedOther.minByOrNull { it.streakCount }!!
+                            "${target.title} (${target.streakCount}d streak)"
+                        } else {
+                            "All habits on track!"
+                        }
+                    }
+                    else -> {
+                        val single = habits.first()
+                        if (single.isCompletedToday) "All habits on track!" else "${single.title} (${single.streakCount}d streak)"
+                    }
+                }
+
+                val defaultNextAction = run {
+                    val uncompleted = habits.count { !it.isCompletedToday }
+                    val nextStreak = userStats.currentStreak + 1
+                    when {
+                        habits.isEmpty() -> "Add your first habit to start tracking your daily consistency."
+                        uncompleted == 0 -> "All ${habits.size} habits completed today! Keep this momentum tomorrow to push your streak to $nextStreak days."
+                        uncompleted == 1 -> "Complete your remaining 1 habit today to push your streak to $nextStreak days."
+                        else -> "Complete all $uncompleted habits today to push your streak to $nextStreak days."
+                    }
+                }
+
+                val nextActionText = habitReport?.nextAction?.ifBlank { null }
+                    ?: defaultNextAction
 
                 Spacer(modifier = Modifier.height(12.dp))
 

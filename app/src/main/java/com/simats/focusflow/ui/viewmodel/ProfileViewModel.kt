@@ -103,12 +103,6 @@ class ProfileViewModel(
 
     fun initSessionManager(context: Context, manager: SessionManager) {
         this.appContext = context.applicationContext
-        val existingAvatar = ProfileImageManager.getAvatarPathIfExists(context, currentUserId)
-        if (!existingAvatar.isNullOrBlank()) {
-            _uiState.update { current ->
-                current.copy(profile = current.profile.copy(avatar = existingAvatar))
-            }
-        }
         initSessionManager(manager)
     }
 
@@ -235,9 +229,12 @@ class ProfileViewModel(
 
                         val localPath = appContext?.let { ProfileImageManager.getAvatarPathIfExists(it, currentUserId) }
                         val effectiveAvatar = when {
-                            !localPath.isNullOrBlank() -> localPath ?: ""
                             !sAvatar.isNullOrBlank() -> sAvatar ?: ""
-                            data.avatar.isNotBlank() -> data.avatar
+                            data.avatar.isNotBlank() -> {
+                                sessionManager?.saveAvatarPath(data.avatar, currentUserId)
+                                data.avatar
+                            }
+                            !localPath.isNullOrBlank() -> localPath ?: ""
                             else -> ""
                         }
 

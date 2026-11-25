@@ -42,9 +42,10 @@ class AvatarSelectionViewModel(
         viewModelScope.launch {
             _uiState.value = AvatarSelectionUiState.Loading
             val avatarChoice = _selectedAvatar.value
+            val effectiveUserId = sessionManager?.userSessionFlow?.first()?.userId ?: userId
             try {
                 apiService.updateAvatar(
-                    UpdateAvatarRequest(user_id = userId, avatar = avatarChoice)
+                    UpdateAvatarRequest(user_id = effectiveUserId, avatar = avatarChoice)
                 )
 
                 sessionManager?.let { sm ->
@@ -53,8 +54,10 @@ class AvatarSelectionViewModel(
                         name = currentSession.userName ?: "",
                         email = currentSession.userEmail ?: "",
                         bio = currentSession.userBio ?: "",
-                        avatar = avatarChoice
+                        avatar = avatarChoice,
+                        userId = effectiveUserId
                     )
+                    sm.saveAvatarPath(avatarChoice, effectiveUserId)
                 }
 
                 _uiState.value = AvatarSelectionUiState.Success("Avatar updated!")
@@ -66,8 +69,10 @@ class AvatarSelectionViewModel(
                         name = currentSession.userName ?: "",
                         email = currentSession.userEmail ?: "",
                         bio = currentSession.userBio ?: "",
-                        avatar = avatarChoice
+                        avatar = avatarChoice,
+                        userId = effectiveUserId
                     )
+                    sm.saveAvatarPath(avatarChoice, effectiveUserId)
                 }
                 _uiState.value = AvatarSelectionUiState.Success("Avatar saved locally!")
                 onSuccess()

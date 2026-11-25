@@ -157,6 +157,27 @@ class AuthViewModel(
                         bio = authenticatedUser.bio,
                         isOnboardingCompleted = true
                     )
+                    if (effectiveAvatar.isNotBlank()) {
+                        sessionManager?.saveAvatarPath(effectiveAvatar, authenticatedUser.id)
+                    }
+
+                    response.preferences?.let { prefs ->
+                        viewModelScope.launch(Dispatchers.IO) {
+                            sessionManager?.saveFocusGoalPreferences(
+                                prefs.dailyFocusGoalMinutes,
+                                prefs.preferredFocusDuration
+                            )
+                            sessionManager?.saveNotificationPreferences(
+                                notificationsEnabled = prefs.notificationsEnabled == 1,
+                                dailyReminder = prefs.dailyReminderEnabled == 1,
+                                reminderTime = prefs.reminderTime,
+                                deadlineReminder = prefs.deadlineReminderEnabled == 1,
+                                breakReminder = prefs.breakReminderEnabled == 1
+                            )
+                            sessionManager?.saveStrictModeDefault(prefs.strictModeDefault == 1)
+                            sessionManager?.saveBreakPreferences(prefs.shortBreakDuration, prefs.longBreakDuration)
+                        }
+                    }
 
                     appContext?.let { ctx ->
                         if (effectiveAvatar.isNotBlank() && !effectiveAvatar.startsWith("avatar:") && (effectiveAvatar.startsWith("http") || effectiveAvatar.startsWith("data:"))) {

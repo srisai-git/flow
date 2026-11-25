@@ -54,10 +54,16 @@ class ProfileRepository(
                     bio = bio,
                     avatar = avatar
                 )
-                sessionManager?.updateProfile(name, email, bio, avatar)
+                sessionManager?.updateProfile(name, email, bio, avatar, userId)
+                if (avatar.isNotBlank()) {
+                    sessionManager?.saveAvatarPath(avatar, userId)
+                }
                 Result.success(updated)
             } else {
-                sessionManager?.updateProfile(name, email, bio, avatar)
+                sessionManager?.updateProfile(name, email, bio, avatar, userId)
+                if (avatar.isNotBlank()) {
+                    sessionManager?.saveAvatarPath(avatar, userId)
+                }
                 Result.success(
                     ProfileData(
                         id = userId,
@@ -69,7 +75,10 @@ class ProfileRepository(
                 )
             }
         } catch (e: Exception) {
-            sessionManager?.updateProfile(name, email, bio, avatar)
+            sessionManager?.updateProfile(name, email, bio, avatar, userId)
+            if (avatar.isNotBlank()) {
+                sessionManager?.saveAvatarPath(avatar, userId)
+            }
             Result.success(
                 ProfileData(
                     id = userId,

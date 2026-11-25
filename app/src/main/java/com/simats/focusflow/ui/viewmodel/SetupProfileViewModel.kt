@@ -8,6 +8,7 @@ import com.simats.focusflow.data.api.SetupProfileRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 sealed class SetupProfileUiState {
@@ -18,11 +19,16 @@ sealed class SetupProfileUiState {
 }
 
 class SetupProfileViewModel(
-    private val apiService: AuthApiService = RetrofitClient.instance
+    private val apiService: AuthApiService = RetrofitClient.instance,
+    private var sessionManager: com.simats.focusflow.data.session.SessionManager? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<SetupProfileUiState>(SetupProfileUiState.Idle)
     val uiState: StateFlow<SetupProfileUiState> = _uiState.asStateFlow()
+
+    fun initSessionManager(manager: com.simats.focusflow.data.session.SessionManager) {
+        this.sessionManager = manager
+    }
 
     fun setupProfile(
         userId: Int = 1,
@@ -33,6 +39,20 @@ class SetupProfileViewModel(
     ) {
         viewModelScope.launch {
             _uiState.value = SetupProfileUiState.Loading
+            val effectiveAvatar = avatar ?: ""
+            sessionManager?.let { sm ->
+                val currentSession = sm.userSessionFlow.first()
+                sm.updateProfile(
+                    name = name,
+                    email = currentSession.userEmail ?: "",
+                    bio = bio ?: "",
+                    avatar = effectiveAvatar,
+                    userId = userId
+                )
+                if (effectiveAvatar.isNotBlank()) {
+                    sm.saveAvatarPath(effectiveAvatar, userId)
+                }
+            }
             try {
                 val response = apiService.setupProfile(
                     SetupProfileRequest(
