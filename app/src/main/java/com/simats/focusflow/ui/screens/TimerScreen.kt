@@ -33,6 +33,8 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.HourglassBottom
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.ui.draw.alpha
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
@@ -112,14 +114,24 @@ fun TimerScreen(
     var showClockTimePicker by remember { mutableStateOf(false) }
     var showUsagePermissionDialog by remember { mutableStateOf(false) }
     var isStrictFocus by rememberSaveable { mutableStateOf(false) }
+    val uninstallLockPref by viewModel.isUninstallLockEnabled.collectAsState()
+    var isUninstallLockEnabled by rememberSaveable { mutableStateOf(false) }
     var hasAccessibilityPermission by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     var backgroundJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
 
+    LaunchedEffect(uninstallLockPref) {
+        isUninstallLockEnabled = uninstallLockPref
+    }
+
     val refreshPermissions = {
         hasAccessibilityPermission = com.simats.focusflow.service.FocusBlockerAccessibilityService.isAccessibilityServiceEnabled(context)
+        if (isUninstallLockEnabled && !com.simats.focusflow.service.FlowDeviceAdminReceiver.isDeviceAdminActive(context)) {
+            isUninstallLockEnabled = false
+            viewModel.setUninstallLockEnabled(false)
+        }
     }
 
     val focusSessions = remember(state.recentSessions) {
@@ -432,7 +444,7 @@ fun TimerScreen(
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         } else {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            if (isStrictFocus && !com.simats.focusflow.service.FlowDeviceAdminReceiver.requireDeviceAdmin(context)) {
+                            if (isStrictFocus && isUninstallLockEnabled && !com.simats.focusflow.service.FlowDeviceAdminReceiver.requireDeviceAdmin(context)) {
                                 return@Surface
                             }
                         }
@@ -585,12 +597,14 @@ fun TimerScreen(
                             checked = isStrictFocus,
                             onCheckedChange = { checked ->
                                 if (checked) {
-                                    val adminActive = com.simats.focusflow.service.FlowDeviceAdminReceiver.requireDeviceAdmin(context)
                                     isStrictFocus = true
                                     com.simats.focusflow.service.FocusTimerService.setStrictFocus(context, true)
                                     refreshPermissions()
                                     if (!com.simats.focusflow.service.FocusBlockerAccessibilityService.isAccessibilityServiceEnabled(context)) {
                                         com.simats.focusflow.service.FocusBlockerAccessibilityService.openAccessibilitySettings(context)
+                                    }
+                                    if (isUninstallLockEnabled) {
+                                        com.simats.focusflow.service.FlowDeviceAdminReceiver.requireDeviceAdmin(context)
                                     }
                                 } else {
                                     isStrictFocus = false
@@ -609,6 +623,90 @@ fun TimerScreen(
                     }
 
                     Spacer(modifier = Modifier.height(14.dp))
+
+                    HorizontalDivider(
+                        color = if (colors.isDark) Color(0xFF262338) else Color(0xFFE5E7EB),
+                        thickness = 1.dp
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .alpha(if (isStrictFocus) 1.0f else 0.45f),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(
+                                        if (isStrictFocus && isUninstallLockEnabled) Color(0xFF8B5CF6).copy(alpha = 0.2f)
+                                        else if (colors.isDark) Color(0xFF262338) else Color(0xFFF3F4F6)
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = "Uninstall Lock",
+                                    tint = if (isStrictFocus && isUninstallLockEnabled) Color(0xFF8B5CF6)
+                                    else colors.textMuted,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Uninstall Lock",
+                                    fontSize = 14.5.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (colors.isDark) colors.textPrimary else Color(0xFF111827)
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "Block app deletion during Strict Focus",
+                                    fontSize = 12.sp,
+                                    color = if (colors.isDark) colors.textMuted else Color(0xFF6B7280),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                        Switch(
+                            checked = isStrictFocus && isUninstallLockEnabled,
+                            enabled = isStrictFocus,
+                            onCheckedChange = { checked ->
+                                if (checked) {
+                                    val adminActive = com.simats.focusflow.service.FlowDeviceAdminReceiver.requireDeviceAdmin(context)
+                                    isUninstallLockEnabled = true
+                                    viewModel.setUninstallLockEnabled(true)
+                                } else {
+                                    isUninstallLockEnabled = false
+                                    viewModel.setUninstallLockEnabled(false)
+                                    com.simats.focusflow.service.FlowDeviceAdminReceiver.removeDeviceAdmin(context)
+                                }
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = Color(0xFF7C3AED),
+                                uncheckedThumbColor = Color.White,
+                                uncheckedTrackColor = Color(0xFFE5E7EB),
+                                uncheckedBorderColor = Color(0xFFD1D5DB),
+                                disabledCheckedThumbColor = Color.White.copy(alpha = 0.5f),
+                                disabledCheckedTrackColor = Color(0xFF7C3AED).copy(alpha = 0.3f),
+                                disabledUncheckedThumbColor = Color.White.copy(alpha = 0.5f),
+                                disabledUncheckedTrackColor = Color(0xFFE5E7EB).copy(alpha = 0.3f)
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     HorizontalDivider(
                         color = if (colors.isDark) Color(0xFF262338) else Color(0xFFE5E7EB),
@@ -876,7 +974,9 @@ fun TimerScreen(
                             isStrictFocus = true
                             com.simats.focusflow.service.FocusTimerService.setStrictFocus(context, true)
                             com.simats.focusflow.utils.UsageStatsHelper.openUsageAccessSettings(context)
-                            com.simats.focusflow.service.FlowDeviceAdminReceiver.requireDeviceAdmin(context)
+                            if (isUninstallLockEnabled) {
+                                com.simats.focusflow.service.FlowDeviceAdminReceiver.requireDeviceAdmin(context)
+                            }
                         }
                     ) {
                         Text("Grant Permission", color = colors.primary, fontWeight = FontWeight.Bold)

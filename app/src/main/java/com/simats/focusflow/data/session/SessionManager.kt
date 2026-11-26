@@ -60,6 +60,7 @@ class SessionManager private constructor(
         val KEY_STRICT_MODE_DEFAULT = booleanPreferencesKey("key_strict_mode_default")
         val KEY_SHORT_BREAK_DURATION = intPreferencesKey("key_short_break_duration")
         val KEY_LONG_BREAK_DURATION = intPreferencesKey("key_long_break_duration")
+        val KEY_UNINSTALL_LOCK_ENABLED = booleanPreferencesKey("key_uninstall_lock_enabled")
 
         fun keyAvatarForUser(userId: Int) = stringPreferencesKey("key_avatar_for_user_$userId")
 
@@ -344,6 +345,18 @@ class SessionManager private constructor(
             preferences[KEY_STRICT_MODE_DEFAULT] = enabled
         }
         syncPreferencesToBackend(strictModeDefault = enabled)
+    }
+
+    val uninstallLockEnabledFlow: Flow<Boolean> = dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { preferences ->
+            preferences[KEY_UNINSTALL_LOCK_ENABLED] ?: false
+        }
+
+    suspend fun saveUninstallLockEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[KEY_UNINSTALL_LOCK_ENABLED] = enabled
+        }
     }
 
     suspend fun syncPreferencesToBackend(

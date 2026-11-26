@@ -45,6 +45,7 @@ data class TimerServiceState(
     val isRunning: Boolean = false,
     val isPaused: Boolean = false,
     val isStrictFocus: Boolean = false,
+    val isUninstallLock: Boolean = false,
     val completedSessions: Int = 0,
     val targetEndTimeMillis: Long = 0L,
     val activeUserId: Int = 1,
@@ -199,6 +200,18 @@ class FocusTimerService : Service() {
             startServiceCompat(context, intent)
         }
 
+        const val ACTION_SET_UNINSTALL_LOCK = "com.simats.focusflow.action.SET_UNINSTALL_LOCK"
+        const val EXTRA_UNINSTALL_LOCK = "extra_uninstall_lock"
+
+        fun setUninstallLock(context: Context, enabled: Boolean) {
+            _timerStateFlow.update { it.copy(isUninstallLock = enabled) }
+            val intent = Intent(context, FocusTimerService::class.java).apply {
+                action = ACTION_SET_UNINSTALL_LOCK
+                putExtra(EXTRA_UNINSTALL_LOCK, enabled)
+            }
+            startServiceCompat(context, intent)
+        }
+
         private fun startServiceCompat(context: Context, intent: Intent) {
             try {
                 if (intent.action == ACTION_START || intent.action == ACTION_RESUME) {
@@ -241,6 +254,13 @@ class FocusTimerService : Service() {
             } catch (e: Exception) {
             }
         }
+        serviceScope.launch(Dispatchers.IO) {
+            try {
+                SessionManager.getInstance(applicationContext).uninstallLockEnabledFlow.collect { enabled ->
+                    _timerStateFlow.update { it.copy(isUninstallLock = enabled) }
+                }
+            } catch (_: Exception) {}
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -275,9 +295,14 @@ class FocusTimerService : Service() {
             ACTION_SET_STRICT_FOCUS -> {
                 val enabled = intent.getBooleanExtra(EXTRA_STRICT_FOCUS, false)
                 _timerStateFlow.update { it.copy(isStrictFocus = enabled) }
-                if (enabled) {
-                    FlowDeviceAdminReceiver.requireDeviceAdmin(applicationContext)
-                } else {
+                if (!enabled) {
+                    FlowDeviceAdminReceiver.removeDeviceAdmin(applicationContext)
+                }
+            }
+            ACTION_SET_UNINSTALL_LOCK -> {
+                val enabled = intent.getBooleanExtra(EXTRA_UNINSTALL_LOCK, false)
+                _timerStateFlow.update { it.copy(isUninstallLock = enabled) }
+                if (!enabled) {
                     FlowDeviceAdminReceiver.removeDeviceAdmin(applicationContext)
                 }
             }
@@ -288,7 +313,7 @@ class FocusTimerService : Service() {
     }
 
     private fun handleStart() {
-        if (_timerStateFlow.value.currentMode == TimerMode.FOCUS && _timerStateFlow.value.isStrictFocus) {
+        if (_timerStateFlow.value.currentMode == TimerMode.FOCUS && _timerStateFlow.value.isStrictFocus && _timerStateFlow.value.isUninstallLock) {
             if (!FlowDeviceAdminReceiver.requireDeviceAdmin(applicationContext)) {
                 return
             }
@@ -317,7 +342,7 @@ class FocusTimerService : Service() {
     }
 
     private fun handleResume() {
-        if (_timerStateFlow.value.currentMode == TimerMode.FOCUS && _timerStateFlow.value.isStrictFocus) {
+        if (_timerStateFlow.value.currentMode == TimerMode.FOCUS && _timerStateFlow.value.isStrictFocus && _timerStateFlow.value.isUninstallLock) {
             if (!FlowDeviceAdminReceiver.requireDeviceAdmin(applicationContext)) {
                 return
             }

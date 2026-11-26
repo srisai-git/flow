@@ -59,13 +59,17 @@ class FocusBlockerAccessibilityService : AccessibilityService() {
             return
         }
 
+        if (timerState.isUninstallLock && !FlowDeviceAdminReceiver.isDeviceAdminActive(applicationContext)) {
+            FlowDeviceAdminReceiver.requestDeviceAdmin(applicationContext)
+        }
+
         val blockedAppsManager = BlockedAppsManager.getInstance(applicationContext)
         val eventPkg = event.packageName?.toString()
         val rootPkg = try { rootInActiveWindow?.packageName?.toString() } catch (_: Exception) { null }
 
         val targetPkg = when {
-            rootPkg != null && isBlockedPackage(rootPkg, blockedAppsManager) -> rootPkg
-            eventPkg != null && isBlockedPackage(eventPkg, blockedAppsManager) -> eventPkg
+            rootPkg != null && isBlockedPackage(rootPkg, blockedAppsManager, timerState.isUninstallLock) -> rootPkg
+            eventPkg != null && isBlockedPackage(eventPkg, blockedAppsManager, timerState.isUninstallLock) -> eventPkg
             else -> null
         }
 
@@ -74,14 +78,14 @@ class FocusBlockerAccessibilityService : AccessibilityService() {
 
             handler.postDelayed({
                 val activePkg = try { rootInActiveWindow?.packageName?.toString() } catch (_: Exception) { null }
-                if (activePkg != null && isBlockedPackage(activePkg, blockedAppsManager)) {
+                if (activePkg != null && isBlockedPackage(activePkg, blockedAppsManager, timerState.isUninstallLock)) {
                     performGlobalAction(GLOBAL_ACTION_HOME)
                 }
             }, 150L)
 
             handler.postDelayed({
                 val activePkg = try { rootInActiveWindow?.packageName?.toString() } catch (_: Exception) { null }
-                if (activePkg != null && isBlockedPackage(activePkg, blockedAppsManager)) {
+                if (activePkg != null && isBlockedPackage(activePkg, blockedAppsManager, timerState.isUninstallLock)) {
                     performGlobalAction(GLOBAL_ACTION_HOME)
                 }
             }, 350L)
@@ -107,18 +111,18 @@ class FocusBlockerAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun isBlockedPackage(pkg: String, blockedAppsManager: BlockedAppsManager): Boolean {
+    private fun isBlockedPackage(pkg: String, blockedAppsManager: BlockedAppsManager, isUninstallLock: Boolean): Boolean {
         if (pkg == applicationContext.packageName) return false
         if (pkg == "com.android.systemui") return false
-        if (isInstallerOrSettingsPackage(pkg)) return true
+        if (isUninstallLock && isInstallerOrSettingsPackage(pkg)) return true
         if (BlockedAppsManager.isSystemOrEssentialPackage(applicationContext, pkg)) return false
         return blockedAppsManager.isAppBlocked(pkg)
     }
 
-    private fun isAllowedPackage(pkg: String): Boolean {
+    private fun isAllowedPackage(pkg: String, isUninstallLock: Boolean): Boolean {
         if (pkg == applicationContext.packageName) return true
         if (pkg == "com.android.systemui") return true
-        if (isInstallerOrSettingsPackage(pkg)) return false
+        if (isUninstallLock && isInstallerOrSettingsPackage(pkg)) return false
         if (BlockedAppsManager.isSystemOrEssentialPackage(applicationContext, pkg)) return true
         return false
     }

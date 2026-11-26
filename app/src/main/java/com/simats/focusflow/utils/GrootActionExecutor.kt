@@ -41,7 +41,7 @@ class GrootActionExecutor(
                         if (mode != TimerMode.FOCUS) {
                             FocusTimerService.selectMode(context, mode)
                         }
-                        if (mode == TimerMode.FOCUS && FocusTimerService.timerStateFlow.value.isStrictFocus) {
+                        if (mode == TimerMode.FOCUS && FocusTimerService.timerStateFlow.value.isStrictFocus && FocusTimerService.timerStateFlow.value.isUninstallLock) {
                             if (!FlowDeviceAdminReceiver.requireDeviceAdmin(context)) {
                                 return@withContext
                             }
@@ -75,7 +75,9 @@ class GrootActionExecutor(
                         if (!FocusBlockerAccessibilityService.isAccessibilityServiceEnabled(context)) {
                             FocusBlockerAccessibilityService.openAccessibilitySettings(context)
                         }
-                        FlowDeviceAdminReceiver.requireDeviceAdmin(context)
+                        if (FocusTimerService.timerStateFlow.value.isUninstallLock) {
+                            FlowDeviceAdminReceiver.requireDeviceAdmin(context)
+                        }
                     }
                     true
                 }
