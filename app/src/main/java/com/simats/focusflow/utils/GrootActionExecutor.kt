@@ -6,7 +6,6 @@ import androidx.core.text.HtmlCompat
 import com.simats.focusflow.data.models.AiAction
 import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.repository.ProfileRepository
-import com.simats.focusflow.service.FlowDeviceAdminReceiver
 import com.simats.focusflow.service.FocusBlockerAccessibilityService
 import com.simats.focusflow.service.FocusTimerService
 import com.simats.focusflow.ui.viewmodel.TimerMode
@@ -41,11 +40,6 @@ class GrootActionExecutor(
                         if (mode != TimerMode.FOCUS) {
                             FocusTimerService.selectMode(context, mode)
                         }
-                        if (mode == TimerMode.FOCUS && FocusTimerService.timerStateFlow.value.isStrictFocus && FocusTimerService.timerStateFlow.value.isUninstallLock) {
-                            if (!FlowDeviceAdminReceiver.requireDeviceAdmin(context)) {
-                                return@withContext
-                            }
-                        }
                         FocusTimerService.startTimer(context, userId)
                     }
                     true
@@ -65,7 +59,6 @@ class GrootActionExecutor(
                 "STOP_TIMER", "RESET_TIMER" -> {
                     withContext(Dispatchers.Main) {
                         FocusTimerService.resetTimer(context)
-                        FlowDeviceAdminReceiver.removeDeviceAdmin(context)
                     }
                     true
                 }
@@ -75,16 +68,12 @@ class GrootActionExecutor(
                         if (!FocusBlockerAccessibilityService.isAccessibilityServiceEnabled(context)) {
                             FocusBlockerAccessibilityService.openAccessibilitySettings(context)
                         }
-                        if (FocusTimerService.timerStateFlow.value.isUninstallLock) {
-                            FlowDeviceAdminReceiver.requireDeviceAdmin(context)
-                        }
                     }
                     true
                 }
                 "DISABLE_STRICT_MODE" -> {
                     withContext(Dispatchers.Main) {
                         FocusTimerService.setStrictFocus(context, false)
-                        FlowDeviceAdminReceiver.removeDeviceAdmin(context)
                     }
                     true
                 }

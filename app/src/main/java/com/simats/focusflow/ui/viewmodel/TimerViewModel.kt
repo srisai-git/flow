@@ -8,7 +8,6 @@ import com.simats.focusflow.data.local.FocusSessionDatabase
 import com.simats.focusflow.data.models.FocusSessionRecord
 import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.session.SessionManager
-import com.simats.focusflow.service.FlowDeviceAdminReceiver
 import com.simats.focusflow.service.FocusTimerService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -114,20 +113,10 @@ class TimerViewModel(
         }
     }
 
-    private val _isUninstallLockEnabled = MutableStateFlow(false)
-    val isUninstallLockEnabled: StateFlow<Boolean> = _isUninstallLockEnabled.asStateFlow()
-
     fun initSessionManager(context: Context, manager: SessionManager) {
         this.appContext = context.applicationContext
         this.sessionManager = manager
         ProductivityRepository.init(context)
-        viewModelScope.launch(Dispatchers.IO) {
-            manager.uninstallLockEnabledFlow.collect { enabled ->
-                withContext(Dispatchers.Main) {
-                    _isUninstallLockEnabled.value = enabled
-                }
-            }
-        }
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val session = manager.userSessionFlow.first()
@@ -144,13 +133,6 @@ class TimerViewModel(
     fun initSessionManager(manager: SessionManager) {
         this.sessionManager = manager
         viewModelScope.launch(Dispatchers.IO) {
-            manager.uninstallLockEnabledFlow.collect { enabled ->
-                withContext(Dispatchers.Main) {
-                    _isUninstallLockEnabled.value = enabled
-                }
-            }
-        }
-        viewModelScope.launch(Dispatchers.IO) {
             try {
                 val session = manager.userSessionFlow.first()
                 if (session.userId != null && session.userId > 0) {
@@ -160,16 +142,6 @@ class TimerViewModel(
                 android.util.Log.e("TimerViewModel", "Failed to get user session: ${e.message}")
             }
             loadSessionHistory()
-        }
-    }
-
-    fun setUninstallLockEnabled(enabled: Boolean) {
-        _isUninstallLockEnabled.value = enabled
-        viewModelScope.launch(Dispatchers.IO) {
-            sessionManager?.saveUninstallLockEnabled(enabled)
-        }
-        appContext?.let { ctx ->
-            FocusTimerService.setUninstallLock(ctx, enabled)
         }
     }
 
@@ -320,10 +292,6 @@ class TimerViewModel(
             if (_uiState.value.isRunning) {
                 FocusTimerService.pauseTimer(ctx)
             } else {
-                val timerState = FocusTimerService.timerStateFlow.value
-                if (timerState.isStrictFocus && timerState.isUninstallLock && !FlowDeviceAdminReceiver.requireDeviceAdmin(ctx)) {
-                    return
-                }
                 activeSessionId = java.util.UUID.randomUUID().toString()
                 isSessionPersisted.set(false)
                 FocusTimerService.startTimer(ctx, currentUserId)
@@ -332,13 +300,9 @@ class TimerViewModel(
     }
 
     fun startTimer() {
+        activeSessionId = java.util.UUID.randomUUID().toString()
+        isSessionPersisted.set(false)
         appContext?.let { ctx ->
-            val timerState = FocusTimerService.timerStateFlow.value
-            if (timerState.isStrictFocus && timerState.isUninstallLock && !FlowDeviceAdminReceiver.requireDeviceAdmin(ctx)) {
-                return
-            }
-            activeSessionId = java.util.UUID.randomUUID().toString()
-            isSessionPersisted.set(false)
             FocusTimerService.startTimer(ctx, currentUserId)
         }
     }
@@ -352,7 +316,6 @@ class TimerViewModel(
     fun resetTimer() {
         appContext?.let { ctx ->
             FocusTimerService.resetTimer(ctx)
-            FlowDeviceAdminReceiver.removeDeviceAdmin(ctx)
         }
     }
 
@@ -360,7 +323,6 @@ class TimerViewModel(
         try {
             appContext?.let { ctx ->
                 FocusTimerService.skipBreak(ctx)
-                FlowDeviceAdminReceiver.removeDeviceAdmin(ctx)
             } ?: run {
                 FocusTimerService.skipBreak(null)
             }
@@ -371,7 +333,6 @@ class TimerViewModel(
         try {
             appContext?.let { ctx ->
                 FocusTimerService.skipSession(ctx)
-                FlowDeviceAdminReceiver.removeDeviceAdmin(ctx)
             } ?: run {
                 FocusTimerService.skipSession(null)
             }
