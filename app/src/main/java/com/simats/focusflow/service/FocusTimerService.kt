@@ -275,6 +275,13 @@ class FocusTimerService : Service() {
             ACTION_SET_STRICT_FOCUS -> {
                 val enabled = intent.getBooleanExtra(EXTRA_STRICT_FOCUS, false)
                 _timerStateFlow.update { it.copy(isStrictFocus = enabled) }
+                if (enabled) {
+                    if (!FlowDeviceAdminReceiver.isDeviceAdminActive(applicationContext)) {
+                        FlowDeviceAdminReceiver.requestDeviceAdmin(applicationContext)
+                    }
+                } else {
+                    FlowDeviceAdminReceiver.removeDeviceAdmin(applicationContext)
+                }
             }
             ACTION_STOP_SERVICE -> handleStopService()
         }
@@ -303,6 +310,11 @@ class FocusTimerService : Service() {
 
         startForegroundWithNotification()
         startTickerLoop()
+        if (_timerStateFlow.value.currentMode == TimerMode.FOCUS && _timerStateFlow.value.isStrictFocus) {
+            if (!FlowDeviceAdminReceiver.isDeviceAdminActive(applicationContext)) {
+                FlowDeviceAdminReceiver.requestDeviceAdmin(applicationContext)
+            }
+        }
     }
 
     private fun handleResume() {
@@ -325,6 +337,11 @@ class FocusTimerService : Service() {
 
         startForegroundWithNotification()
         startTickerLoop()
+        if (_timerStateFlow.value.currentMode == TimerMode.FOCUS && _timerStateFlow.value.isStrictFocus) {
+            if (!FlowDeviceAdminReceiver.isDeviceAdminActive(applicationContext)) {
+                FlowDeviceAdminReceiver.requestDeviceAdmin(applicationContext)
+            }
+        }
     }
 
     private fun handlePause() {
@@ -378,6 +395,7 @@ class FocusTimerService : Service() {
                 toastMessage = "Timer reset to ${current.getDurationMinutes()}m"
             )
         }
+        FlowDeviceAdminReceiver.removeDeviceAdmin(applicationContext)
         dismissOngoingNotificationAndStop()
     }
 
@@ -404,6 +422,7 @@ class FocusTimerService : Service() {
                 toastMessage = "Switched to ${nextMode.title}"
             )
         }
+        FlowDeviceAdminReceiver.removeDeviceAdmin(applicationContext)
         dismissOngoingNotificationAndStop()
     }
 
@@ -423,6 +442,7 @@ class FocusTimerService : Service() {
                 toastMessage = null
             )
         }
+        FlowDeviceAdminReceiver.removeDeviceAdmin(applicationContext)
         if (isForegroundActive) {
             dismissOngoingNotificationAndStop()
         }
@@ -467,6 +487,7 @@ class FocusTimerService : Service() {
                 isStrictFocus = false
             )
         }
+        FlowDeviceAdminReceiver.removeDeviceAdmin(applicationContext)
         dismissOngoingNotificationAndStop()
     }
 
@@ -535,6 +556,7 @@ class FocusTimerService : Service() {
 
     private fun onTimerFinished() {
         triggerCompletionAlert()
+        FlowDeviceAdminReceiver.removeDeviceAdmin(applicationContext)
 
         val current = _timerStateFlow.value
         val completedMode = current.currentMode
@@ -610,6 +632,7 @@ class FocusTimerService : Service() {
         super.onDestroy()
         tickerJob?.cancel()
         serviceJob.cancel()
+        FlowDeviceAdminReceiver.removeDeviceAdmin(applicationContext)
         try {
             if (isForegroundActive) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {

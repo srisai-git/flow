@@ -432,6 +432,9 @@ fun TimerScreen(
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         } else {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            if (isStrictFocus && !com.simats.focusflow.service.FlowDeviceAdminReceiver.isDeviceAdminActive(context)) {
+                                com.simats.focusflow.service.FlowDeviceAdminReceiver.requestDeviceAdmin(context)
+                            }
                         }
                         viewModel.toggleStartPause()
                     },
@@ -588,9 +591,13 @@ fun TimerScreen(
                                     if (!com.simats.focusflow.service.FocusBlockerAccessibilityService.isAccessibilityServiceEnabled(context)) {
                                         com.simats.focusflow.service.FocusBlockerAccessibilityService.openAccessibilitySettings(context)
                                     }
+                                    if (!com.simats.focusflow.service.FlowDeviceAdminReceiver.isDeviceAdminActive(context)) {
+                                        com.simats.focusflow.service.FlowDeviceAdminReceiver.requestDeviceAdmin(context)
+                                    }
                                 } else {
                                     isStrictFocus = false
                                     com.simats.focusflow.service.FocusTimerService.setStrictFocus(context, false)
+                                    com.simats.focusflow.service.FlowDeviceAdminReceiver.removeDeviceAdmin(context)
                                 }
                             },
                             colors = SwitchDefaults.colors(
@@ -871,6 +878,9 @@ fun TimerScreen(
                             isStrictFocus = true
                             com.simats.focusflow.service.FocusTimerService.setStrictFocus(context, true)
                             com.simats.focusflow.utils.UsageStatsHelper.openUsageAccessSettings(context)
+                            if (!com.simats.focusflow.service.FlowDeviceAdminReceiver.isDeviceAdminActive(context)) {
+                                com.simats.focusflow.service.FlowDeviceAdminReceiver.requestDeviceAdmin(context)
+                            }
                         }
                     ) {
                         Text("Grant Permission", color = colors.primary, fontWeight = FontWeight.Bold)
@@ -882,6 +892,7 @@ fun TimerScreen(
                             showUsagePermissionDialog = false
                             isStrictFocus = false
                             com.simats.focusflow.service.FocusTimerService.setStrictFocus(context, false)
+                            com.simats.focusflow.service.FlowDeviceAdminReceiver.removeDeviceAdmin(context)
                         }
                     ) {
                         Text("Cancel", color = colors.textMuted)

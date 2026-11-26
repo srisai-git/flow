@@ -1,0 +1,49 @@
+package com.simats.focusflow.service
+
+import android.app.admin.DeviceAdminReceiver
+import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+
+class FlowDeviceAdminReceiver : DeviceAdminReceiver() {
+
+    companion object {
+        fun getComponentName(context: Context): ComponentName {
+            return ComponentName(context.applicationContext, FlowDeviceAdminReceiver::class.java)
+        }
+
+        fun isDeviceAdminActive(context: Context): Boolean {
+            val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as? DevicePolicyManager ?: return false
+            return dpm.isAdminActive(getComponentName(context))
+        }
+
+        fun requestDeviceAdmin(context: Context) {
+            val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as? DevicePolicyManager ?: return
+            val component = getComponentName(context)
+            if (!dpm.isAdminActive(component)) {
+                val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
+                    putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, component)
+                    putExtra(
+                        DevicePolicyManager.EXTRA_ADD_EXPLANATION,
+                        "Prevents uninstalling Flow until your focus session completes"
+                    )
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                try {
+                    context.startActivity(intent)
+                } catch (_: Exception) {}
+            }
+        }
+
+        fun removeDeviceAdmin(context: Context) {
+            val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as? DevicePolicyManager ?: return
+            val component = getComponentName(context)
+            if (dpm.isAdminActive(component)) {
+                try {
+                    dpm.removeActiveAdmin(component)
+                } catch (_: Exception) {}
+            }
+        }
+    }
+}

@@ -8,6 +8,7 @@ import com.simats.focusflow.data.local.FocusSessionDatabase
 import com.simats.focusflow.data.models.FocusSessionRecord
 import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.session.SessionManager
+import com.simats.focusflow.service.FlowDeviceAdminReceiver
 import com.simats.focusflow.service.FocusTimerService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -294,6 +295,11 @@ class TimerViewModel(
             } else {
                 activeSessionId = java.util.UUID.randomUUID().toString()
                 isSessionPersisted.set(false)
+                if (FocusTimerService.timerStateFlow.value.isStrictFocus) {
+                    if (!FlowDeviceAdminReceiver.isDeviceAdminActive(ctx)) {
+                        FlowDeviceAdminReceiver.requestDeviceAdmin(ctx)
+                    }
+                }
                 FocusTimerService.startTimer(ctx, currentUserId)
             }
         }
@@ -303,6 +309,11 @@ class TimerViewModel(
         activeSessionId = java.util.UUID.randomUUID().toString()
         isSessionPersisted.set(false)
         appContext?.let { ctx ->
+            if (FocusTimerService.timerStateFlow.value.isStrictFocus) {
+                if (!FlowDeviceAdminReceiver.isDeviceAdminActive(ctx)) {
+                    FlowDeviceAdminReceiver.requestDeviceAdmin(ctx)
+                }
+            }
             FocusTimerService.startTimer(ctx, currentUserId)
         }
     }
@@ -316,6 +327,7 @@ class TimerViewModel(
     fun resetTimer() {
         appContext?.let { ctx ->
             FocusTimerService.resetTimer(ctx)
+            FlowDeviceAdminReceiver.removeDeviceAdmin(ctx)
         }
     }
 
@@ -323,6 +335,7 @@ class TimerViewModel(
         try {
             appContext?.let { ctx ->
                 FocusTimerService.skipBreak(ctx)
+                FlowDeviceAdminReceiver.removeDeviceAdmin(ctx)
             } ?: run {
                 FocusTimerService.skipBreak(null)
             }
@@ -333,6 +346,7 @@ class TimerViewModel(
         try {
             appContext?.let { ctx ->
                 FocusTimerService.skipSession(ctx)
+                FlowDeviceAdminReceiver.removeDeviceAdmin(ctx)
             } ?: run {
                 FocusTimerService.skipSession(null)
             }

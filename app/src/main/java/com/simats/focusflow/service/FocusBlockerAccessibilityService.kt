@@ -45,8 +45,8 @@ class FocusBlockerAccessibilityService : AccessibilityService() {
         val rootPkg = try { rootInActiveWindow?.packageName?.toString() } catch (_: Exception) { null }
 
         val targetPkg = when {
-            rootPkg != null && !isAllowedPackage(rootPkg) && blockedAppsManager.isAppBlocked(rootPkg) -> rootPkg
-            eventPkg != null && !isAllowedPackage(eventPkg) && blockedAppsManager.isAppBlocked(eventPkg) -> eventPkg
+            rootPkg != null && isBlockedPackage(rootPkg, blockedAppsManager) -> rootPkg
+            eventPkg != null && isBlockedPackage(eventPkg, blockedAppsManager) -> eventPkg
             else -> null
         }
 
@@ -55,14 +55,14 @@ class FocusBlockerAccessibilityService : AccessibilityService() {
 
             handler.postDelayed({
                 val activePkg = try { rootInActiveWindow?.packageName?.toString() } catch (_: Exception) { null }
-                if (activePkg != null && !isAllowedPackage(activePkg) && blockedAppsManager.isAppBlocked(activePkg)) {
+                if (activePkg != null && isBlockedPackage(activePkg, blockedAppsManager)) {
                     performGlobalAction(GLOBAL_ACTION_HOME)
                 }
             }, 150L)
 
             handler.postDelayed({
                 val activePkg = try { rootInActiveWindow?.packageName?.toString() } catch (_: Exception) { null }
-                if (activePkg != null && !isAllowedPackage(activePkg) && blockedAppsManager.isAppBlocked(activePkg)) {
+                if (activePkg != null && isBlockedPackage(activePkg, blockedAppsManager)) {
                     performGlobalAction(GLOBAL_ACTION_HOME)
                 }
             }, 350L)
@@ -71,7 +71,9 @@ class FocusBlockerAccessibilityService : AccessibilityService() {
             if (now - lastLogTimestamp > 15000L) {
                 lastLogTimestamp = now
                 val activeUid = timerState.activeUserId
-                val appLabel = UsageStatsHelper.getAppLabel(applicationContext, targetPkg)
+                val appLabel = if (targetPkg == "com.android.settings") "Settings"
+                    else if (targetPkg == "com.android.vending") "Google Play Store"
+                    else UsageStatsHelper.getAppLabel(applicationContext, targetPkg)
                 val cat = UsageStatsHelper.categorizePackage(targetPkg, appLabel, applicationContext)
                 serviceScope.launch(Dispatchers.IO) {
                     repository.logDistraction(
@@ -85,9 +87,18 @@ class FocusBlockerAccessibilityService : AccessibilityService() {
         }
     }
 
+    private fun isBlockedPackage(pkg: String, blockedAppsManager: BlockedAppsManager): Boolean {
+        if (pkg == applicationContext.packageName) return false
+        if (pkg == "com.android.systemui") return false
+        if (pkg == "com.android.settings" || pkg == "com.android.vending") return true
+        if (BlockedAppsManager.isSystemOrEssentialPackage(applicationContext, pkg)) return false
+        return blockedAppsManager.isAppBlocked(pkg)
+    }
+
     private fun isAllowedPackage(pkg: String): Boolean {
         if (pkg == applicationContext.packageName) return true
         if (pkg == "com.android.systemui") return true
+        if (pkg == "com.android.settings" || pkg == "com.android.vending") return false
         if (BlockedAppsManager.isSystemOrEssentialPackage(applicationContext, pkg)) return true
         return false
     }
