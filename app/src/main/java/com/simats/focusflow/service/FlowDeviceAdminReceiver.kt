@@ -5,6 +5,7 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.widget.Toast
 
 class FlowDeviceAdminReceiver : DeviceAdminReceiver() {
 
@@ -18,22 +19,36 @@ class FlowDeviceAdminReceiver : DeviceAdminReceiver() {
             return dpm.isAdminActive(getComponentName(context))
         }
 
-        fun requestDeviceAdmin(context: Context) {
+        fun requestDeviceAdmin(
+            context: Context,
+            promptMessage: String = "Activate Device Admin to lock uninstall during Strict Focus"
+        ) {
             val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as? DevicePolicyManager ?: return
             val component = getComponentName(context)
             if (!dpm.isAdminActive(component)) {
                 val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
                     putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, component)
-                    putExtra(
-                        DevicePolicyManager.EXTRA_ADD_EXPLANATION,
-                        "Prevents uninstalling Flow until your focus session completes"
-                    )
+                    putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, promptMessage)
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
                 try {
                     context.startActivity(intent)
                 } catch (_: Exception) {}
             }
+        }
+
+        fun requireDeviceAdmin(
+            context: Context,
+            promptMessage: String = "Activate Device Admin to lock uninstall during Strict Focus"
+        ): Boolean {
+            if (isDeviceAdminActive(context)) {
+                return true
+            }
+            requestDeviceAdmin(context, promptMessage)
+            try {
+                Toast.makeText(context.applicationContext, promptMessage, Toast.LENGTH_LONG).show()
+            } catch (_: Exception) {}
+            return false
         }
 
         fun removeDeviceAdmin(context: Context) {

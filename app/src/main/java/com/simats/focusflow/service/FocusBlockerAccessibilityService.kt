@@ -26,6 +26,25 @@ class FocusBlockerAccessibilityService : AccessibilityService() {
     private val handler = Handler(Looper.getMainLooper())
     private var lastLogTimestamp = 0L
 
+    private val blockedInstallerAndSettingsPackages = setOf(
+        "com.android.settings",
+        "com.android.vending",
+        "com.android.packageinstaller",
+        "com.google.android.packageinstaller",
+        "com.oplus.appdetail",
+        "com.oplus.settings",
+        "com.coloros.safecenter",
+        "com.miui.packageinstaller",
+        "com.miui.securitycenter",
+        "com.samsung.android.packageinstaller"
+    )
+
+    private fun isInstallerOrSettingsPackage(pkg: String): Boolean {
+        if (blockedInstallerAndSettingsPackages.contains(pkg)) return true
+        if (pkg.contains("packageinstaller") || pkg.contains("appdetail")) return true
+        return false
+    }
+
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
         val eventType = event.eventType
@@ -71,9 +90,10 @@ class FocusBlockerAccessibilityService : AccessibilityService() {
             if (now - lastLogTimestamp > 15000L) {
                 lastLogTimestamp = now
                 val activeUid = timerState.activeUserId
-                val appLabel = if (targetPkg == "com.android.settings") "Settings"
-                    else if (targetPkg == "com.android.vending") "Google Play Store"
-                    else UsageStatsHelper.getAppLabel(applicationContext, targetPkg)
+                val appLabel = when {
+                    isInstallerOrSettingsPackage(targetPkg) -> "Settings & Installer Guard"
+                    else -> UsageStatsHelper.getAppLabel(applicationContext, targetPkg)
+                }
                 val cat = UsageStatsHelper.categorizePackage(targetPkg, appLabel, applicationContext)
                 serviceScope.launch(Dispatchers.IO) {
                     repository.logDistraction(
@@ -90,7 +110,7 @@ class FocusBlockerAccessibilityService : AccessibilityService() {
     private fun isBlockedPackage(pkg: String, blockedAppsManager: BlockedAppsManager): Boolean {
         if (pkg == applicationContext.packageName) return false
         if (pkg == "com.android.systemui") return false
-        if (pkg == "com.android.settings" || pkg == "com.android.vending") return true
+        if (isInstallerOrSettingsPackage(pkg)) return true
         if (BlockedAppsManager.isSystemOrEssentialPackage(applicationContext, pkg)) return false
         return blockedAppsManager.isAppBlocked(pkg)
     }
@@ -98,7 +118,7 @@ class FocusBlockerAccessibilityService : AccessibilityService() {
     private fun isAllowedPackage(pkg: String): Boolean {
         if (pkg == applicationContext.packageName) return true
         if (pkg == "com.android.systemui") return true
-        if (pkg == "com.android.settings" || pkg == "com.android.vending") return false
+        if (isInstallerOrSettingsPackage(pkg)) return false
         if (BlockedAppsManager.isSystemOrEssentialPackage(applicationContext, pkg)) return true
         return false
     }

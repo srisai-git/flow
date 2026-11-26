@@ -293,27 +293,23 @@ class TimerViewModel(
             if (_uiState.value.isRunning) {
                 FocusTimerService.pauseTimer(ctx)
             } else {
+                if (FocusTimerService.timerStateFlow.value.isStrictFocus && !FlowDeviceAdminReceiver.requireDeviceAdmin(ctx)) {
+                    return
+                }
                 activeSessionId = java.util.UUID.randomUUID().toString()
                 isSessionPersisted.set(false)
-                if (FocusTimerService.timerStateFlow.value.isStrictFocus) {
-                    if (!FlowDeviceAdminReceiver.isDeviceAdminActive(ctx)) {
-                        FlowDeviceAdminReceiver.requestDeviceAdmin(ctx)
-                    }
-                }
                 FocusTimerService.startTimer(ctx, currentUserId)
             }
         }
     }
 
     fun startTimer() {
-        activeSessionId = java.util.UUID.randomUUID().toString()
-        isSessionPersisted.set(false)
         appContext?.let { ctx ->
-            if (FocusTimerService.timerStateFlow.value.isStrictFocus) {
-                if (!FlowDeviceAdminReceiver.isDeviceAdminActive(ctx)) {
-                    FlowDeviceAdminReceiver.requestDeviceAdmin(ctx)
-                }
+            if (FocusTimerService.timerStateFlow.value.isStrictFocus && !FlowDeviceAdminReceiver.requireDeviceAdmin(ctx)) {
+                return
             }
+            activeSessionId = java.util.UUID.randomUUID().toString()
+            isSessionPersisted.set(false)
             FocusTimerService.startTimer(ctx, currentUserId)
         }
     }

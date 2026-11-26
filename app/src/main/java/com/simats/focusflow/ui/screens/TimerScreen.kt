@@ -432,8 +432,8 @@ fun TimerScreen(
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         } else {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            if (isStrictFocus && !com.simats.focusflow.service.FlowDeviceAdminReceiver.isDeviceAdminActive(context)) {
-                                com.simats.focusflow.service.FlowDeviceAdminReceiver.requestDeviceAdmin(context)
+                            if (isStrictFocus && !com.simats.focusflow.service.FlowDeviceAdminReceiver.requireDeviceAdmin(context)) {
+                                return@Surface
                             }
                         }
                         viewModel.toggleStartPause()
@@ -585,14 +585,12 @@ fun TimerScreen(
                             checked = isStrictFocus,
                             onCheckedChange = { checked ->
                                 if (checked) {
+                                    val adminActive = com.simats.focusflow.service.FlowDeviceAdminReceiver.requireDeviceAdmin(context)
                                     isStrictFocus = true
                                     com.simats.focusflow.service.FocusTimerService.setStrictFocus(context, true)
                                     refreshPermissions()
                                     if (!com.simats.focusflow.service.FocusBlockerAccessibilityService.isAccessibilityServiceEnabled(context)) {
                                         com.simats.focusflow.service.FocusBlockerAccessibilityService.openAccessibilitySettings(context)
-                                    }
-                                    if (!com.simats.focusflow.service.FlowDeviceAdminReceiver.isDeviceAdminActive(context)) {
-                                        com.simats.focusflow.service.FlowDeviceAdminReceiver.requestDeviceAdmin(context)
                                     }
                                 } else {
                                     isStrictFocus = false
@@ -878,9 +876,7 @@ fun TimerScreen(
                             isStrictFocus = true
                             com.simats.focusflow.service.FocusTimerService.setStrictFocus(context, true)
                             com.simats.focusflow.utils.UsageStatsHelper.openUsageAccessSettings(context)
-                            if (!com.simats.focusflow.service.FlowDeviceAdminReceiver.isDeviceAdminActive(context)) {
-                                com.simats.focusflow.service.FlowDeviceAdminReceiver.requestDeviceAdmin(context)
-                            }
+                            com.simats.focusflow.service.FlowDeviceAdminReceiver.requireDeviceAdmin(context)
                         }
                     ) {
                         Text("Grant Permission", color = colors.primary, fontWeight = FontWeight.Bold)

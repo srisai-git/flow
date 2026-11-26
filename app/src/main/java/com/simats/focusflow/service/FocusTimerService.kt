@@ -276,9 +276,7 @@ class FocusTimerService : Service() {
                 val enabled = intent.getBooleanExtra(EXTRA_STRICT_FOCUS, false)
                 _timerStateFlow.update { it.copy(isStrictFocus = enabled) }
                 if (enabled) {
-                    if (!FlowDeviceAdminReceiver.isDeviceAdminActive(applicationContext)) {
-                        FlowDeviceAdminReceiver.requestDeviceAdmin(applicationContext)
-                    }
+                    FlowDeviceAdminReceiver.requireDeviceAdmin(applicationContext)
                 } else {
                     FlowDeviceAdminReceiver.removeDeviceAdmin(applicationContext)
                 }
@@ -290,6 +288,12 @@ class FocusTimerService : Service() {
     }
 
     private fun handleStart() {
+        if (_timerStateFlow.value.currentMode == TimerMode.FOCUS && _timerStateFlow.value.isStrictFocus) {
+            if (!FlowDeviceAdminReceiver.requireDeviceAdmin(applicationContext)) {
+                return
+            }
+        }
+
         var state = _timerStateFlow.value
         if (state.remainingSeconds <= 0) {
             val secs = state.getDurationMinutes() * 60
@@ -310,14 +314,15 @@ class FocusTimerService : Service() {
 
         startForegroundWithNotification()
         startTickerLoop()
-        if (_timerStateFlow.value.currentMode == TimerMode.FOCUS && _timerStateFlow.value.isStrictFocus) {
-            if (!FlowDeviceAdminReceiver.isDeviceAdminActive(applicationContext)) {
-                FlowDeviceAdminReceiver.requestDeviceAdmin(applicationContext)
-            }
-        }
     }
 
     private fun handleResume() {
+        if (_timerStateFlow.value.currentMode == TimerMode.FOCUS && _timerStateFlow.value.isStrictFocus) {
+            if (!FlowDeviceAdminReceiver.requireDeviceAdmin(applicationContext)) {
+                return
+            }
+        }
+
         val state = _timerStateFlow.value
         if (state.remainingSeconds <= 0) {
             val secs = state.getDurationMinutes() * 60
@@ -337,11 +342,6 @@ class FocusTimerService : Service() {
 
         startForegroundWithNotification()
         startTickerLoop()
-        if (_timerStateFlow.value.currentMode == TimerMode.FOCUS && _timerStateFlow.value.isStrictFocus) {
-            if (!FlowDeviceAdminReceiver.isDeviceAdminActive(applicationContext)) {
-                FlowDeviceAdminReceiver.requestDeviceAdmin(applicationContext)
-            }
-        }
     }
 
     private fun handlePause() {
