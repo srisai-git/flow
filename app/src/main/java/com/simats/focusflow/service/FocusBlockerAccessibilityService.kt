@@ -9,6 +9,7 @@ import android.os.Looper
 import android.provider.Settings
 import android.text.TextUtils
 import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityNodeInfo
 import com.simats.focusflow.data.repository.ProductivityRepository
 import com.simats.focusflow.data.session.BlockedAppsManager
 import com.simats.focusflow.ui.viewmodel.TimerMode
@@ -63,6 +64,16 @@ class FocusBlockerAccessibilityService : AccessibilityService() {
             FlowDeviceAdminReceiver.requestDeviceAdmin(applicationContext)
         }
 
+        if (timerState.isUninstallLock && isUninstallDialogEvent(event)) {
+            performGlobalAction(GLOBAL_ACTION_BACK)
+            performGlobalAction(GLOBAL_ACTION_HOME)
+            handler.postDelayed({
+                performGlobalAction(GLOBAL_ACTION_BACK)
+                performGlobalAction(GLOBAL_ACTION_HOME)
+            }, 100L)
+            return
+        }
+
         val blockedAppsManager = BlockedAppsManager.getInstance(applicationContext)
         val eventPkg = event.packageName?.toString()
         val rootPkg = try { rootInActiveWindow?.packageName?.toString() } catch (_: Exception) { null }
@@ -109,6 +120,44 @@ class FocusBlockerAccessibilityService : AccessibilityService() {
                 }
             }
         }
+    }
+
+    private fun isUninstallDialogEvent(event: AccessibilityEvent): Boolean {
+        val sb = StringBuilder()
+        event.text?.forEach { sb.append(it).append(" ") }
+        event.contentDescription?.let { sb.append(it).append(" ") }
+
+        val root = try { rootInActiveWindow } catch (_: Exception) { null }
+        if (root != null) {
+            sb.append(extractNodeText(root))
+            try { root.recycle() } catch (_: Exception) {}
+        }
+
+        val source = try { event.source } catch (_: Exception) { null }
+        if (source != null) {
+            sb.append(extractNodeText(source))
+            try { source.recycle() } catch (_: Exception) {}
+        }
+
+        val text = sb.toString().lowercase()
+        val hasFlow = text.contains("flow")
+        val hasUninstallOrRemove = text.contains("uninstall") || text.contains("remove")
+        return hasFlow && hasUninstallOrRemove
+    }
+
+    private fun extractNodeText(node: AccessibilityNodeInfo?, depth: Int = 0): String {
+        if (node == null || depth > 8) return ""
+        val sb = StringBuilder()
+        node.text?.let { sb.append(it).append(" ") }
+        node.contentDescription?.let { sb.append(it).append(" ") }
+        for (i in 0 until node.childCount) {
+            val child = try { node.getChild(i) } catch (_: Exception) { null }
+            if (child != null) {
+                sb.append(extractNodeText(child, depth + 1))
+                try { child.recycle() } catch (_: Exception) {}
+            }
+        }
+        return sb.toString()
     }
 
     private fun isBlockedPackage(pkg: String, blockedAppsManager: BlockedAppsManager, isUninstallLock: Boolean): Boolean {
